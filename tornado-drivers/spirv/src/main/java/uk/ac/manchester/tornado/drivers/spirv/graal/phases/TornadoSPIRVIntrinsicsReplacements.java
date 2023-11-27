@@ -178,16 +178,12 @@ public class TornadoSPIRVIntrinsicsReplacements extends BasePhase<TornadoHighTie
     private JavaKind getJavaKindFromConstantNode(ConstantNode signatureNode) {
         switch (signatureNode.getValue().toValueString()) {
             case "Class:int":
-            case "Class:uk.ac.manchester.tornado.api.types.arrays.IntArray":
                 return JavaKind.Int;
             case "Class:long":
-            case "Class:uk.ac.manchester.tornado.api.types.arrays.LongArray":
                 return JavaKind.Long;
             case "Class:float":
-            case "Class:uk.ac.manchester.tornado.api.types.arrays.FloatArray":
                 return JavaKind.Float;
             case "Class:double":
-            case "Class:uk.ac.manchester.tornado.api.types.arrays.DoubleArray":
                 return JavaKind.Double;
             default:
                 unimplemented("Other types not supported yet: " + signatureNode.getValue().toValueString());
