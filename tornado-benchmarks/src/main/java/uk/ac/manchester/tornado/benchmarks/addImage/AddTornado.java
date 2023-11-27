@@ -22,9 +22,9 @@ import java.util.stream.IntStream;
 
 import uk.ac.manchester.tornado.api.TaskGraph;
 import uk.ac.manchester.tornado.api.TornadoExecutionPlan;
-import uk.ac.manchester.tornado.api.collections.types.Float4;
-import uk.ac.manchester.tornado.api.collections.types.FloatOps;
-import uk.ac.manchester.tornado.api.collections.types.ImageFloat4;
+import uk.ac.manchester.tornado.api.types.vectors.Float4;
+import uk.ac.manchester.tornado.api.types.utils.FloatOps;
+import uk.ac.manchester.tornado.api.types.images.ImageFloat4;
 import uk.ac.manchester.tornado.api.common.TornadoDevice;
 import uk.ac.manchester.tornado.api.enums.DataTransferMode;
 import uk.ac.manchester.tornado.api.runtime.TornadoRuntime;

@@ -12,7 +12,7 @@
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
  * version 2 for more details (a copy is included in the LICENSE file that
  * accompanied this code).
  *
@@ -33,12 +33,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jdk.vm.ci.meta.JavaKind;
-import uk.ac.manchester.tornado.api.collections.types.PrimitiveStorage;
+import uk.ac.manchester.tornado.api.types.common.PrimitiveStorage;
 import uk.ac.manchester.tornado.api.exceptions.TornadoInternalError;
 import uk.ac.manchester.tornado.api.exceptions.TornadoMemoryException;
 import uk.ac.manchester.tornado.api.exceptions.TornadoRuntimeException;
 import uk.ac.manchester.tornado.api.memory.ObjectBuffer;
-import uk.ac.manchester.tornado.api.type.annotations.Payload;
+import uk.ac.manchester.tornado.api.internal.annotations.Payload;
 import uk.ac.manchester.tornado.drivers.opencl.OCLDeviceContext;
 import uk.ac.manchester.tornado.runtime.common.Tornado;
 import uk.ac.manchester.tornado.runtime.utils.TornadoUtils;
@@ -140,15 +140,15 @@ public class OCLVectorWrapper implements ObjectBuffer {
      * Copy data from the device to the main host.
      *
      * @param bufferId
-     *            Device Buffer ID
+     *     Device Buffer ID
      * @param offset
-     *            Offset within the device buffer
+     *     Offset within the device buffer
      * @param bytes
-     *            Bytes to be copied back to the host
+     *     Bytes to be copied back to the host
      * @param value
-     *            Host array that resides the final data
+     *     Host array that resides the final data
      * @param waitEvents
-     *            List of events to wait for.
+     *     List of events to wait for.
      * @return Event information
      */
     private int enqueueReadArrayData(long bufferId, long offset, long bytes, Object value, long hostOffset, int[] waitEvents) {

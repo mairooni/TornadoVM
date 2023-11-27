@@ -12,7 +12,7 @@
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
  * version 2 for more details (a copy is included in the LICENSE file that
  * accompanied this code).
  *
@@ -43,7 +43,7 @@ import uk.ac.manchester.tornado.api.memory.TornadoDeviceObjectState;
 import uk.ac.manchester.tornado.api.memory.TornadoMemoryProvider;
 import uk.ac.manchester.tornado.api.profiler.ProfilerType;
 import uk.ac.manchester.tornado.api.profiler.TornadoProfiler;
-import uk.ac.manchester.tornado.api.type.annotations.Vector;
+import uk.ac.manchester.tornado.api.internal.annotations.Vector;
 import uk.ac.manchester.tornado.drivers.common.TornadoBufferProvider;
 import uk.ac.manchester.tornado.drivers.opencl.mm.AtomicsBuffer;
 import uk.ac.manchester.tornado.drivers.spirv.SPIRVBackend;
@@ -372,18 +372,18 @@ public class SPIRVTornadoDevice implements TornadoAcceleratorDevice {
      * It allocates and copy in the content of the object to the target device.
      *
      * @param object
-     *            to be allocated
+     *     to be allocated
      * @param objectState
-     *            state of the object in the target device
-     *            {@link TornadoDeviceObjectState}
+     *     state of the object in the target device
+     *     {@link TornadoDeviceObjectState}
      * @param events
-     *            list of pending events (dependencies)
+     *     list of pending events (dependencies)
      * @param batchSize
-     *            size of the object to be allocated. If this value is <= 0, then it
-     *            allocates the sizeof(object).
+     *     size of the object to be allocated. If this value is <= 0, then it
+     *     allocates the sizeof(object).
      * @param offset
-     *            offset in bytes for the copy within the host input array (or
-     *            object)
+     *     offset in bytes for the copy within the host input array (or
+     *     object)
      * @return A list of event IDs
      */
     @Override

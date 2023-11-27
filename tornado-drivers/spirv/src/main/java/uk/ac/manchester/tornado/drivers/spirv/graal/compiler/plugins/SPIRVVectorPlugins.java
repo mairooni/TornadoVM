@@ -12,7 +12,7 @@
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
  * version 2 for more details (a copy is included in the LICENSE file that
  * accompanied this code).
  *
@@ -45,7 +45,7 @@ import org.graalvm.compiler.nodes.memory.address.OffsetAddressNode;
 import jdk.vm.ci.meta.JavaKind;
 import jdk.vm.ci.meta.ResolvedJavaMethod;
 import jdk.vm.ci.meta.ResolvedJavaType;
-import uk.ac.manchester.tornado.api.type.annotations.Vector;
+import uk.ac.manchester.tornado.api.internal.annotations.Vector;
 import uk.ac.manchester.tornado.drivers.spirv.graal.SPIRVStampFactory;
 import uk.ac.manchester.tornado.drivers.spirv.graal.lir.SPIRVKind;
 import uk.ac.manchester.tornado.drivers.spirv.graal.nodes.vector.GetArrayNode;
@@ -251,7 +251,7 @@ public class SPIRVVectorPlugins {
      * to the parameter node.
      *
      * @param plugins
-     *            {@link Plugins}
+     *     {@link Plugins}
      */
     public static void registerParameterPlugins(Plugins plugins) {
         plugins.appendParameterPlugin((GraphBuilderTool tool, int index, StampPair stampPair) -> {

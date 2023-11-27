@@ -12,7 +12,7 @@
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
  * version 2 for more details (a copy is included in the LICENSE file that
  * accompanied this code).
  *
@@ -44,7 +44,6 @@ import uk.ac.manchester.tornado.api.common.SchedulableTask;
 import uk.ac.manchester.tornado.api.enums.TornadoDeviceType;
 import uk.ac.manchester.tornado.api.enums.TornadoVMBackendType;
 import uk.ac.manchester.tornado.api.exceptions.TornadoBailoutRuntimeException;
-import uk.ac.manchester.tornado.api.exceptions.TornadoDeviceFP64NotSupported;
 import uk.ac.manchester.tornado.api.exceptions.TornadoInternalError;
 import uk.ac.manchester.tornado.api.exceptions.TornadoRuntimeException;
 import uk.ac.manchester.tornado.api.memory.ObjectBuffer;
@@ -53,7 +52,7 @@ import uk.ac.manchester.tornado.api.memory.TornadoDeviceObjectState;
 import uk.ac.manchester.tornado.api.memory.TornadoMemoryProvider;
 import uk.ac.manchester.tornado.api.profiler.ProfilerType;
 import uk.ac.manchester.tornado.api.profiler.TornadoProfiler;
-import uk.ac.manchester.tornado.api.type.annotations.Vector;
+import uk.ac.manchester.tornado.api.internal.annotations.Vector;
 import uk.ac.manchester.tornado.drivers.common.TornadoBufferProvider;
 import uk.ac.manchester.tornado.drivers.opencl.OCLCodeCache;
 import uk.ac.manchester.tornado.drivers.opencl.OCLDeviceContext;
@@ -110,9 +109,9 @@ public class OCLTornadoDevice implements TornadoAcceleratorDevice {
      * Constructor used also in SLAMBench/KFusion
      *
      * @param platformIndex
-     *            OpenCL Platform index
+     *     OpenCL Platform index
      * @param deviceIndex
-     *            OpenCL Device Index
+     *     OpenCL Device Index
      */
     public OCLTornadoDevice(final int platformIndex, final int deviceIndex) {
         this.platformIndex = platformIndex;

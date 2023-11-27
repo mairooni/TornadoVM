@@ -17,14 +17,14 @@
  */
 package uk.ac.manchester.tornado.benchmarks.rotatevector;
 
-import static uk.ac.manchester.tornado.api.collections.types.FloatOps.findMaxULP;
+import static uk.ac.manchester.tornado.api.types.utils.FloatOps.findMaxULP;
 import static uk.ac.manchester.tornado.benchmarks.GraphicsKernels.rotateVector;
 
 import uk.ac.manchester.tornado.api.TaskGraph;
 import uk.ac.manchester.tornado.api.TornadoExecutionPlan;
-import uk.ac.manchester.tornado.api.collections.types.Float3;
-import uk.ac.manchester.tornado.api.collections.types.Matrix4x4Float;
-import uk.ac.manchester.tornado.api.collections.types.VectorFloat3;
+import uk.ac.manchester.tornado.api.types.vectors.Float3;
+import uk.ac.manchester.tornado.api.types.matrix.Matrix4x4Float;
+import uk.ac.manchester.tornado.api.types.collections.VectorFloat3;
 import uk.ac.manchester.tornado.api.common.TornadoDevice;
 import uk.ac.manchester.tornado.api.enums.DataTransferMode;
 import uk.ac.manchester.tornado.api.runtime.TornadoRuntime;

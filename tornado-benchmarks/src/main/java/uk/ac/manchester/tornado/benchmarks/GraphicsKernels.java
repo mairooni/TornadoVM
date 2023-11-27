@@ -1,36 +1,36 @@
 /*
  * Copyright (c) 2013-2020, APT Group, Department of Computer Science,
  * The University of Manchester.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *    http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 package uk.ac.manchester.tornado.benchmarks;
 
-import static uk.ac.manchester.tornado.api.collections.graphics.GraphicsMath.rotate;
-import static uk.ac.manchester.tornado.api.collections.types.Float4.add;
+import static uk.ac.manchester.tornado.api.math.TornadoMath.rotate;
+import static uk.ac.manchester.tornado.api.types.vectors.Float4.add;
 
 import java.util.stream.IntStream;
 
 import uk.ac.manchester.tornado.api.annotations.Parallel;
-import uk.ac.manchester.tornado.api.collections.types.Float3;
-import uk.ac.manchester.tornado.api.collections.types.Float4;
-import uk.ac.manchester.tornado.api.collections.types.ImageFloat;
-import uk.ac.manchester.tornado.api.collections.types.ImageFloat3;
-import uk.ac.manchester.tornado.api.collections.types.ImageFloat4;
-import uk.ac.manchester.tornado.api.collections.types.Matrix4x4Float;
-import uk.ac.manchester.tornado.api.collections.types.VectorFloat3;
-import uk.ac.manchester.tornado.api.collections.types.VectorFloat4;
+import uk.ac.manchester.tornado.api.types.collections.VectorFloat3;
+import uk.ac.manchester.tornado.api.types.collections.VectorFloat4;
+import uk.ac.manchester.tornado.api.types.images.ImageFloat;
+import uk.ac.manchester.tornado.api.types.images.ImageFloat3;
+import uk.ac.manchester.tornado.api.types.images.ImageFloat4;
+import uk.ac.manchester.tornado.api.types.matrix.Matrix4x4Float;
+import uk.ac.manchester.tornado.api.types.vectors.Float3;
+import uk.ac.manchester.tornado.api.types.vectors.Float4;
 
 public final class GraphicsKernels {
     // CHECKSTYLE:OFF
