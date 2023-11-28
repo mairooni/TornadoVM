@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,9 +26,13 @@ import java.util.stream.IntStream;
 
 import org.junit.Test;
 
+import uk.ac.manchester.tornado.api.GridScheduler;
 import uk.ac.manchester.tornado.api.ImmutableTaskGraph;
+import uk.ac.manchester.tornado.api.KernelContext;
 import uk.ac.manchester.tornado.api.TaskGraph;
 import uk.ac.manchester.tornado.api.TornadoExecutionPlan;
+import uk.ac.manchester.tornado.api.WorkerGrid;
+import uk.ac.manchester.tornado.api.WorkerGrid1D;
 import uk.ac.manchester.tornado.api.annotations.Parallel;
 import uk.ac.manchester.tornado.api.enums.DataTransferMode;
 import uk.ac.manchester.tornado.unittests.common.TornadoTestBase;
@@ -38,7 +42,7 @@ import uk.ac.manchester.tornado.unittests.common.TornadoTestBase;
  *
  * <p>
  * <code>
- *     tornado-test -V --fast uk.ac.manchester.tornado.unittests.arrays.TestArrays
+ * tornado-test -V --fast uk.ac.manchester.tornado.unittests.arrays.TestArrays
  * </code>
  * </p>
  */
@@ -73,6 +77,11 @@ public class TestArrays extends TornadoTestBase {
         for (@Parallel int i = 0; i < c.length; i++) {
             c[i] = a[i] + b[i];
         }
+    }
+
+    public static void vectorAddIntegerKernelContext(int[] a, KernelContext context, int[] b, int[] c) {
+        int idx = context.globalIdx;
+        c[idx] = a[idx] + b[idx];
     }
 
     public static void vectorAddShort(short[] a, short[] b, short[] c) {
@@ -326,6 +335,42 @@ public class TestArrays extends TornadoTestBase {
     }
 
     @Test
+    public void testVectorAdditionIntegerKernelContext() {
+        final int numElements = 4096;
+        int[] a = new int[numElements];
+        int[] b = new int[numElements];
+        int[] c = new int[numElements];
+
+        Random r = new Random();
+        IntStream.range(0, numElements).sequential().forEach(i -> {
+            a[i] = r.nextInt();
+            b[i] = r.nextInt();
+        });
+
+        KernelContext context = new KernelContext();
+        WorkerGrid workerGrid = new WorkerGrid1D(numElements);
+        GridScheduler gridScheduler = new GridScheduler();
+        gridScheduler.setWorkerGrid("s0.t0", workerGrid);
+
+        TaskGraph taskGraph = new TaskGraph("s0") //
+                .transferToDevice(DataTransferMode.EVERY_EXECUTION, a, b) //
+                .task("t0", TestArrays::vectorAddIntegerKernelContext, a, context, b, c) //
+                .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
+
+        ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
+        TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph);
+        executionPlan.withGridScheduler(gridScheduler).execute();
+
+        for (int i = 0; i < 10; i++) {
+            executionPlan.execute();
+        }
+
+        for (int i = 0; i < c.length; i++) {
+            assertEquals(a[i] + b[i], c[i]);
+        }
+    }
+
+    @Test
     public void testVectorAdditionLong() {
         final int numElements = 4096;
         long[] a = new long[numElements];
@@ -434,14 +479,14 @@ public class TestArrays extends TornadoTestBase {
      *
      *
      * @see <a href=
-     *      "http://computer-graphics.se/hello-world-for-cuda.html">http://computer-graphics.se/hello-world-for-cuda.html
-     *      </a>
+     *     "http://computer-graphics.se/hello-world-for-cuda.html">http://computer-graphics.se/hello-world-for-cuda.html
+     *     </a>
      *
-     *      How to run?
+     *     How to run?
      *
-     *      <code>
-     *      $ tornado-test -V --fast --debug --threadInfo uk.ac.manchester.tornado.unittests.arrays.TestArrays#testVectorCharsMessage
-     *      </code>
+     *     <code>
+     *     $ tornado-test -V --fast --debug --threadInfo uk.ac.manchester.tornado.unittests.arrays.TestArrays#testVectorCharsMessage
+     *     </code>
      */
     @Test
     public void testVectorCharsMessage() {
