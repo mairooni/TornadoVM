@@ -17,9 +17,9 @@
  */
 package uk.ac.manchester.tornado.benchmarks.renderTrack;
 
-import uk.ac.manchester.tornado.api.collections.types.Float3;
-import uk.ac.manchester.tornado.api.collections.types.ImageByte3;
-import uk.ac.manchester.tornado.api.collections.types.ImageFloat3;
+import uk.ac.manchester.tornado.api.types.vectors.Float3;
+import uk.ac.manchester.tornado.api.types.images.ImageByte3;
+import uk.ac.manchester.tornado.api.types.images.ImageFloat3;
 import uk.ac.manchester.tornado.api.common.TornadoDevice;
 import uk.ac.manchester.tornado.benchmarks.BenchmarkDriver;
 import uk.ac.manchester.tornado.benchmarks.ComputeKernels;

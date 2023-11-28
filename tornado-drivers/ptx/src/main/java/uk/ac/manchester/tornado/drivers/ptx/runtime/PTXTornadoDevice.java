@@ -12,7 +12,7 @@
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
  * version 2 for more details (a copy is included in the LICENSE file that
  * accompanied this code).
  *
@@ -47,7 +47,7 @@ import uk.ac.manchester.tornado.api.memory.TornadoDeviceObjectState;
 import uk.ac.manchester.tornado.api.memory.TornadoMemoryProvider;
 import uk.ac.manchester.tornado.api.profiler.ProfilerType;
 import uk.ac.manchester.tornado.api.profiler.TornadoProfiler;
-import uk.ac.manchester.tornado.api.type.annotations.Vector;
+import uk.ac.manchester.tornado.api.internal.annotations.Vector;
 import uk.ac.manchester.tornado.drivers.common.TornadoBufferProvider;
 import uk.ac.manchester.tornado.drivers.ptx.PTX;
 import uk.ac.manchester.tornado.drivers.ptx.PTXDevice;
@@ -361,18 +361,18 @@ public class PTXTornadoDevice implements TornadoAcceleratorDevice {
      * It allocates and copy in the content of the object to the target device.
      *
      * @param object
-     *            to be allocated
+     *     to be allocated
      * @param objectState
-     *            state of the object in the target device
-     *            {@link TornadoDeviceObjectState}
+     *     state of the object in the target device
+     *     {@link TornadoDeviceObjectState}
      * @param events
-     *            list of pending events (dependencies)
+     *     list of pending events (dependencies)
      * @param batchSize
-     *            size of the object to be allocated. If this value is <= 0, then it
-     *            allocates the sizeof(object).
+     *     size of the object to be allocated. If this value is <= 0, then it
+     *     allocates the sizeof(object).
      * @param hostOffset
-     *            offset in bytes for the copy within the host input array (or
-     *            object)
+     *     offset in bytes for the copy within the host input array (or
+     *     object)
      * @return an event ID
      */
     @Override
@@ -389,18 +389,18 @@ public class PTXTornadoDevice implements TornadoAcceleratorDevice {
      * device.
      *
      * @param object
-     *            to be copied
+     *     to be copied
      * @param batchSize
-     *            size of the object to be allocated. If this value is <= 0, then it
-     *            allocates the sizeof(object).
+     *     size of the object to be allocated. If this value is <= 0, then it
+     *     allocates the sizeof(object).
      * @param hostOffset
-     *            offset in bytes for the copy within the host input array (or
-     *            object)
+     *     offset in bytes for the copy within the host input array (or
+     *     object)
      * @param objectState
-     *            state of the object in the target device
-     *            {@link TornadoDeviceObjectState}
+     *     state of the object in the target device
+     *     {@link TornadoDeviceObjectState}
      * @param events
-     *            list of previous events
+     *     list of previous events
      * @return and event ID
      */
     @Override
@@ -414,15 +414,15 @@ public class PTXTornadoDevice implements TornadoAcceleratorDevice {
      * non-blocking
      *
      * @param object
-     *            to be copied.
+     *     to be copied.
      * @param hostOffset
-     *            offset in bytes for the copy within the host input array (or
-     *            object)
+     *     offset in bytes for the copy within the host input array (or
+     *     object)
      * @param objectState
-     *            state of the object in the target device
-     *            {@link TornadoDeviceObjectState}
+     *     state of the object in the target device
+     *     {@link TornadoDeviceObjectState}
      * @param events
-     *            of pending events
+     *     of pending events
      * @return and event ID
      */
     @Override
@@ -440,15 +440,15 @@ public class PTXTornadoDevice implements TornadoAcceleratorDevice {
      * blocking between the device and the host.
      *
      * @param object
-     *            to be copied.
+     *     to be copied.
      * @param hostOffset
-     *            offset in bytes for the copy within the host input array (or
-     *            object)
+     *     offset in bytes for the copy within the host input array (or
+     *     object)
      * @param objectState
-     *            state of the object in the target device
-     *            {@link TornadoDeviceObjectState}
+     *     state of the object in the target device
+     *     {@link TornadoDeviceObjectState}
      * @param events
-     *            of pending events
+     *     of pending events
      * @return and event ID
      */
     @Override
@@ -461,7 +461,7 @@ public class PTXTornadoDevice implements TornadoAcceleratorDevice {
      * It resolves an pending event.
      *
      * @param event
-     *            ID
+     *     ID
      * @return an object of type {@link Event}
      */
     @Override
