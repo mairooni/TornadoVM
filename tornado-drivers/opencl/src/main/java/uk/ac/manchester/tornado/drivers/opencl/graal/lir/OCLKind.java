@@ -282,6 +282,10 @@ public enum OCLKind implements PlatformKind {
         };
     }
 
+    public static OCLAssembler.OCLBinaryTemplate resolveGlobalPointerCopyTemplate() {
+        return OCLAssembler.OCLBinaryTemplate.GLOBAL_ARRAY_PTR_COPY;
+    }
+
     public static OCLAssembler.OCLBinaryTemplate resolveTemplateType(JavaKind type) {
         if (type == JavaKind.Int) {
             return OCLAssembler.OCLBinaryTemplate.NEW_LOCAL_INT_ARRAY;

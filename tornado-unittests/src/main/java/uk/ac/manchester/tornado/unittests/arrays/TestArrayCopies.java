@@ -124,6 +124,42 @@ public class TestArrayCopies extends TornadoTestBase {
         }
     }
 
+    public static void intGlobalCopy(IntArray a, IntArray b, IntArray c) {
+        for (@Parallel int i = 0; i < c.getSize(); i++) {
+            if (b.get(i) > 30) {
+                a = b;
+            }
+            c.set(i, a.get(i));
+        }
+    }
+
+    public static void floatGlobalCopy(FloatArray a, FloatArray b, FloatArray c) {
+        for (@Parallel int i = 0; i < c.getSize(); i++) {
+            if (b.get(i) > 30.0f) {
+                a = b;
+            }
+            c.set(i, a.get(i));
+        }
+    }
+
+    public static void doubleGlobalCopy(DoubleArray a, DoubleArray b, DoubleArray c) {
+        for (@Parallel int i = 0; i < c.getSize(); i++) {
+            if (b.get(i) > 30.0) {
+                a = b;
+            }
+            c.set(i, a.get(i));
+        }
+    }
+
+    public static void longGlobalCopy(LongArray a, LongArray b, LongArray c) {
+        for (@Parallel int i = 0; i < c.getSize(); i++) {
+            if (b.get(i) > 30L) {
+                a = b;
+            }
+            c.set(i, a.get(i));
+        }
+    }
+
     @Test
     public void testPrivateArrayCopyInt() throws TornadoExecutionPlanException {
         assertNotBackend(TornadoVMBackendType.SPIRV);
@@ -285,6 +321,142 @@ public class TestArrayCopies extends TornadoTestBase {
 
         for (int i = 0; i < numElements; i++) {
             assertEquals(b.get(i), c.get(i));
+        }
+
+    }
+
+    @Test
+    public void testGlobalArrayCopyInt() throws TornadoExecutionPlanException {
+        assertNotBackend(TornadoVMBackendType.SPIRV);
+
+        final int numElements = 16;
+
+        IntArray a = new IntArray(numElements);
+        IntArray b = new IntArray(numElements);
+        IntArray c = new IntArray(numElements);
+        IntArray d = new IntArray(numElements);
+
+        for (int i = 0; i < numElements; i++) {
+            a.set(i, 1 + i);
+            b.set(i, i * 2 + i);
+        }
+
+        TaskGraph taskGraph = new TaskGraph("s0") //
+                .transferToDevice(DataTransferMode.FIRST_EXECUTION, a, b) //
+                .task("t0", TestArrayCopies::intGlobalCopy, a, b, c) //
+                .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
+
+        ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
+        try (TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph)) {
+            executionPlan.execute();
+        }
+
+        intGlobalCopy(a, b, d);
+
+        for (int i = 0; i < numElements; i++) {
+            assertEquals(c.get(i), d.get(i));
+        }
+
+    }
+
+    @Test
+    public void testGlobalArrayCopyFloat() throws TornadoExecutionPlanException {
+        assertNotBackend(TornadoVMBackendType.SPIRV);
+
+        final int numElements = 16;
+
+        FloatArray a = new FloatArray(numElements);
+        FloatArray b = new FloatArray(numElements);
+        FloatArray c = new FloatArray(numElements);
+        FloatArray d = new FloatArray(numElements);
+
+        for (int i = 0; i < numElements; i++) {
+            a.set(i, 1 + i);
+            b.set(i, i * 2 + i);
+        }
+
+        TaskGraph taskGraph = new TaskGraph("s0") //
+                .transferToDevice(DataTransferMode.FIRST_EXECUTION, a, b) //
+                .task("t0", TestArrayCopies::floatGlobalCopy, a, b, c) //
+                .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
+
+        ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
+        try (TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph)) {
+            executionPlan.execute();
+        }
+
+        floatGlobalCopy(a, b, d);
+
+        for (int i = 0; i < numElements; i++) {
+            assertEquals(c.get(i), d.get(i), 0.01f);
+        }
+
+    }
+
+    @Test
+    public void testGlobalArrayCopyDouble() throws TornadoExecutionPlanException {
+        assertNotBackend(TornadoVMBackendType.SPIRV);
+
+        final int numElements = 16;
+
+        DoubleArray a = new DoubleArray(numElements);
+        DoubleArray b = new DoubleArray(numElements);
+        DoubleArray c = new DoubleArray(numElements);
+        DoubleArray d = new DoubleArray(numElements);
+
+        for (int i = 0; i < numElements; i++) {
+            a.set(i, 1 + i);
+            b.set(i, i * 2 + i);
+        }
+
+        TaskGraph taskGraph = new TaskGraph("s0") //
+                .transferToDevice(DataTransferMode.FIRST_EXECUTION, a, b) //
+                .task("t0", TestArrayCopies::doubleGlobalCopy, a, b, c) //
+                .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
+
+        ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
+        try (TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph)) {
+            executionPlan.execute();
+        }
+
+        doubleGlobalCopy(a, b, d);
+
+        for (int i = 0; i < numElements; i++) {
+            assertEquals(c.get(i), d.get(i), 0.01);
+        }
+
+    }
+
+    @Test
+    public void testGlobalArrayCopyLong() throws TornadoExecutionPlanException {
+        assertNotBackend(TornadoVMBackendType.SPIRV);
+
+        final int numElements = 16;
+
+        LongArray a = new LongArray(numElements);
+        LongArray b = new LongArray(numElements);
+        LongArray c = new LongArray(numElements);
+        LongArray d = new LongArray(numElements);
+
+        for (int i = 0; i < numElements; i++) {
+            a.set(i, 1 + i);
+            b.set(i, i * 2 + i);
+        }
+
+        TaskGraph taskGraph = new TaskGraph("s0") //
+                .transferToDevice(DataTransferMode.FIRST_EXECUTION, a, b) //
+                .task("t0", TestArrayCopies::longGlobalCopy, a, b, c) //
+                .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
+
+        ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
+        try (TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph)) {
+            executionPlan.execute();
+        }
+
+        longGlobalCopy(a, b, d);
+
+        for (int i = 0; i < numElements; i++) {
+            assertEquals(c.get(i), d.get(i));
         }
 
     }

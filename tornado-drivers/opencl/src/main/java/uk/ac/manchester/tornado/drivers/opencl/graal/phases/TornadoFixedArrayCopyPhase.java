@@ -24,6 +24,7 @@ package uk.ac.manchester.tornado.drivers.opencl.graal.phases;
 import jdk.vm.ci.meta.ResolvedJavaType;
 import org.graalvm.compiler.graph.Node;
 import org.graalvm.compiler.nodes.GraphState;
+import org.graalvm.compiler.nodes.ParameterNode;
 import org.graalvm.compiler.nodes.StructuredGraph;
 import org.graalvm.compiler.nodes.ValuePhiNode;
 import org.graalvm.compiler.nodes.memory.address.OffsetAddressNode;
@@ -33,12 +34,16 @@ import uk.ac.manchester.tornado.api.exceptions.TornadoCompilationException;
 import uk.ac.manchester.tornado.drivers.opencl.graal.OCLArchitecture;
 import uk.ac.manchester.tornado.drivers.opencl.graal.nodes.FixedArrayCopyNode;
 import uk.ac.manchester.tornado.drivers.opencl.graal.nodes.FixedArrayNode;
+import uk.ac.manchester.tornado.drivers.opencl.graal.nodes.GlobalArrayCopyNode;
 
 import java.util.Optional;
 
 /**
- * This phase examines if a copy takes place between two arrays in private memory based on
- * an if condition and, if so, inserts a {@link FixedArrayCopyNode} to generate an update in the references.
+ * This phase examines if a copy takes place between two arrays based on an if condition and
+ *  a) If the copy is in private memory, it inserts a {@link FixedArrayCopyNode}
+ *  b) If the copy is in global memory, it inserts a {@link GlobalArrayCopyNode}
+ *
+ *  These newly inserted nodes generate an update in the references.
  */
 public class TornadoFixedArrayCopyPhase extends Phase {
 
@@ -63,12 +68,21 @@ public class TornadoFixedArrayCopyPhase extends Phase {
                     throw new TornadoCompilationException("Index of FixedArrayNode is null.");
                 }
                 offsetAddressNode.setOffset(privateIndex);
+            } else if (isGlobalArrayCopied(phiNode)) {
+                OffsetAddressNode offsetAddressNode = phiNode.usages().filter(OffsetAddressNode.class).first();
+                GlobalArrayCopyNode globalArrayCopyNode = new GlobalArrayCopyNode(phiNode);
+                graph.addWithoutUnique(globalArrayCopyNode);
+                offsetAddressNode.replaceFirstInput(phiNode, globalArrayCopyNode);
             }
         }
     }
 
     private static boolean isFixedArrayCopied(ValuePhiNode phiNode) {
         return phiNode.usages().filter(OffsetAddressNode.class).isNotEmpty() && phiNode.values().filter(FixedArrayNode.class).isNotEmpty();
+    }
+
+    private static boolean isGlobalArrayCopied(ValuePhiNode phiNode) {
+        return phiNode.usages().filter(OffsetAddressNode.class).isNotEmpty() && phiNode.values().filter(ParameterNode.class).isNotEmpty();
     }
 
     private static ValuePhiNode getPrivateArrayIndex(Node node) {
