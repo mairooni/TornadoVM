@@ -45,7 +45,7 @@ import java.util.Optional;
  *
  *  These newly inserted nodes generate an update in the references.
  */
-public class TornadoFixedArrayCopyPhase extends Phase {
+public class TornadoArrayCopyPhase extends Phase {
 
     @Override
     public Optional<NotApplicable> notApplicableTo(GraphState graphState) {
