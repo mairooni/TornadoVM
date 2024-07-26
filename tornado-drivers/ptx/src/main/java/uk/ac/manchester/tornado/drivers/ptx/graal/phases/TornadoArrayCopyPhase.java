@@ -24,6 +24,7 @@ package uk.ac.manchester.tornado.drivers.ptx.graal.phases;
 import jdk.vm.ci.meta.ResolvedJavaType;
 import org.graalvm.compiler.graph.Node;
 import org.graalvm.compiler.nodes.GraphState;
+import org.graalvm.compiler.nodes.ParameterNode;
 import org.graalvm.compiler.nodes.StructuredGraph;
 import org.graalvm.compiler.nodes.ValuePhiNode;
 import org.graalvm.compiler.nodes.memory.ReadNode;
@@ -36,15 +37,19 @@ import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXKind;
 import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.FixedArrayCopyNode;
 import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.FixedArrayNode;
 import uk.ac.manchester.tornado.drivers.ptx.graal.PTXStampFactory;
+import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.GlobalArrayCopyNode;
 
 import java.util.ArrayList;
 import java.util.Optional;
 
 /**
- * This phase examines if a copy takes place between two arrays in private memory based on
- * an if condition and, if so, inserts a {@link FixedArrayCopyNode} to generate an update in the references.
+ * This phase examines if a copy takes place between two arrays based on an if condition and
+ *  a) If the copy is in private memory, it inserts a {@link FixedArrayCopyNode}
+ *  b) If the copy is in global memory, it inserts a {@link GlobalArrayCopyNode}
+ *
+ *  These newly inserted nodes generate an update in the references.
  */
-public class TornadoFixedArrayCopyPhase extends Phase {
+public class TornadoArrayCopyPhase extends Phase {
 
     @Override
     public Optional<NotApplicable> notApplicableTo(GraphState graphState) {
@@ -74,6 +79,11 @@ public class TornadoFixedArrayCopyPhase extends Phase {
                     offsetAddressNode.safeDelete();
                 }
                 phiNodesToReplace.add(phiNode);
+            } else if (isGlobalArrayCopied(phiNode)) {
+                OffsetAddressNode offsetAddressNode = phiNode.usages().filter(OffsetAddressNode.class).first();
+                GlobalArrayCopyNode globalArrayCopyNode = new GlobalArrayCopyNode(phiNode);
+                graph.addWithoutUnique(globalArrayCopyNode);
+                offsetAddressNode.replaceFirstInput(phiNode, globalArrayCopyNode);
             }
         }
         for (ValuePhiNode phiNodeToReplace : phiNodesToReplace) {
@@ -82,6 +92,10 @@ public class TornadoFixedArrayCopyPhase extends Phase {
             phiNodeToReplace.replaceAtUsages(newPhiNode);
             phiNodeToReplace.safeDelete();
         }
+    }
+
+    private static boolean isGlobalArrayCopied(ValuePhiNode phiNode) {
+        return phiNode.usages().filter(OffsetAddressNode.class).isNotEmpty() && phiNode.values().filter(ParameterNode.class).isNotEmpty();
     }
 
     private static boolean isFixedArrayCopied(ValuePhiNode phiNode) {

@@ -204,6 +204,10 @@ public enum PTXKind implements PlatformKind {
         return ILLEGAL;
     }
 
+    public static PTXAssembler.PTXBinaryTemplate resolveGlobalPointerCopyTemplate() {
+        return PTXAssembler.PTXBinaryTemplate.GLOBAL_ARRAY_PTR_COPY;
+    }
+
     public static PTXAssembler.PTXBinaryTemplate resolveTemplateType(ResolvedJavaType type) {
         return resolveTemplateType(type.getJavaKind());
     }

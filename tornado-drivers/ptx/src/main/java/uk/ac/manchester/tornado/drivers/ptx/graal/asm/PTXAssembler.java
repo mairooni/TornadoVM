@@ -735,6 +735,8 @@ public class PTXAssembler extends Assembler {
         public static final PTXBinaryTemplate LOCAL_CHAR_ARRAY_PTR_COPY = new PTXBinaryTemplate("local pointer copy array char", "ld.local.u16 %s, [%s]");
         public static final PTXBinaryTemplate LOCAL_BYTE_ARRAY_PTR_COPY = new PTXBinaryTemplate("local pointer copy array byte", "ld.local.s8 %s, [%s]");
 
+        public static final PTXBinaryTemplate GLOBAL_ARRAY_PTR_COPY = new PTXBinaryTemplate("global pointer copy array", "mov.u64 %s, %s");
+
         public static final PTXBinaryTemplate NEW_SHARED_FLOAT_ARRAY = new PTXBinaryTemplate("shared memory array float", ".shared .f32 %s[%s]");
         public static final PTXBinaryTemplate NEW_SHARED_INT_ARRAY = new PTXBinaryTemplate("shared memory array int", ".shared .s32 %s[%s]");
         public static final PTXBinaryTemplate NEW_SHARED_DOUBLE_ARRAY = new PTXBinaryTemplate("shared memory array double", ".shared .f64 %s[%s]");
