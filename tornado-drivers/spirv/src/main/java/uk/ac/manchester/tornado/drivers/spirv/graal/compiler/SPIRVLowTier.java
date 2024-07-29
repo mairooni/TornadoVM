@@ -66,7 +66,7 @@ public class SPIRVLowTier extends TornadoLowTier {
 
         appendPhase(new UseTrappingNullChecksPhase());
 
-        appendPhase(new TornadoFixedArrayCopyPhase());
+        appendPhase(new TornadoArrayCopyPhase());
 
         appendPhase(new AddressLoweringByNodePhase(addressLowering));
 

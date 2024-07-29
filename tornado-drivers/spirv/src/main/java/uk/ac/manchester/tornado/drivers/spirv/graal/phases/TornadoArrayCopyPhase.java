@@ -25,18 +25,27 @@
 package uk.ac.manchester.tornado.drivers.spirv.graal.phases;
 
 import org.graalvm.compiler.nodes.GraphState;
+import org.graalvm.compiler.nodes.ParameterNode;
 import org.graalvm.compiler.nodes.StructuredGraph;
 import org.graalvm.compiler.nodes.ValuePhiNode;
 import org.graalvm.compiler.nodes.memory.address.OffsetAddressNode;
 import org.graalvm.compiler.phases.BasePhase;
 
 import uk.ac.manchester.tornado.api.exceptions.TornadoCompilationException;
+import uk.ac.manchester.tornado.drivers.spirv.graal.nodes.GlobalArrayCopyNode;
 import uk.ac.manchester.tornado.runtime.graal.phases.TornadoLowTierContext;
 import uk.ac.manchester.tornado.drivers.spirv.graal.nodes.FixedArrayNode;
 
 import java.util.Optional;
 
-public class TornadoFixedArrayCopyPhase extends BasePhase<TornadoLowTierContext> {
+/**
+ * This phase examines if a copy takes place between two arrays based on an if condition and
+ *  a) If the copy is in private memory, it throws a {@link TornadoCompilationException}, as this functionality is not currently supported
+ *  b) If the copy is in global memory, it inserts a {@link GlobalArrayCopyNode}
+ *
+ *  These newly inserted nodes generate an update in the references.
+ */
+public class TornadoArrayCopyPhase extends BasePhase<TornadoLowTierContext> {
 
     @Override
     public Optional<NotApplicable> notApplicableTo(GraphState graphState) {
@@ -47,12 +56,21 @@ public class TornadoFixedArrayCopyPhase extends BasePhase<TornadoLowTierContext>
         for (ValuePhiNode phiNode : graph.getNodes().filter(ValuePhiNode.class)) {
             if (isFixedArrayCopied(phiNode)) {
                 throw new TornadoCompilationException("Copying a local array by reference is not currently supported for SPIR-V.");
+            } else if (isGlobalArrayCopied(phiNode)) {
+                OffsetAddressNode offsetAddressNode = phiNode.usages().filter(OffsetAddressNode.class).first();
+                GlobalArrayCopyNode globalArrayCopyNode = new GlobalArrayCopyNode(phiNode);
+                graph.addWithoutUnique(globalArrayCopyNode);
+                offsetAddressNode.replaceFirstInput(phiNode, globalArrayCopyNode);
             }
         }
     }
 
     private static boolean isFixedArrayCopied(ValuePhiNode phiNode) {
         return phiNode.usages().filter(OffsetAddressNode.class).isNotEmpty() && phiNode.values().filter(FixedArrayNode.class).isNotEmpty();
+    }
+
+    private static boolean isGlobalArrayCopied(ValuePhiNode phiNode) {
+        return phiNode.usages().filter(OffsetAddressNode.class).isNotEmpty() && phiNode.values().filter(ParameterNode.class).isNotEmpty();
     }
 
 }

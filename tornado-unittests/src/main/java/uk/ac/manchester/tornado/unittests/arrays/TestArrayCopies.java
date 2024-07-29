@@ -327,8 +327,6 @@ public class TestArrayCopies extends TornadoTestBase {
 
     @Test
     public void testGlobalArrayCopyInt() throws TornadoExecutionPlanException {
-        assertNotBackend(TornadoVMBackendType.SPIRV);
-
         final int numElements = 16;
 
         IntArray a = new IntArray(numElements);
@@ -361,8 +359,6 @@ public class TestArrayCopies extends TornadoTestBase {
 
     @Test
     public void testGlobalArrayCopyFloat() throws TornadoExecutionPlanException {
-        assertNotBackend(TornadoVMBackendType.SPIRV);
-
         final int numElements = 16;
 
         FloatArray a = new FloatArray(numElements);
@@ -395,8 +391,6 @@ public class TestArrayCopies extends TornadoTestBase {
 
     @Test
     public void testGlobalArrayCopyDouble() throws TornadoExecutionPlanException {
-        assertNotBackend(TornadoVMBackendType.SPIRV);
-
         final int numElements = 16;
 
         DoubleArray a = new DoubleArray(numElements);
@@ -429,8 +423,6 @@ public class TestArrayCopies extends TornadoTestBase {
 
     @Test
     public void testGlobalArrayCopyLong() throws TornadoExecutionPlanException {
-        assertNotBackend(TornadoVMBackendType.SPIRV);
-
         final int numElements = 16;
 
         LongArray a = new LongArray(numElements);
