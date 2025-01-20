@@ -50,6 +50,14 @@ public class AddHalfNode extends ValueNode implements ArithmeticLIRLowerable {
         this.y = y;
     }
 
+    public ValueNode getX() {
+        return x;
+    }
+
+    public ValueNode getY() {
+        return y;
+    }
+
     public void generate(NodeLIRBuilderTool builder, ArithmeticLIRGeneratorTool generator) {
         Value inputX = builder.operand(x);
         Value inputY = builder.operand(y);

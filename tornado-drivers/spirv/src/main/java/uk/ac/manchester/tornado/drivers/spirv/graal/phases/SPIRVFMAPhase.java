@@ -2,7 +2,7 @@
  * This file is part of Tornado: A heterogeneous programming framework:
  * https://github.com/beehive-lab/tornadovm
  *
- * Copyright (c) 2021, APT Group, Department of Computer Science,
+ * Copyright (c) 2021, 2025, APT Group, Department of Computer Science,
  * School of Engineering, The University of Manchester. All rights reserved.
  * Copyright (c) 2009-2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -34,6 +34,8 @@ import org.graalvm.compiler.nodes.calc.MulNode;
 import org.graalvm.compiler.phases.Phase;
 
 import jdk.vm.ci.meta.JavaKind;
+import uk.ac.manchester.tornado.drivers.spirv.graal.nodes.AddHalfNode;
+import uk.ac.manchester.tornado.drivers.spirv.graal.nodes.MultHalfNode;
 import uk.ac.manchester.tornado.drivers.spirv.graal.nodes.SPIRVFMANode;
 
 public class SPIRVFMAPhase extends Phase {
@@ -46,8 +48,34 @@ public class SPIRVFMAPhase extends Phase {
         return (x.getStackKind() == JavaKind.Float || x.getStackKind() == JavaKind.Double);
     }
 
+    private void applyFMA(ValueNode addNode, ValueNode mulNode, ValueNode x, ValueNode y, StructuredGraph graph) {
+        ValueNode z = (ValueNode) addNode.inputs().filter(node -> !node.equals(mulNode)).first();
+        SPIRVFMANode oclFMA = new SPIRVFMANode(x, y, z);
+        graph.addOrUnique(oclFMA);
+        mulNode.removeUsage(addNode);
+        if (mulNode.hasNoUsages()) {
+            mulNode.safeDelete();
+        }
+        addNode.replaceAtUsages(oclFMA);
+        addNode.safeDelete();
+    }
+
     @Override
     protected void run(StructuredGraph graph) {
+
+        graph.getNodes().filter(AddHalfNode.class).forEach(addHalfNode -> {
+            MultHalfNode multHalfNode = null;
+            if (addHalfNode.getX() instanceof MultHalfNode) {
+                multHalfNode = (MultHalfNode) addHalfNode.getX();
+            } else if (addHalfNode.getY() instanceof MultHalfNode) {
+                multHalfNode = (MultHalfNode) addHalfNode.getY();
+            }
+            if (multHalfNode != null) {
+                ValueNode x = multHalfNode.getX();
+                ValueNode y = multHalfNode.getY();
+                applyFMA(addHalfNode, multHalfNode, x, y, graph);
+            }
+        });
 
         graph.getNodes().filter(AddNode.class).forEach(addNode -> {
             MulNode mulNode = null;
@@ -63,17 +91,7 @@ public class SPIRVFMAPhase extends Phase {
                 ValueNode y = mulNode.getY();
 
                 if (isValidType(x) && isValidType(y)) {
-                    MulNode finalMulNode = mulNode;
-                    ValueNode z = (ValueNode) addNode.inputs().filter(node -> !node.equals(finalMulNode)).first();
-
-                    SPIRVFMANode spirvfmaNode = new SPIRVFMANode(x, y, z);
-                    graph.addOrUnique(spirvfmaNode);
-                    mulNode.removeUsage(addNode);
-                    if (mulNode.hasNoUsages()) {
-                        mulNode.safeDelete();
-                    }
-                    addNode.replaceAtUsages(spirvfmaNode);
-                    addNode.safeDelete();
+                    applyFMA(addNode, mulNode, x, y, graph);
                 }
             }
         });
