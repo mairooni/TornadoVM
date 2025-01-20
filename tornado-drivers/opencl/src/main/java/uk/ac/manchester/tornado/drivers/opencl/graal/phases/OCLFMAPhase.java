@@ -31,9 +31,18 @@ import org.graalvm.compiler.nodes.calc.MulNode;
 import org.graalvm.compiler.phases.Phase;
 
 import jdk.vm.ci.meta.JavaKind;
+import uk.ac.manchester.tornado.api.TornadoDeviceContext;
+import uk.ac.manchester.tornado.drivers.opencl.graal.nodes.AddHalfNode;
+import uk.ac.manchester.tornado.drivers.opencl.graal.nodes.MultHalfNode;
 import uk.ac.manchester.tornado.drivers.opencl.graal.nodes.OCLFMANode;
 
 public class OCLFMAPhase extends Phase {
+
+    private TornadoDeviceContext deviceContext;
+
+    public OCLFMAPhase(TornadoDeviceContext deviceContext) {
+        this.deviceContext = deviceContext;
+    }
 
     /**
      * Instrinsics in OpenCL:
@@ -65,8 +74,37 @@ public class OCLFMAPhase extends Phase {
         return ALWAYS_APPLICABLE;
     }
 
+    private void applyFMA(ValueNode addNode, ValueNode mulNode, ValueNode x, ValueNode y, StructuredGraph graph) {
+        ValueNode z = (ValueNode) addNode.inputs().filter(node -> !node.equals(mulNode)).first();
+        OCLFMANode oclFMA = new OCLFMANode(x, y, z);
+        graph.addOrUnique(oclFMA);
+        mulNode.removeUsage(addNode);
+        if (mulNode.hasNoUsages()) {
+            mulNode.safeDelete();
+        }
+        addNode.replaceAtUsages(oclFMA);
+        addNode.safeDelete();
+    }
+
     @Override
     protected void run(StructuredGraph graph) {
+        boolean isNVIDIAGPU = deviceContext.getDeviceName().contains("NVIDIA");
+        // FMA is not currently available for NVIDIA GPUs in OpenCL
+        if (!isNVIDIAGPU) {
+            graph.getNodes().filter(AddHalfNode.class).forEach(addHalfNode -> {
+                MultHalfNode multHalfNode = null;
+                if (addHalfNode.getX() instanceof MultHalfNode) {
+                    multHalfNode = (MultHalfNode) addHalfNode.getX();
+                } else if (addHalfNode.getY() instanceof MultHalfNode) {
+                    multHalfNode = (MultHalfNode) addHalfNode.getY();
+                }
+                if (multHalfNode != null) {
+                    ValueNode x = multHalfNode.getX();
+                    ValueNode y = multHalfNode.getY();
+                    applyFMA(addHalfNode, multHalfNode, x, y, graph);
+                }
+            });
+        }
 
         graph.getNodes().filter(AddNode.class).forEach(addNode -> {
             MulNode mulNode = null;
@@ -79,16 +117,7 @@ public class OCLFMAPhase extends Phase {
                 ValueNode x = mulNode.getX();
                 ValueNode y = mulNode.getY();
                 if (isValidType(x) && isValidType(y)) {
-                    MulNode finalMulNode = mulNode;
-                    ValueNode z = (ValueNode) addNode.inputs().filter(node -> !node.equals(finalMulNode)).first();
-                    OCLFMANode oclFMA = new OCLFMANode(x, y, z);
-                    graph.addOrUnique(oclFMA);
-                    mulNode.removeUsage(addNode);
-                    if (mulNode.hasNoUsages()) {
-                        mulNode.safeDelete();
-                    }
-                    addNode.replaceAtUsages(oclFMA);
-                    addNode.safeDelete();
+                    applyFMA(addNode, mulNode, x, y, graph);
                 }
             }
         });

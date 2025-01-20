@@ -94,7 +94,7 @@ public class OCLLowTier extends TornadoLowTier {
         appendPhase(new TornadoLoopCanonicalization());
 
         if (TornadoOptions.ENABLE_FMA) {
-            appendPhase(new OCLFMAPhase());
+            appendPhase(new OCLFMAPhase(tornadoDeviceContext));
         }
 
         if (TornadoOptions.MATH_OPTIMIZATIONS) {

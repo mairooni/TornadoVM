@@ -50,6 +50,14 @@ public class MultHalfNode extends ValueNode implements LIRLowerable {
         this.y = y;
     }
 
+    public ValueNode getX() {
+        return x;
+    }
+
+    public ValueNode getY() {
+        return y;
+    }
+
     public void generate(NodeLIRBuilderTool generator) {
         LIRGeneratorTool tool = generator.getLIRGeneratorTool();
         Variable result = tool.newVariable(LIRKind.value(OCLKind.HALF));
