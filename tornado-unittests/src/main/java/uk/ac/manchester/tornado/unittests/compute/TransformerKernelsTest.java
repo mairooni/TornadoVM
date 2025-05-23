@@ -58,7 +58,7 @@ public class TransformerKernelsTest extends TornadoTestBase {
     private static final float DELTA = 0.001f;
     private final Random random = new Random(7);
 
-    public static void reductionOneBlockWithLayer(KernelContext context, FloatArray output, FloatArray x, int size, float ermsNorm, int localMemSize) {
+    public static void reductionOneBlockWithLayer(KernelContext context, FloatArray output, FloatArray x, int size, int localMemSize) {
         int gid = context.globalIdx;
         int lid = context.localIdx;
         int groupId = context.groupIdx;
@@ -88,20 +88,18 @@ public class TransformerKernelsTest extends TornadoTestBase {
             // Store the partial sum from each workgroup
             output.set(groupId + 1, localX[0]);
         }
+    }
 
-        // Only the first thread in the first workgroup computes the final normalization factor
-        if (gid == 0) {
-            // Combine partial sums from all workgroups
-            float ss = 0.0f;
-            for (int i = 1; i < output.getSize(); i++) {  // Assuming 8 workgroups
-                ss += output.get(i);
-            }
-
-            ss /= size;
-            ss += ermsNorm;
-            ss = 1.0f / TornadoMath.sqrt(ss);
-            output.set(0, ss);  // Store the final scale factor
+    public static void reductionOneBlockWithLayerNormalization(FloatArray output, int size, float ermsNorm) {
+        float ss = 0.0f;
+        for (int i = 1; i < output.getSize(); i++) {
+            ss += output.get(i);
         }
+
+        ss /= size;
+        ss += ermsNorm;
+        ss = 1.0f / TornadoMath.sqrt(ss);
+        output.set(0, ss);
     }
 
     /**
@@ -889,14 +887,27 @@ public class TransformerKernelsTest extends TornadoTestBase {
         GridScheduler scheduler = new GridScheduler("s0.t0", worker);
         worker.setLocalWork(localSize, 1, 1);
 
-        TaskGraph taskGraph = new TaskGraph("s0").transferToDevice(DataTransferMode.FIRST_EXECUTION, input).task("t0", TransformerKernelsTest::reductionOneBlockWithLayer, new KernelContext(), output,
-                input, size, ermsNorm, localSize).transferToHost(DataTransferMode.EVERY_EXECUTION, output);
+        WorkerGrid worker2 = new WorkerGrid1D(1);
+        GridScheduler scheduler2 = new GridScheduler("s1.t0", worker2);
+        worker2.setLocalWork(1, 1, 1);
+
+        TaskGraph taskGraph = new TaskGraph("s0")
+                .transferToDevice(DataTransferMode.FIRST_EXECUTION, input)
+                .task("t0", TransformerKernelsTest::reductionOneBlockWithLayer, new KernelContext(), output,
+                input, size, localSize)
+                .transferToHost(DataTransferMode.EVERY_EXECUTION, output);
+
+        TaskGraph taskGraph2 = new TaskGraph("s1")
+                .transferToDevice(DataTransferMode.FIRST_EXECUTION, output)
+                .task("t0", TransformerKernelsTest::reductionOneBlockWithLayerNormalization, output, size, ermsNorm)
+                .transferToHost(DataTransferMode.EVERY_EXECUTION, output);
 
         ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
-        TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph);
+        ImmutableTaskGraph immutableTaskGraph2 = taskGraph2.snapshot();
+        TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph, immutableTaskGraph2);
         executionPlan.withGridScheduler(scheduler).execute();
+        executionPlan.withGridScheduler(scheduler2).execute();
         // Verify results
-
         assertEquals(outputSeq.get(0), output.get(0), DELTA);
 
         executionPlan.freeDeviceMemory();
