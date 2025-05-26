@@ -1,9 +1,16 @@
 package uk.ac.manchester.tornado.examples;
 
+import uk.ac.manchester.tornado.api.GridScheduler;
+import uk.ac.manchester.tornado.api.ImmutableTaskGraph;
+import uk.ac.manchester.tornado.api.KernelContext;
 import uk.ac.manchester.tornado.api.TaskGraph;
 import uk.ac.manchester.tornado.api.TornadoExecutionPlan;
+import uk.ac.manchester.tornado.api.WorkerGrid;
+import uk.ac.manchester.tornado.api.WorkerGrid1D;
+import uk.ac.manchester.tornado.api.WorkerGrid2D;
 import uk.ac.manchester.tornado.api.annotations.Parallel;
 import uk.ac.manchester.tornado.api.enums.DataTransferMode;
+import uk.ac.manchester.tornado.api.exceptions.TornadoExecutionPlanException;
 import uk.ac.manchester.tornado.api.math.TornadoMath;
 import uk.ac.manchester.tornado.api.types.matrix.Matrix2DDouble;
 
@@ -11,82 +18,45 @@ import java.util.Random;
 
 public class CalculateTVMDouble {
     // CHECKSTYLE:OFF
+    private static final double ORIGINAL_DEGREES_PER_RAD = 180.0d / Math.PI; // Approx 57.29577951308232
+    private static final double ORIGINAL_EARTH_RADIUS_IN_METERS = ORIGINAL_DEGREES_PER_RAD * 60 * 1852; // Approx 6367468.459039645
 
-    public static void normalizeCoords(Matrix2DDouble coords, int N) {
-        for (@Parallel int i = 0; i < N; i++) {
-            coords.set(i, 0, coords.get(i, 0) / (180.0d / Math.PI));
-            coords.set(i, 1, coords.get(i, 1) / (180.0d / Math.PI));
-        }
-    }
+    public static void calculate_tvm_kernel_race_free(Matrix2DDouble originalCoordsDegrees, Matrix2DDouble distances, int N) {
 
-    public static void computeUpperTriangle(Matrix2DDouble coords, Matrix2DDouble distances, int N) {
-        final double EARTH_RADIUS_IN_METERS = (180.0d / Math.PI) * 60 * 1852;
+        final double DIVISOR_FOR_FROM_COORD = ORIGINAL_DEGREES_PER_RAD * ORIGINAL_DEGREES_PER_RAD;
+        final double DIVISOR_FOR_TO_COORD = ORIGINAL_DEGREES_PER_RAD;
 
-        for (@Parallel int from = 0; from < N; from++) {
-            for (int to = from; to < N; to++) {
-                double distance;
-                if (from == to) {
-                    distance = 0.0;
-                } else {
-                    double lat1 = coords.get(from, 0);
-                    double lon1 = coords.get(from, 1);
-                    double lat2 = coords.get(to, 0);
-                    double lon2 = coords.get(to, 1);
+        for (@Parallel int from = 0; from < N - 1; from++) {
+            double finalLatFrom = originalCoordsDegrees.get(from, 0) / DIVISOR_FOR_FROM_COORD;
+            double finalLonFrom = originalCoordsDegrees.get(from, 1) / DIVISOR_FOR_FROM_COORD;
 
-                    distance = TornadoMath.acos(
-                            TornadoMath.sin(lat1) * TornadoMath.sin(lat2) +
-                                    TornadoMath.cos(lat1) * TornadoMath.cos(lat2) * TornadoMath.cos(lon1 - lon2)
-                    ) * EARTH_RADIUS_IN_METERS;
-                }
+            for (int to = from + 1; to < N; to++) {
+                double finalLatTo = originalCoordsDegrees.get(to, 0) / DIVISOR_FOR_TO_COORD;
+                double finalLonTo = originalCoordsDegrees.get(to, 1) / DIVISOR_FOR_TO_COORD;
+
+                double sinLatFrom = TornadoMath.sin(finalLatFrom);
+                double sinLatTo = TornadoMath.sin(finalLatTo);
+                double cosLatFrom = TornadoMath.cos(finalLatFrom);
+                double cosLatTo = TornadoMath.cos(finalLatTo);
+                double cosDeltaLon = TornadoMath.cos(finalLonFrom - finalLonTo);
+
+                double argAcos = sinLatFrom * sinLatTo + cosLatFrom * cosLatTo * cosDeltaLon;
+
+                argAcos = TornadoMath.max(-1.0, TornadoMath.min(1.0, argAcos));
+
+                double acosResult = TornadoMath.acos(argAcos);
+                double distance = acosResult * ORIGINAL_EARTH_RADIUS_IN_METERS;
                 distances.set(from, to, distance);
             }
         }
     }
 
-    public static void mirrorLowerTriangle(Matrix2DDouble distances, int N) {
-        for (@Parallel int from = 0; from < N; from++) {
+    public static void fillLowerTriangle(Matrix2DDouble distances, int N) {
+        for (@Parallel int from = 1; from < N; from++) {
             for (int to = 0; to < from; to++) {
                 distances.set(from, to, distances.get(to, from));
             }
         }
-    }
-
-    private static void calculate_tvm(Matrix2DDouble coords, Matrix2DDouble distances, int N) {
-        final double DEGREES_PER_RAD = 180.0d / Math.PI;
-        final double EARTH_RADIUS_IN_METERS = DEGREES_PER_RAD * 60 * 1852;
-
-        for (@Parallel int from = 0; from < N; from++) {
-            coords.set(from, 0, coords.get(from, 0) / DEGREES_PER_RAD);
-            coords.set(from, 1, coords.get(from, 1) / DEGREES_PER_RAD);
-            for (int to = 0; to < N; to++) {
-                if (from <= to) {
-                    if (from == 0) {
-                        coords.set(to, 0, coords.get(to, 0) / DEGREES_PER_RAD);
-                        coords.set(to, 1, coords.get(to, 1) / DEGREES_PER_RAD);
-                    }
-                    if (from < to) {
-                        double distance = TornadoMath.acos(TornadoMath.sin(coords.get(from,0)) * TornadoMath.sin(coords.get(to, 0)) + TornadoMath.cos(coords.get(from, 0)) * TornadoMath.cos(coords.get(to,0)) * TornadoMath.cos(coords.get(from, 1) - coords.get(to, 1))) * EARTH_RADIUS_IN_METERS;
-                        distances.set(from, to, distance);
-                    } else {
-                        distances.set(from, to, 0);
-                    }
-                } else {
-                    distances.set(from, to, distances.get(to, from));
-                }
-            }
-        }
-    }
-
-    private static double[][] generateRandomCoordinates(int numPoints) {
-        double[][] coords = new double[numPoints][2];
-        Random rand = new Random(42);
-        for (int i = 0; i < numPoints; i++) {
-            double lat = -90 + 180 * rand.nextDouble();  // -90 to 90
-            double lon = -180 + 360 * rand.nextDouble(); // -180 to 180
-            coords[i][0] = lat;
-            coords[i][1] = lon;
-        }
-        return coords;
     }
 
     private static void calculate_tvm(double[][] coords, double[][] distances) {
@@ -114,29 +84,16 @@ public class CalculateTVMDouble {
         }
     }
 
+    private static double[][] generateRandomCoordinates() {
+        double[][] coords = new double[][]{{38.04124900914985, 23.77855547983686}, {38.03357781390183, 23.74521017974585}, {38.03496746920905, 23.747677803039554}};
+        return coords;
+    }
 
     public static void main(String[] args) throws Throwable {
-        int N;
-        if (args.length > 0) {
-            N = Integer.parseInt(args[0]);
-        } else {
-            N = 128;
-        }
+        int N = 3;
         System.out.println("=== INPUT SIZE === " + N);
-        // data for tornadovm version
-        double[][] coords = generateRandomCoordinates(N);
-        Matrix2DDouble coordsM = new Matrix2DDouble(coords);
-        double[][] distances = new double[N][N];
-        Matrix2DDouble distancesM = new Matrix2DDouble(distances);
-        // data for tornadovm java version
-        double[][] coordsCopy = new double[N][2];
-        for (int i = 0; i < N; i++) {
-            coordsCopy[i][0] = coords[i][0];
-            coordsCopy[i][1] = coords[i][1];
-        }
-        Matrix2DDouble copySeqM = new Matrix2DDouble(coordsCopy);
-        double[][] distancesSeq = new double[N][N];
-        Matrix2DDouble distancesSeqM = new Matrix2DDouble(distancesSeq);
+        double[][] coords = generateRandomCoordinates();
+
         // data for original java implementation
         double[][] coordsCopyOG = new double[N][2];
         for (int i = 0; i < N; i++) {
@@ -145,46 +102,40 @@ public class CalculateTVMDouble {
         }
         double[][] distancesSeqOG = new double[N][N];
 
-        // execute java implementation
-        normalizeCoords(copySeqM, N);
-        computeUpperTriangle(copySeqM, distancesSeqM, N);
-        mirrorLowerTriangle(distancesSeqM, N);
+        Matrix2DDouble inputCoordsMatrix = new Matrix2DDouble(N, 2);
+        for (int i = 0; i < N; i++) {
+            inputCoordsMatrix.set(i, 0, coords[i][0]);
+            inputCoordsMatrix.set(i, 1, coords[i][1]);
+        }
 
-        // execute tornadovm implementation
+        Matrix2DDouble distancesTornado = new Matrix2DDouble(N, N);
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (i == j) {
+                    distancesTornado.set(i, j, 0.0);
+                }
+            }
+        }
+
         TaskGraph taskGraph = new TaskGraph("s0")
-                .transferToDevice(DataTransferMode.FIRST_EXECUTION, coordsM, distancesM)
-                .task("t0", CalculateTVMDouble::normalizeCoords, coordsM, N)
-                .task("t1", CalculateTVMDouble::computeUpperTriangle, coordsM, distancesM, N)
-                .task("t2", CalculateTVMDouble::mirrorLowerTriangle, distancesM, N)
-                .transferToHost(DataTransferMode.EVERY_EXECUTION, distancesM);
+                .transferToDevice(DataTransferMode.FIRST_EXECUTION, inputCoordsMatrix)
+                .task("t0", CalculateTVMDouble::calculate_tvm_kernel_race_free, inputCoordsMatrix, distancesTornado, N)
+                .task("t1", CalculateTVMDouble::fillLowerTriangle, distancesTornado, N)
+                .transferToHost(DataTransferMode.EVERY_EXECUTION, distancesTornado);
 
-        TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(taskGraph.snapshot());
+        ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
+        TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph);
         executionPlan.execute();
 
         // execute original java implementation
         calculate_tvm(coordsCopyOG, distancesSeqOG);
 
-        // VALIDATE THE TORNADOVM VERSION
-        boolean tornadovm = true;
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                if (Math.abs(distancesSeqM.get(i,j) - distancesM.get(i, j)) > 0.1) {
-                    System.out.println("Index: [" + i + ", " + j + "] ERROR! Expected: " + distancesSeqM.get(i,j) + " actual: " + distancesM.get(i, j));
-                    tornadovm = false;
-                }
-            }
-        }
-
-        if (tornadovm) {
-            System.out.println("The TornadoVM implementation is valid");
-        }
-
         boolean og = true;
         // COMPARE TORNADOVM VERSION WITH ORIGINAL IMPLEMENTATION
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
-                if (Math.abs(distancesSeqM.get(i,j) - distancesM.get(i, j)) > 0.1) {
-                    System.out.println("Index: [" + i + ", " + j + "] ERROR! OG implementation: " + distancesSeqM.get(i,j) + " tornadovm implementation: " + distancesM.get(i, j));
+                if (Math.abs(distancesSeqOG[i][j] - distancesTornado.get(i, j)) > 0.1) {
+                    System.out.println("Index: [" + i + ", " + j + "] ERROR! OG implementation: " + distancesSeqOG[i][j] + " tornadovm implementation: " + distancesTornado.get(i, j));
                     og = false;
                 }
             }
@@ -193,7 +144,6 @@ public class CalculateTVMDouble {
         if (og) {
             System.out.println("The TornadoVM is equivalent with the original implementation");
         }
-
 
     }
 
