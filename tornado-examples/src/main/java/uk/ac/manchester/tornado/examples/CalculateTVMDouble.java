@@ -115,14 +115,6 @@ public class CalculateTVMDouble {
         }
 
         Matrix2DDouble distancesTornado = new Matrix2DDouble(N, N);
-//        for (int i = 0; i < N; i++) {
-//            for (int j = 0; j < N; j++) {
-//                if (i == j) {
-//                    distancesTornado.set(i, j, 0.0);
-//                }
-//            }
-//        }
-        //setDiagonalToZero(distancesTornado, N);
 
         TaskGraph taskGraph = new TaskGraph("s0")
                 .transferToDevice(DataTransferMode.FIRST_EXECUTION, inputCoordsMatrix)
