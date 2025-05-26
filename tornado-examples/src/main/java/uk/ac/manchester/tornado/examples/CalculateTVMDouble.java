@@ -84,6 +84,12 @@ public class CalculateTVMDouble {
         }
     }
 
+    public static void setDiagonalToZero(Matrix2DDouble distances, int N) {
+        for (@Parallel int i = 0; i < N; i++) {
+            distances.set(i, i, 0.0);
+        }
+    }
+
     private static double[][] generateRandomCoordinates() {
         double[][] coords = new double[][]{{38.04124900914985, 23.77855547983686}, {38.03357781390183, 23.74521017974585}, {38.03496746920905, 23.747677803039554}};
         return coords;
@@ -109,18 +115,20 @@ public class CalculateTVMDouble {
         }
 
         Matrix2DDouble distancesTornado = new Matrix2DDouble(N, N);
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                if (i == j) {
-                    distancesTornado.set(i, j, 0.0);
-                }
-            }
-        }
+//        for (int i = 0; i < N; i++) {
+//            for (int j = 0; j < N; j++) {
+//                if (i == j) {
+//                    distancesTornado.set(i, j, 0.0);
+//                }
+//            }
+//        }
+        //setDiagonalToZero(distancesTornado, N);
 
         TaskGraph taskGraph = new TaskGraph("s0")
                 .transferToDevice(DataTransferMode.FIRST_EXECUTION, inputCoordsMatrix)
-                .task("t0", CalculateTVMDouble::calculate_tvm_kernel_race_free, inputCoordsMatrix, distancesTornado, N)
-                .task("t1", CalculateTVMDouble::fillLowerTriangle, distancesTornado, N)
+                .task("t0", CalculateTVMDouble::setDiagonalToZero, distancesTornado, N)
+                .task("t1", CalculateTVMDouble::calculate_tvm_kernel_race_free, inputCoordsMatrix, distancesTornado, N)
+                .task("t2", CalculateTVMDouble::fillLowerTriangle, distancesTornado, N)
                 .transferToHost(DataTransferMode.EVERY_EXECUTION, distancesTornado);
 
         ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
@@ -142,7 +150,7 @@ public class CalculateTVMDouble {
         }
 
         if (og) {
-            System.out.println("The TornadoVM is equivalent with the original implementation");
+            System.out.println("The TornadoVM implementation is equivalent with the original implementation");
         }
 
     }
