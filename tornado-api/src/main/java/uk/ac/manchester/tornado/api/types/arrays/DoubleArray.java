@@ -57,7 +57,7 @@ public final class DoubleArray extends TornadoNativeArray {
         arrayHeaderSize = (int) TornadoNativeArray.ARRAY_HEADER;
         assert arrayHeaderSize >= 8;
         baseIndex = arrayHeaderSize / DOUBLE_BYTES;
-        segmentByteSize = numberOfElements * DOUBLE_BYTES + arrayHeaderSize;
+        segmentByteSize = (long) numberOfElements * DOUBLE_BYTES + arrayHeaderSize;
 
         segment = Arena.ofAuto().allocate(segmentByteSize, 1);
         segment.setAtIndex(JAVA_INT, 0, numberOfElements);
