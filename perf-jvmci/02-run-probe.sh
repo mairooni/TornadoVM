@@ -99,21 +99,32 @@ for label in "${labels[@]}"; do
                 tail -5 "$PERF_WORK/logs/run-$label-jdk$jdk-$rep.err" >&2
                 continue
             fi
-            awk -v rep="$rep" 'NR>1 && NF==3 {print $1"\t"$2"\t"$3"\t"rep}' \
+            awk -v rep="$rep" 'NR>1 && NF==4 {print $1"\t"$2"\t"$3"\t"$4"\t"rep}' \
                 "$PERF_WORK/logs/run-$label-jdk$jdk-$rep.out" >> "$out"
             printf '.' >&2
         done
         echo >&2
         log "  -> $out ($(wc -l < "$out") samples)"
 
-        # Phase attribution, one run, profiler on. Reported separately and never mixed into the
-        # wall-clock medians above.
-        prof="$RESULTS/${label}__on-jdk${jdk}.profiler.json"
-        rm -f "$prof"
-        JAVA_HOME="$java_home" TORNADOVM_HOME="$sdk" \
-            "$sdk/bin/tornado" --dumpProfiler "$prof" --jvm="-Dtornado.recover.bailout=False" \
-            --classpath "$classes" perfprobe.CompilePerf 3 \
-            > "$PERF_WORK/logs/prof-$label-jdk$jdk.out" 2>&1 || log "  (profiler run failed, non-fatal)"
+        # Compile-phase measurement, profiler on, REPS times.
+        #
+        # This is the PRIMARY signal for per-kernel compile cost, not the wall clock above. A
+        # first-execution wall clock bundles compile with GPU execution, and the execution variance
+        # (interquartile ranges of 3-5 ms) completely swamps a sub-millisecond compile delta -- every
+        # tier came out statistically indistinguishable that way. The profiler's phase timers
+        # exclude execution, which is exactly the noise that needed removing.
+        #
+        # One JSON per repetition so the aggregator can take medians and, crucially, measure the
+        # spread of the CONTROL. TOTAL_DRIVER_COMPILE_TIME must not move between the two SDKs; how
+        # much it moves anyway is this machine's noise floor, and no smaller delta is believable.
+        for prep in $(seq 1 "$REPS"); do
+            prof="$RESULTS/${label}__on-jdk${jdk}.profiler.$prep.json"
+            rm -f "$prof"
+            JAVA_HOME="$java_home" TORNADOVM_HOME="$sdk" \
+                "$sdk/bin/tornado" --dumpProfiler "$prof" --jvm="-Dtornado.recover.bailout=False" \
+                --classpath "$classes" perfprobe.CompilePerf 3 \
+                > "$PERF_WORK/logs/prof-$label-jdk$jdk-$prep.out" 2>&1 || log "  (profiler rep $prep failed, non-fatal)"
+        done
     done
 done
 

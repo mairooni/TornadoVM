@@ -28,9 +28,36 @@ Three states, because "cold vs warm" hides the one that matters:
 | **warm-new** | kernels 2..8, each a **new holder class**, warm JIT | the per-new-kernel cost — **what a large application pays repeatedly** |
 | **warm-same** | re-executing an already-compiled graph | everything cached; should be ~free. If it isn't, a cache is missing. |
 
-Reference numbers from the removal branch on an RTX 4070 (JDK 25, CUDA): cold **76 ms**, warm-new
-**6.7 ms**, warm-same **0.12 ms**. Compile cost is ~600× steady-state execution, so a real
-regression will be obvious.
+The workload is 20 kernels in four complexity tiers, taken from `tornado-benchmarks/ComputeKernels`
+so the graph shapes are ones real applications compile:
+
+| tier | kernel | why |
+|---|---|---|
+| S | elementwise add | the floor: smallest possible graph |
+| M | math-heavy elementwise | loop plus `TornadoMath` calls |
+| L | DFT | nested loop, trig, many locals |
+| XL | n-body | triple-nested, array allocation, heaviest |
+
+Tiers exist so the result is a **slope, not a point**: metadata cost should grow with graph size
+while the one-off start-up difference does not, and only several sizes can separate those.
+
+### Which metric to trust
+
+**Use the profiler's compile-phase timers, not the wall clock, for per-kernel cost.** A
+first-execution wall clock bundles compilation with GPU execution, and on the reference box the
+execution variance (IQRs of 3–5 ms) completely swamped a sub-millisecond compile delta — all four
+tiers came out statistically indistinguishable that way. `TOTAL_GRAAL_COMPILE_TIME` excludes
+execution and resolves far better.
+
+Wall clock remains the right metric for **cold**, where start-up is the thing being measured.
+
+### The control decides what counts as a result
+
+`TOTAL_DRIVER_COMPILE_TIME` is source → device binary, performed by the GPU driver, which cannot
+know whether the source came from JVMCI or reflection. **It must not move.** However much it moves
+anyway is the machine's noise floor, and `03-aggregate.py` prints it as such: any compile delta
+smaller than the control's own drift is not a measurement. On a noisy developer laptop that floor
+was ~5%, which is precisely why the real run belongs on a quiet machine.
 
 ## Prerequisites
 
