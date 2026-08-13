@@ -17,6 +17,29 @@ PROBE_SRC="$(dirname "${BASH_SOURCE[0]}")/probe/src/perfprobe"
 RESULTS="$PERF_WORK/results"
 mkdir -p "$RESULTS" "$PERF_WORK/logs"
 
+# Mirror everything this script prints into a log, so a run that is left unattended (or scrolled
+# out of a terminal) is still fully reconstructable afterwards.
+exec > >(tee -a "$PERF_WORK/logs/02-run-probe.log") 2> >(tee -a "$PERF_WORK/logs/02-run-probe.log" >&2)
+
+# Capture the machine and toolchain into the results directory. A measurement without its
+# environment cannot be compared with any other measurement, and "which GPU/driver/CUDA was that?"
+# is unanswerable a week later.
+{
+    echo "captured_at=$(date -Is)"
+    echo "host=$(hostname)"
+    echo "backend=$BACKEND"
+    echo "kernel=$(uname -sr)"
+    echo "cpu=$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2- | sed 's/^ *//')"
+    command -v nvidia-smi >/dev/null 2>&1 && \
+        echo "gpu=$(nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader 2>/dev/null | head -1)"
+    command -v nvcc >/dev/null 2>&1 && echo "nvcc=$(nvcc --version 2>/dev/null | tail -2 | head -1 | sed 's/^ *//')"
+    for d in "$PERF_WORK"/sdks/*/; do
+        [ -f "$d/PERF-PROVENANCE" ] || continue
+        echo "--- sdk $(basename "${d%/}")"
+        sed 's/^/    /' "$d/PERF-PROVENANCE"
+    done
+} > "$RESULTS/environment.txt"
+
 # Derive the compile flags from the SDK itself rather than from a hardcoded table: the API jar's
 # class-file version says which release to target, and minor 65535 marks preview (JDK 21 FFM).
 # Guessing here is how the sample apps ended up compiling at release 21 with --enable-preview on

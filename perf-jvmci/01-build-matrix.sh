@@ -19,6 +19,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 mkdir -p "$PERF_WORK"/{sdks,worktrees,logs}
 
+# Mirror this script's console output; each individual build already logs to its own file.
+exec > >(tee -a "$PERF_WORK/logs/01-build-matrix.log") 2> >(tee -a "$PERF_WORK/logs/01-build-matrix.log" >&2)
+
 # The JDK 21 image the removal branch needs to source the frozen jdk.vm.ci.* classes from, on any
 # build JDK. Harmless for the baseline branches, which ignore it.
 export JVMCI_SOURCE_JDK="${JVMCI_SOURCE_JDK:-$(require_jdk 21)}"

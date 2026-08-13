@@ -110,6 +110,26 @@ Three decisions exist because of failures we have already hit on this branch:
 Plus one discarded warm-up run per configuration: the first run after a build also faults the SDK
 jars in from disk, which measured ~4× higher warm-new times. That is page cache, not compilation.
 
+## Where everything is written
+
+Nothing is console-only. After a run, `$PERF_WORK` contains:
+
+```
+report-<timestamp>.md      the full report: environment + every table
+report-latest.md           symlink to the most recent one
+results/environment.txt    host, CPU, GPU, driver, nvcc, and each SDK's git commit
+results/*.tsv              raw per-sample wall-clock measurements
+results/*.profiler.N.json  raw profiler dumps, one per repetition
+logs/01-build-matrix.log   build-phase console output
+logs/02-run-probe.log      measurement-phase console output
+logs/build-<label>.log     full Maven/native output per SDK build
+logs/run-<label>-*.out/err per-repetition probe output
+sdks/<label>/PERF-PROVENANCE  which ref/commit/JDK that SDK came from
+```
+
+The report embeds the environment, so a single file can be pasted into an issue or sent to a
+colleague and still be interpretable. To choose the filename: `./03-aggregate.py -o myreport.md`.
+
 ## Reading the output
 
 `03-aggregate.py` prints wall-clock medians, the two A/B tables (each labelled with its caveat),

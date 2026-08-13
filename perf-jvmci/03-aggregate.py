@@ -13,7 +13,10 @@ only one of them is a controlled experiment:
   PRODUCT   (JDK 25)  upstream/jdk25 has diverged (730 behind develop, 437 of its own commits), so
                       the delta is "what a JDK 25 user sees", not the cost of the removal.
 
-Usage:  ./03-aggregate.py [results-dir]
+The report is written to a FILE as well as the console, because a number nobody can find again is
+not evidence. Default: $PERF_WORK/report-<timestamp>.md, plus a report-latest.md symlink.
+
+Usage:  ./03-aggregate.py [results-dir] [-o report.md]
 """
 import json
 import os
@@ -22,8 +25,19 @@ import statistics
 import sys
 from collections import defaultdict
 
-RESULTS = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser(
-    os.environ.get("PERF_WORK", "~/perf-jvmci-work") + "/results")
+import datetime
+
+_args = [a for a in sys.argv[1:]]
+_out = None
+if "-o" in _args:
+    i = _args.index("-o")
+    _out = _args[i + 1]
+    del _args[i:i + 2]
+
+PERF_WORK = os.path.expanduser(os.environ.get("PERF_WORK", "~/perf-jvmci-work"))
+RESULTS = _args[0] if _args else os.path.join(PERF_WORK, "results")
+REPORT = _out or os.path.join(
+    PERF_WORK, "report-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + ".md")
 
 PHASES = ["cold", "warm-new", "warm-same"]
 TIERS = ["S", "M", "L", "XL"]
@@ -52,6 +66,29 @@ def load():
                 samples[(label, jdk)][phase].append(ms)
                 tiered[(label, jdk)][(phase, tier)].append(ms)
     return samples, tiered
+
+
+_buf = []
+
+
+def print(*a, **kw):  # noqa: A001 - deliberately shadowed so every table lands in the report too
+    import builtins
+    line = " ".join(str(x) for x in a)
+    _buf.append(line)
+    builtins.print(*a, **kw)
+
+
+def environment():
+    """Reproduce the run's context at the top of the report: which machine, GPU, driver and, above
+    all, which commits each SDK was built from."""
+    env = os.path.join(RESULTS, "environment.txt")
+    if not os.path.isfile(env):
+        return
+    print("## Environment\n")
+    print("```")
+    with open(env) as fh:
+        print(fh.read().rstrip())
+    print("```\n")
 
 
 def med(xs):
@@ -176,6 +213,8 @@ def main():
     samples, tiered = load()
     if not samples:
         sys.exit(f"no .tsv results in {RESULTS}")
+    print(f"# JVMCI-removal compile cost — {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+    environment()
     table(samples)
     ab(samples, "jvmci-jdk21", "reflect-jdk21", 21, "MECHANISM",
        "`upstream/develop` is a clean ancestor of the removal branch, so this delta **is** the cost "
@@ -196,6 +235,19 @@ def main():
         print(f"| {jdk} | {fmt(med(s['cold']))} | {fmt(med(s['warm-new']))} | {fmt(med(s['warm-same']))} |")
     print()
     profiler(RESULTS)
+
+    os.makedirs(os.path.dirname(REPORT) or ".", exist_ok=True)
+    with open(REPORT, "w") as fh:
+        fh.write("\n".join(_buf) + "\n")
+    latest = os.path.join(os.path.dirname(REPORT) or ".", "report-latest.md")
+    try:
+        if os.path.islink(latest) or os.path.exists(latest):
+            os.remove(latest)
+        os.symlink(os.path.basename(REPORT), latest)
+    except OSError:
+        pass
+    import builtins
+    builtins.print(f"\n[report written to {REPORT}]", file=sys.stderr)
 
 
 if __name__ == "__main__":
