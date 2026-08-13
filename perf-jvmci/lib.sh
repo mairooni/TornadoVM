@@ -77,6 +77,16 @@ log() { echo "[$(date +%H:%M:%S)] $*" >&2; }
 # whole column of results.
 resolve_jdk() {
     local feature="$1" cand home ver
+    # Explicit override wins: JDK21_HOME=/path ./02-run-probe.sh ...
+    # A search root can hold several distributions of the same feature version (the CI box has four
+    # JDK 21s under graal-23.1.0/), and which one is picked is then alphabetical rather than
+    # intentional. Both SDKs would still get the SAME JDK, so an A/B stays fair -- but pinning the
+    # one the project actually builds with keeps the numbers comparable to CI.
+    local override="JDK${feature}_HOME"
+    if [ -n "${!override:-}" ]; then
+        [ -x "${!override}/bin/java" ] || die "$override is set but ${!override}/bin/java is not executable"
+        echo "${!override}"; return 0
+    fi
     for root in $JDK_ROOTS; do
         [ -d "$root" ] || continue
         for cand in "$root"/*"$feature"*/Contents/Home "$root"/*/*"$feature"*/Contents/Home \
