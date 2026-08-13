@@ -22,16 +22,24 @@ mkdir -p "$RESULTS" "$PERF_WORK/logs"
 # Guessing here is how the sample apps ended up compiling at release 21 with --enable-preview on
 # JDK 22 and failing outright.
 probe_javac_flags() {
-    local api_jar="$1" tmp major minor
+    # Scan MANY classes, not one. javac stamps the preview flag only on the classes that actually
+    # use a preview feature, so TaskGraph.class is minor=0 while FloatArray.class (FFM-backed) is
+    # minor=65535 in the very same jar. Sniffing a single class picked the wrong answer and made
+    # the probe fail to compile against the JDK 21 baseline.
+    local api_jar="$1" tmp cls minor major max_major=0 preview=0
     tmp=$(mktemp -d)
-    ( cd "$tmp" && unzip -qo "$api_jar" 'uk/ac/manchester/tornado/api/TaskGraph.class' 2>/dev/null )
-    local cls="$tmp/uk/ac/manchester/tornado/api/TaskGraph.class"
-    [ -f "$cls" ] || { rm -rf "$tmp"; die "cannot read TaskGraph.class from $api_jar"; }
-    minor=$(od -An -tu2 -j4 -N2 --endian=big "$cls" | tr -d ' ')
-    major=$(od -An -tu2 -j6 -N2 --endian=big "$cls" | tr -d ' ')
+    ( cd "$tmp" && unzip -qo "$api_jar" 'uk/ac/manchester/tornado/api/*.class' \
+                                        'uk/ac/manchester/tornado/api/types/arrays/*.class' 2>/dev/null )
+    while IFS= read -r cls; do
+        minor=$(od -An -tu2 -j4 -N2 --endian=big "$cls" | tr -d ' ')
+        major=$(od -An -tu2 -j6 -N2 --endian=big "$cls" | tr -d ' ')
+        [ -n "$major" ] && [ "$major" -gt "$max_major" ] && max_major=$major
+        [ "$minor" = "65535" ] && preview=1
+    done < <(find "$tmp" -name '*.class' | head -200)
     rm -rf "$tmp"
-    local release=$((major - 44))
-    if [ "$minor" = "65535" ]; then echo "--release $release --enable-preview"; else echo "--release $release"; fi
+    [ "$max_major" -gt 0 ] || die "cannot read any class-file version from $api_jar"
+    local release=$((max_major - 44))
+    if [ "$preview" = "1" ]; then echo "--release $release --enable-preview"; else echo "--release $release"; fi
 }
 
 labels=("$@")
@@ -58,7 +66,12 @@ for label in "${labels[@]}"; do
         # Compile once per SDK, using a JDK that can accept those flags.
         if [ ! -f "$classes/perfprobe/CompilePerf.class" ]; then
             log "compiling probe for $label ($flags)"
-            "$java_home/bin/javac" $flags -nowarn -cp "$api_jar" -d "$classes" "$PROBE_SRC"/*.java \
+            # -g is mandatory, not cosmetic. The JVMCI code path reads the real LocalVariableTable
+            # to name kernel parameters and NPEs without it (CUDANodeLIRBuilder.emitPrologue); the
+            # reflection path synthesises one and does not care. Maven compiles with debug info by
+            # default, so -g is also what a real application ships -- without it the baseline
+            # cannot run at all and the A/B is impossible.
+            "$java_home/bin/javac" $flags -g -nowarn -cp "$api_jar" -d "$classes" "$PROBE_SRC"/*.java \
                 > "$PERF_WORK/logs/probe-compile-$label.log" 2>&1 \
                 || { tail -15 "$PERF_WORK/logs/probe-compile-$label.log" >&2; die "probe compile failed for $label"; }
         fi
