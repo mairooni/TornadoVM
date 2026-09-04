@@ -117,12 +117,6 @@
                 </dependency>
                 <dependency>
                     <groupId>${project.groupId}</groupId>
-                    <artifactId>tornado-drivers-cudnn-jni</artifactId>
-                    <version>${project.version}</version>
-                    <classifier>libs</classifier>
-                </dependency>
-                <dependency>
-                    <groupId>${project.groupId}</groupId>
                     <artifactId>tornado-cusparse</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -130,6 +124,26 @@
                     <groupId>${project.groupId}</groupId>
                     <artifactId>tornado-cutlass</artifactId>
                     <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <!--
+            Native bindings for the hybrid API (libraryTask). Split out of cuda-backend because
+            they need cuDNN and CUTLASS installed on the build host, which the core CUDA backend
+            does not. Build with -Pcuda-backend,cuda-libs once those are available.
+        -->
+        <profile>
+            <id>cuda-libs</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>tornado-drivers-cudnn-jni</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>libs</classifier>
                 </dependency>
                 <dependency>
                     <groupId>${project.groupId}</groupId>

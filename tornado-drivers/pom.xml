@@ -49,6 +49,16 @@
             </activation>
             <modules>
                 <module>cuda</module>
+            </modules>
+        </profile>
+
+        <!-- See tornado-assembly/pom.xml: needs cuDNN and CUTLASS on the build host. -->
+        <profile>
+            <id>cuda-libs</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <modules>
                 <module>cudnn-jni</module>
                 <module>cutlass-jni</module>
             </modules>
