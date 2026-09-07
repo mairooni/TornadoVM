@@ -1,0 +1,1240 @@
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ExecutionPlanType.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ExecutionPlanType.java
+index 44d0ba7cc..d8a33665e 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ExecutionPlanType.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ExecutionPlanType.java
+@@ -24,6 +24,7 @@ import uk.ac.manchester.tornado.api.plan.types.OffProfiler;
+ import uk.ac.manchester.tornado.api.plan.types.OffThreadInfo;
+ import uk.ac.manchester.tornado.api.plan.types.WithAllGraphs;
+ import uk.ac.manchester.tornado.api.plan.types.WithBatch;
++import uk.ac.manchester.tornado.api.plan.types.WithCUDAGraph;
+ import uk.ac.manchester.tornado.api.plan.types.WithClearProfiles;
+ import uk.ac.manchester.tornado.api.plan.types.WithCompilerFlags;
+ import uk.ac.manchester.tornado.api.plan.types.WithConcurrentDevices;
+@@ -46,7 +47,7 @@ public abstract sealed class ExecutionPlanType extends TornadoExecutionPlan //
+         OffThreadInfo, WithAllGraphs, WithPreCompilation, WithBatch, WithClearProfiles, WithCompilerFlags, //
+         WithConcurrentDevices, WithDefaultScheduler, WithDevice,  //
+         WithFreeDeviceMemory, WithGraph, WithGridScheduler, WithMemoryLimit, WithPrintKernel, WithProfiler, //
+-        WithResetDevice, WithThreadInfo, WithWarmUpIterations, WithWarmUpTime { //
++        WithResetDevice, WithThreadInfo, WithWarmUpIterations, WithWarmUpTime, WithCUDAGraph { //
+ 
+     public ExecutionPlanType(TornadoExecutionPlan parentNode) {
+ 
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ImmutableTaskGraph.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ImmutableTaskGraph.java
+index f2969e659..521ff4926 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ImmutableTaskGraph.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ImmutableTaskGraph.java
+@@ -54,6 +54,10 @@ public class ImmutableTaskGraph {
+         taskGraph.withPreCompilation(executionPackage);
+     }
+ 
++    void withCUDAGraph() {
++        taskGraph.withCUDAGraph();
++    }
++
+     void withDevice(TornadoDevice device) {
+         taskGraph.withDevice(device);
+     }
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TaskGraph.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TaskGraph.java
+index f954a8280..d5123b781 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TaskGraph.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TaskGraph.java
+@@ -808,6 +808,10 @@ public class TaskGraph implements TaskGraphInterface {
+         taskGraphImpl.withPreCompilation(executionPackage);
+     }
+ 
++    void withCUDAGraph() {
++        taskGraphImpl.withCUDAGraph();
++    }
++
+     void dumpProfiles() {
+         taskGraphImpl.dumpProfiles();
+     }
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoDeviceContext.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoDeviceContext.java
+index b534ba564..3941ab444 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoDeviceContext.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoDeviceContext.java
+@@ -51,4 +51,6 @@ public interface TornadoDeviceContext {
+     int getDriverIndex();
+ 
+     Set<Long> getRegisteredPlanIds();
++
++
+ }
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoExecutionPlan.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoExecutionPlan.java
+index 8066792a0..1f7a4d12e 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoExecutionPlan.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoExecutionPlan.java
+@@ -34,6 +34,7 @@ import uk.ac.manchester.tornado.api.plan.types.OffProfiler;
+ import uk.ac.manchester.tornado.api.plan.types.OffThreadInfo;
+ import uk.ac.manchester.tornado.api.plan.types.WithAllGraphs;
+ import uk.ac.manchester.tornado.api.plan.types.WithBatch;
++import uk.ac.manchester.tornado.api.plan.types.WithCUDAGraph;
+ import uk.ac.manchester.tornado.api.plan.types.WithClearProfiles;
+ import uk.ac.manchester.tornado.api.plan.types.WithCompilerFlags;
+ import uk.ac.manchester.tornado.api.plan.types.WithConcurrentDevices;
+@@ -632,4 +633,10 @@ public sealed class TornadoExecutionPlan implements AutoCloseable permits Execut
+         tornadoExecutor.withWarmUpIterations(iterations, executionFrame);
+         return new WithWarmUpIterations(this, iterations);
+     }
++
++    public TornadoExecutionPlan withCUDAGraph() {
++        // include a check to verify that the BACKEND is PTX
++        tornadoExecutor.withCUDAGraph();
++        return new WithCUDAGraph(this);
++    }
+ }
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoExecutor.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoExecutor.java
+index 79fd061ef..bc4ecc39c 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoExecutor.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoExecutor.java
+@@ -40,11 +40,31 @@ class TornadoExecutor {
+     private final List<ImmutableTaskGraph> immutableTaskGraphList;
+     private List<ImmutableTaskGraph> subgraphList;
+ 
++    private boolean useCUDAGraph = false;
++
+     TornadoExecutor(ImmutableTaskGraph... immutableTaskGraphs) {
+         immutableTaskGraphList = new ArrayList<>();
+         Collections.addAll(immutableTaskGraphList, immutableTaskGraphs);
+     }
+ 
++    // ==================
++    /**
++     * Enable CUDA Graph execution mode.
++     */
++    public void withCUDAGraph() {
++        this.useCUDAGraph = true;
++        immutableTaskGraphList.forEach(ImmutableTaskGraph::withCUDAGraph);
++    }
++
++    /**
++     * Check if CUDA Graph mode is enabled.
++     */
++    public boolean isCUDAGraphEnabled() {
++        return useCUDAGraph;
++    }
++
++    // ==================
++
+     void execute(ExecutorFrame executionPackage) {
+         immutableTaskGraphList.forEach(immutableTaskGraph -> immutableTaskGraph.execute(executionPackage));
+     }
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoTaskGraphInterface.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoTaskGraphInterface.java
+index 259771a26..881c38213 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoTaskGraphInterface.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/TornadoTaskGraphInterface.java
+@@ -54,6 +54,8 @@ public interface TornadoTaskGraphInterface extends ProfilerInterface {
+ 
+     void withBatch(String batchSize);
+ 
++    void withCUDAGraph();
++
+     void withMemoryLimit(String memoryLimit);
+ 
+     void withoutMemoryLimit();
+diff --git a/tornado-drivers/ptx-jni/src/main/cpp/source/PTXStream.cpp b/tornado-drivers/ptx-jni/src/main/cpp/source/PTXStream.cpp
+index 9062af168..b80a2cef5 100644
+--- a/tornado-drivers/ptx-jni/src/main/cpp/source/PTXStream.cpp
++++ b/tornado-drivers/ptx-jni/src/main/cpp/source/PTXStream.cpp
+@@ -515,9 +515,9 @@ JNIEXPORT jobjectArray JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStre
+     CUresult result = cuMemcpyDtoHAsync((void*) (hostPointer + host_offset), device_ptr, (size_t) length, stream);
+     LOG_PTX_AND_VALIDATE("cuMemcpyDtoHMemSeg", result);
+     record_event(&afterEvent, &stream);
+-    if (cuEventQuery(afterEvent) != CUDA_SUCCESS) {
+-        cuEventSynchronize(afterEvent);
+-    }
++//    if (cuEventQuery(afterEvent) != CUDA_SUCCESS) {
++//        cuEventSynchronize(afterEvent);
++//    }
+     return wrapper_from_events(env, &beforeEvent, &afterEvent);
+ }
+ 
+@@ -555,9 +555,9 @@ JNIEXPORT jobjectArray JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStre
+     CUresult result = cuMemcpyHtoDAsync(device_ptr, (void *) (hostPointer + host_offset), (size_t) length, stream);
+     LOG_PTX_AND_VALIDATE("cuMemcpyHtoDMemSeg", result);
+     record_event(&afterEvent, &stream);
+-    if (cuEventQuery(afterEvent) != CUDA_SUCCESS) {
+-        cuEventSynchronize(afterEvent);
+-    }
++//    if (cuEventQuery(afterEvent) != CUDA_SUCCESS) {
++//        cuEventSynchronize(afterEvent);
++//    }
+     return wrapper_from_events(env, &beforeEvent, &afterEvent);
+ }
+ 
+@@ -577,4 +577,125 @@ JNIEXPORT jobjectArray JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStre
+     LOG_PTX_AND_VALIDATE("cuMemcpyHtoDAsyncMemSeg", result);
+     record_event(&afterEvent, &stream);
+     return wrapper_from_events(env, &beforeEvent, &afterEvent);
++}
++
++/*
++ * Class:     uk_ac_manchester_tornado_drivers_ptx_PTXStream
++ * Method:    cuStreamBeginCapture
++ * Signature: ([BI)J
++ */
++JNIEXPORT jlong JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuStreamBeginCapture
++  (JNIEnv *env, jclass clazz, jbyteArray stream_wrapper, jint mode) {
++    CUstream stream;
++    stream_from_array(env, &stream, stream_wrapper);
++
++    // 1. Try to start capture
++    CUresult result = cuStreamBeginCapture(stream, (CUstreamCaptureMode) mode);
++
++    // 2. If we get Error 900 (Unsupported), it means we are ALREADY capturing!
++    // This is a "Zombie Stream" from a previous crash.
++    if (result == CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED) {
++        printf("[PTX-JNI] WARN: Zombie capture detected! Force-ending previous graph to reset stream.\n");
++
++        // Force-end the previous zombie capture to clean the state
++        CUgraph dummyGraph;
++        cuStreamEndCapture(stream, &dummyGraph);
++        if (dummyGraph != NULL) {
++            cuGraphDestroy(dummyGraph);
++        }
++
++        // Retry starting the new capture
++        result = cuStreamBeginCapture(stream, (CUstreamCaptureMode) mode);
++    }
++
++    LOG_PTX_AND_VALIDATE("cuStreamBeginCapture", result);
++    return (jlong) result;
++}
++
++/*
++ * Class:     uk_ac_manchester_tornado_drivers_ptx_PTXStream
++ * Method:    cuStreamEndCapture
++ * Signature: ([B)[B
++ */
++JNIEXPORT jbyteArray JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuStreamEndCapture
++  (JNIEnv *env, jclass clazz, jbyteArray stream_wrapper) {
++    CUstream stream;
++    stream_from_array(env, &stream, stream_wrapper);
++    CUgraph graph;
++    CUresult result = cuStreamEndCapture(stream, &graph);
++    LOG_PTX_AND_VALIDATE("cuStreamEndCapture", result);
++    jbyteArray array = env->NewByteArray(sizeof(CUgraph));
++    env->SetByteArrayRegion(array, 0, sizeof(CUgraph),
++                            reinterpret_cast<const jbyte *>(&graph));
++    return array;
++}
++
++/*
++ * Class:     uk_ac_manchester_tornado_drivers_ptx_PTXStream
++ * Method:    cuGraphInstantiate
++ * Signature: ([B)[B
++ */
++JNIEXPORT jbyteArray JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuGraphInstantiate
++  (JNIEnv *env, jclass clazz, jbyteArray graph_wrapper) {
++    CUgraph graph;
++    env->GetByteArrayRegion(graph_wrapper, 0, sizeof(CUgraph),
++                            reinterpret_cast<jbyte *>(&graph));
++    CUgraphExec graphExec;
++    #if CUDA_VERSION >= 12000
++        CUresult result = cuGraphInstantiate(&graphExec, graph, 0);
++    #else
++        CUresult result = cuGraphInstantiate(&graphExec, graph, NULL, NULL, 0);
++    #endif
++    LOG_PTX_AND_VALIDATE("cuGraphInstantiate", result);
++    jbyteArray array = env->NewByteArray(sizeof(CUgraphExec));
++    env->SetByteArrayRegion(array, 0, sizeof(CUgraphExec),
++                            reinterpret_cast<const jbyte *>(&graphExec));
++    return array;
++}
++
++/*
++ * Class:     uk_ac_manchester_tornado_drivers_ptx_PTXStream
++ * Method:    cuGraphLaunch
++ * Signature: ([B[B)J
++ */
++JNIEXPORT jlong JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuGraphLaunch
++  (JNIEnv *env, jclass clazz, jbyteArray graph_exec_wrapper, jbyteArray stream_wrapper) {
++    CUgraphExec graphExec;
++    env->GetByteArrayRegion(graph_exec_wrapper, 0, sizeof(CUgraphExec),
++                            reinterpret_cast<jbyte *>(&graphExec));
++    CUstream stream;
++    stream_from_array(env, &stream, stream_wrapper);
++    CUresult result = cuGraphLaunch(graphExec, stream);
++    LOG_PTX_AND_VALIDATE("cuGraphLaunch", result);
++    return (jlong) result;
++}
++
++/*
++ * Class:     uk_ac_manchester_tornado_drivers_ptx_PTXStream
++ * Method:    cuGraphExecDestroy
++ * Signature: ([B)J
++ */
++JNIEXPORT jlong JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuGraphExecDestroy
++  (JNIEnv *env, jclass clazz, jbyteArray graph_exec_wrapper) {
++    CUgraphExec graphExec;
++    env->GetByteArrayRegion(graph_exec_wrapper, 0, sizeof(CUgraphExec),
++                            reinterpret_cast<jbyte *>(&graphExec));
++    CUresult result = cuGraphExecDestroy(graphExec);
++    LOG_PTX_AND_VALIDATE("cuGraphExecDestroy", result);
++    return (jlong) result;
++}
++
++/*
++ * Class:     uk_ac_manchester_tornado_drivers_ptx_PTXStream
++ * Method:    cuGraphDestroy
++ * Signature: ([B)J
++ */
++JNIEXPORT jlong JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuGraphDestroy
++  (JNIEnv *env, jclass clazz, jbyteArray graph_wrapper) {
++    CUgraph graph;
++    env->GetByteArrayRegion(graph_wrapper, 0, sizeof(CUgraph),
++                            reinterpret_cast<jbyte *>(&graph));
++    CUresult result = cuGraphDestroy(graph);
++    LOG_PTX_AND_VALIDATE("cuGraphDestroy", result);
++    return (jlong) result;
+ }
+\ No newline at end of file
+diff --git a/tornado-drivers/ptx-jni/src/main/cpp/source/PTXStream.h b/tornado-drivers/ptx-jni/src/main/cpp/source/PTXStream.h
+index 9820083ce..18f595a32 100644
+--- a/tornado-drivers/ptx-jni/src/main/cpp/source/PTXStream.h
++++ b/tornado-drivers/ptx-jni/src/main/cpp/source/PTXStream.h
+@@ -330,6 +330,24 @@ JNIEXPORT jobjectArray JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStre
+ (JNIEnv *, jclass, jlong, jlong, jlong, jlong, jbyteArray);
+ 
+ 
++JNIEXPORT jlong JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuStreamBeginCapture
++  (JNIEnv *, jclass, jbyteArray, jint);
++
++JNIEXPORT jbyteArray JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuStreamEndCapture
++  (JNIEnv *, jclass, jbyteArray);
++
++JNIEXPORT jbyteArray JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuGraphInstantiate
++  (JNIEnv *, jclass, jbyteArray);
++
++JNIEXPORT jlong JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuGraphLaunch
++  (JNIEnv *, jclass, jbyteArray, jbyteArray);
++
++JNIEXPORT jlong JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuGraphExecDestroy
++  (JNIEnv *, jclass, jbyteArray);
++
++JNIEXPORT jlong JNICALL Java_uk_ac_manchester_tornado_drivers_ptx_PTXStream_cuGraphDestroy
++  (JNIEnv *, jclass, jbyteArray);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/PTXDeviceContext.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/PTXDeviceContext.java
+index 4080ad958..42a313a28 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/PTXDeviceContext.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/PTXDeviceContext.java
+@@ -69,6 +69,7 @@ public class PTXDeviceContext implements TornadoDeviceContext {
+     private final Map<Long, PTXStreamTable> streamTable;
+     private boolean wasReset;
+     private final Set<Long> executionIDs;
++    private PTXKernelStackFrame pendingKernelContextWrite;
+ 
+     /**
+      * Map table to represent the compiled-code per execution plan. Each entry in the execution plan has its own
+@@ -303,8 +304,12 @@ public class PTXDeviceContext implements TornadoDeviceContext {
+         args.order(getByteOrder());
+ 
+         // Kernel context pointer
+-        int kernelContextWriteEventId = ptxKernelArgs.enqueueWrite(executionPlanId);
+-        updateProfilerKernelContextWrite(executionPlanId, kernelContextWriteEventId, meta, ptxKernelArgs);
++        if (!isStreamCapturing(executionPlanId)) {
++            int kernelContextWriteEventId = ptxKernelArgs.enqueueWrite(executionPlanId);
++            updateProfilerKernelContextWrite(executionPlanId, kernelContextWriteEventId, meta, ptxKernelArgs);
++        } else {
++            pendingKernelContextWrite = ptxKernelArgs;
++        }
+         long address = ptxKernelArgs.toAbsoluteAddress();
+         args.putLong(address);
+ 
+@@ -607,4 +612,35 @@ public class PTXDeviceContext implements TornadoDeviceContext {
+         PTXStream ptxStream = getStream(executionPlanId);
+         return ptxStream.mapOnDeviceMemoryRegion(destDevicePtr, srcDevicePtr, offset, sizeOfType);
+     }
++
++    public void beginExecutionGraphCapture(long executionPlanId) {
++        PTXStream stream = getStream(executionPlanId);
++        stream.beginGraphCapture();
++    }
++
++    public long endExecutionGraphCaptureAndInstantiate(long executionPlanId) {
++        PTXStream stream = getStream(executionPlanId);
++        long handle = stream.endGraphCaptureAndInstantiate();
++
++        // Write the kernel context that was deferred during capture
++        if (pendingKernelContextWrite != null) {
++            pendingKernelContextWrite.enqueueWrite(executionPlanId);
++            pendingKernelContextWrite = null;
++        }
++
++        return handle;
++    }
++
++    public int launchExecutionGraph(long executionPlanId, long executionGraphHandle) {
++        PTXStream stream = getStream(executionPlanId);
++        return stream.launchGraph(executionGraphHandle);
++    }
++
++    public boolean isStreamCapturing(long executionPlanId) {
++        return getStream(executionPlanId).isCapturing();
++    }
++
++    public void destroyExecutionGraph(long executionGraphHandle) {
++        PTXStream.destroyGraph(executionGraphHandle);
++    }
+ }
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/PTXStream.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/PTXStream.java
+index 23e5fae4f..05a0a8da2 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/PTXStream.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/PTXStream.java
+@@ -44,6 +44,7 @@ public class PTXStream {
+     private final byte[] streamPool;
+     private final PTXEventPool ptxEventPool;
+     private boolean isDestroy;
++    private boolean capturing = false;
+ 
+     public PTXStream() {
+         streamPool = cuCreateStream();
+@@ -115,6 +116,13 @@ public class PTXStream {
+     private static native byte[][] cuLaunchKernel(byte[] module, String name, int gridDimX, int gridDimY, int gridDimZ, int blockDimX, int blockDimY, int blockDimZ, long sharedMemBytes, byte[] stream,
+             byte[] args);
+ 
++    private static native long cuStreamBeginCapture(byte[] streamWrapper, int mode);
++    private static native byte[] cuStreamEndCapture(byte[] streamWrapper);
++    private static native byte[] cuGraphInstantiate(byte[] graphWrapper);
++    private static native long cuGraphLaunch(byte[] graphExecWrapper, byte[] streamWrapper);
++    private static native long cuGraphExecDestroy(byte[] graphExecWrapper);
++    private static native long cuGraphDestroy(byte[] graphWrapper);
++
+     /**
+      * This JNI call will create a CUDA Stream through an API call to
+      * cuStreamCreateWithPriority. The priority passed to the
+@@ -370,4 +378,58 @@ public class PTXStream {
+     public long mapOnDeviceMemoryRegion(long destDevicePtr, long srcDevicePtr, long offset, int sizeofType) {
+         return NativePTXStream.mapOnDeviceMemoryRegion(destDevicePtr, srcDevicePtr, offset, sizeofType);
+     }
++
++    /**
++     * Put this stream into capture mode. All subsequent CUDA operations
++     * submitted to this stream will be recorded as graph nodes.
++     */
++    public void beginGraphCapture() {
++        long result = cuStreamBeginCapture(streamPool, 0);
++        if (result != 0) {
++            throw new RuntimeException("Failed to begin capture. Error: " + result);
++        }
++        capturing = true;
++    }
++
++    public long endGraphCaptureAndInstantiate() {
++        capturing = false;
++        byte[] graphWrapper = cuStreamEndCapture(streamPool);
++        byte[] graphExecWrapper = cuGraphInstantiate(graphWrapper);
++        cuGraphDestroy(graphWrapper);
++        return nativeHandleToLong(graphExecWrapper);
++    }
++
++    public boolean isCapturing() {
++        return capturing;
++    }
++
++    /**
++     * Launch a previously instantiated graph on this stream.
++     */
++    public int launchGraph(long graphExecHandle) {
++        byte[] graphExecWrapper = longToNativeHandle(graphExecHandle);
++        cuGraphLaunch(graphExecWrapper, streamPool);
++        return registerEvent(EventDescriptor.DESC_SYNC_BARRIER);
++    }
++
++    /**
++     * Destroy an instantiated graph.
++     */
++    public static void destroyGraph(long graphExecHandle) {
++        byte[] graphExecWrapper = longToNativeHandle(graphExecHandle);
++        cuGraphExecDestroy(graphExecWrapper);
++    }
++
++    // ─── Handle conversion helpers ───
++    private static long nativeHandleToLong(byte[] handle) {
++        return java.nio.ByteBuffer.wrap(handle)
++                .order(java.nio.ByteOrder.LITTLE_ENDIAN).getLong();
++    }
++
++    private static byte[] longToNativeHandle(long value) {
++        byte[] handle = new byte[8];
++        java.nio.ByteBuffer.wrap(handle)
++                .order(java.nio.ByteOrder.LITTLE_ENDIAN).putLong(value);
++        return handle;
++    }
+ }
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/runtime/PTXTornadoDevice.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/runtime/PTXTornadoDevice.java
+index 94be94fc2..5ff6182f0 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/runtime/PTXTornadoDevice.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/runtime/PTXTornadoDevice.java
+@@ -63,6 +63,7 @@ import uk.ac.manchester.tornado.drivers.ptx.PTX;
+ import uk.ac.manchester.tornado.drivers.ptx.PTXBackendImpl;
+ import uk.ac.manchester.tornado.drivers.ptx.PTXDevice;
+ import uk.ac.manchester.tornado.drivers.ptx.PTXDeviceContext;
++import uk.ac.manchester.tornado.drivers.ptx.PTXStream;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.PTXCodeUtil;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.PTXProviders;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.backend.PTXBackend;
+@@ -335,6 +336,11 @@ public class PTXTornadoDevice implements TornadoXPUDevice {
+         return false;
+     }
+ 
++    @Override
++    public long endExecutionGraphCaptureAndInstantiate(long executionPlanId) {
++        return getDeviceContext().endExecutionGraphCaptureAndInstantiate(executionPlanId);
++    }
++
+     @Override
+     public long allocate(Object object, long batchSize, DeviceBufferState state, Access access) {
+         final XPUBuffer buffer;
+@@ -718,6 +724,28 @@ public class PTXTornadoDevice implements TornadoXPUDevice {
+ 
+     }
+ 
++    @Override
++    public boolean supportsExecutionGraphs() {
++        return true;
++    }
++
++    @Override
++    public void beginExecutionGraphCapture(long executionPlanId) {
++        getDeviceContext().beginExecutionGraphCapture(executionPlanId);
++    }
++
++
++
++    @Override
++    public int launchExecutionGraph(long executionPlanId, long executionGraphHandle) {
++        return getDeviceContext().launchExecutionGraph(executionPlanId, executionGraphHandle);
++    }
++
++    @Override
++    public void destroyExecutionGraph(long executionGraphHandle) {
++        getDeviceContext().destroyExecutionGraph(executionGraphHandle);
++    }
++
+     @Override
+     public String toString() {
+         return getPlatformName() + " -- " + device.getDeviceName();
+diff --git a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/TornadoVM.java b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/TornadoVM.java
+index 66ab55e1e..71c6e1802 100644
+--- a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/TornadoVM.java
++++ b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/TornadoVM.java
+@@ -193,6 +193,10 @@ public class TornadoVM {
+         executeActionOnInterpreters(TornadoVMInterpreter::clearProfiles);
+     }
+ 
++    public void destroyExecutionGraphs() {
++        executeActionOnInterpreters(TornadoVMInterpreter::destroyExecutionGraphs);
++    }
++
+     public void printTimes() {
+         executeActionOnInterpreters(TornadoVMInterpreter::printTimes);
+     }
+diff --git a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/common/TornadoXPUDevice.java b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/common/TornadoXPUDevice.java
+index c42ae3b01..caaa18263 100644
+--- a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/common/TornadoXPUDevice.java
++++ b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/common/TornadoXPUDevice.java
+@@ -26,6 +26,7 @@ import jdk.vm.ci.meta.ResolvedJavaMethod;
+ import uk.ac.manchester.tornado.api.common.Access;
+ import uk.ac.manchester.tornado.api.common.SchedulableTask;
+ import uk.ac.manchester.tornado.api.common.TornadoDevice;
++import uk.ac.manchester.tornado.api.exceptions.TornadoRuntimeException;
+ import uk.ac.manchester.tornado.api.memory.XPUBuffer;
+ import uk.ac.manchester.tornado.runtime.TornadoCoreRuntime;
+ import uk.ac.manchester.tornado.runtime.sketcher.Sketch;
+@@ -200,4 +201,56 @@ public interface TornadoXPUDevice extends TornadoDevice {
+         }
+     }
+ 
++    /**
++     * Returns whether this device supports execution graph capture and replay.
++     * When false, the graph compiler will not emit graph bytecodes for this device,
++     * and the interpreter will reject them at runtime as a safety net.
++     */
++    default boolean supportsExecutionGraphs() {
++        return false;
++    }
++
++    /**
++     * Begin capturing device operations into an execution graph.
++     * After this call, all device operations submitted through the normal
++     * transfer and launch paths are recorded rather than executed,
++     * until  is called.
++     *
++     * @param executionPlanId the execution plan that owns the device stream
++     */
++    default void beginExecutionGraphCapture(long executionPlanId) {
++        throw new TornadoRuntimeException("Execution graph capture is not supported on " + getDeviceName());
++    }
++
++    /**
++     * End capture and instantiate the recorded graph into a replayable form.
++     * Returns an opaque handle that can be passed to {@link #launchExecutionGraph}.
++     *
++     * @param executionPlanId the execution plan that owns the device stream
++     * @return an opaque long handle to the instantiated execution graph
++     */
++    default long endExecutionGraphCaptureAndInstantiate(long executionPlanId) {
++        throw new TornadoRuntimeException("Execution graph capture is not supported on " + getDeviceName());
++    }
++
++    /**
++     * Replay a previously captured execution graph.
++     *
++     * @param executionPlanId the execution plan that owns the device stream
++     * @param executionGraphHandle the handle returned by {@link #endExecutionGraphCaptureAndInstantiate}
++     * @return an event ID for the graph launch, or -1
++     */
++    default int launchExecutionGraph(long executionPlanId, long executionGraphHandle) {
++        throw new TornadoRuntimeException("Execution graph launch is not supported on " + getDeviceName());
++    }
++
++    /**
++     * Destroy a previously instantiated execution graph and free its resources.
++     *
++     * @param executionGraphHandle the handle to destroy
++     */
++    default void destroyExecutionGraph(long executionGraphHandle) {
++        // no-op by default
++    }
++
+ }
+diff --git a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoExecutionContext.java b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoExecutionContext.java
+index 6cbd37019..07595a29e 100644
+--- a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoExecutionContext.java
++++ b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoExecutionContext.java
+@@ -95,6 +95,7 @@ public class TornadoExecutionContext {
+ 
+     private long executionPlanId;  // This is set at runtime. Thus, no need to clone this value.
+     private long currentDeviceMemoryUsage;
++    private boolean isExecutionGraphEnabled;
+ 
+     public TornadoExecutionContext(String id) {
+         name = id;
+@@ -118,6 +119,7 @@ public class TornadoExecutionContext {
+         currentDeviceMemoryUsage = 0;
+         this.profiler = null;
+         this.isDataDependencyDetected = isDataDependencyInTaskGraph();
++        this.isExecutionGraphEnabled = false;
+     }
+ 
+     public KernelStackFrame[] getKernelStackFrame() {
+@@ -698,5 +700,14 @@ public class TornadoExecutionContext {
+     public Map<String, List<Object>> getPersistedTaskToObjectsMap() {
+         return persistedTaskToObjectsMap;
+     }
++//TODO
++
++    public void setExecutionGraphEnabled(boolean enabled) {
++        this.isExecutionGraphEnabled = enabled;
++    }
++
++    public boolean isExecutionGraphEnabled() {
++        return this.isExecutionGraphEnabled;
++    }
+ 
+ }
+diff --git a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodeBuilder.java b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodeBuilder.java
+index 4b0dfecb3..ecff1f39c 100644
+--- a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodeBuilder.java
++++ b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodeBuilder.java
+@@ -137,6 +137,22 @@ public class TornadoVMBytecodeBuilder {
+         bitcodeASM.addDependency(dep);
+     }
+ 
++    public void executionGraphBeginCapture(int graphId) {
++        bitcodeASM.executionGraphBeginCapture(graphId);
++    }
++
++    public void executionGraphEndCapture(int graphId) {
++        bitcodeASM.executionGraphEndCapture(graphId);
++    }
++
++    public void executionGraphLaunch(int graphId) {
++        bitcodeASM.executionGraphLaunch(graphId);
++    }
++
++    public void executionGraphInvalidate(int graphId) {
++        bitcodeASM.executionGraphInvalidate(graphId);
++    }
++
+     public void dump() {
+         bitcodeASM.dump();
+     }
+@@ -273,6 +289,26 @@ public class TornadoVMBytecodeBuilder {
+             buffer.putInt(index);
+         }
+ 
++        void executionGraphBeginCapture(int graphId) {
++            buffer.put(TornadoVMBytecodes.CUDA_GRAPH_BEGIN_CAPTURE.value);
++            buffer.putInt(graphId);
++        }
++
++        void executionGraphEndCapture(int graphId) {
++            buffer.put(TornadoVMBytecodes.CUDA_GRAPH_END_CAPTURE.value);
++            buffer.putInt(graphId);
++        }
++
++        void executionGraphLaunch(int graphId) {
++            buffer.put(TornadoVMBytecodes.CUDA_GRAPH_LAUNCH.value);
++            buffer.putInt(graphId);
++        }
++
++        void executionGraphInvalidate(int graphId) {
++            buffer.put(TornadoVMBytecodes.CUDA_GRAPH_DESTROY.value);
++            buffer.putInt(graphId);
++        }
++
+         int getLastCopyOutPosition() {
+             return lastCopyOutPosition;
+         }
+diff --git a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodeResult.java b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodeResult.java
+index cf8d7275e..331949773 100644
+--- a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodeResult.java
++++ b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodeResult.java
+@@ -134,4 +134,12 @@ public class TornadoVMBytecodeResult {
+         buffer.reset();
+     }
+ 
++    public int position() {
++        return buffer.position();
++    }
++
++    public void position(int newPosition) {
++        buffer.position(newPosition);
++    }
++
+ }
+diff --git a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodes.java b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodes.java
+index de9370e05..5b9d7fe5f 100644
+--- a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodes.java
++++ b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMBytecodes.java
+@@ -215,7 +215,15 @@ public enum TornadoVMBytecodes {
+      * PERSIST(obj,dest)
+      * </code>
+      */
+-    PERSIST((byte) 26);
++    PERSIST((byte) 26),
++
++    CUDA_GRAPH_BEGIN_CAPTURE((byte) 27),
++
++    CUDA_GRAPH_END_CAPTURE((byte) 28),
++
++    CUDA_GRAPH_LAUNCH((byte) 29),
++
++    CUDA_GRAPH_DESTROY((byte) 30);
+ 
+     final byte value;
+ 
+diff --git a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMGraphCompiler.java b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMGraphCompiler.java
+index 9b455a80f..e0c62c4a5 100644
+--- a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMGraphCompiler.java
++++ b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graph/TornadoVMGraphCompiler.java
+@@ -25,14 +25,25 @@ package uk.ac.manchester.tornado.runtime.graph;
+ import java.nio.BufferOverflowException;
+ import java.util.Arrays;
+ import java.util.BitSet;
++import java.util.function.Predicate;
+ 
++import uk.ac.manchester.tornado.api.common.TornadoDevice;
+ import uk.ac.manchester.tornado.api.exceptions.TornadoRuntimeException;
+ import uk.ac.manchester.tornado.runtime.common.BatchConfiguration;
+ import uk.ac.manchester.tornado.runtime.common.TornadoLogger;
+ import uk.ac.manchester.tornado.runtime.common.TornadoOptions;
++import uk.ac.manchester.tornado.runtime.common.TornadoXPUDevice;
+ import uk.ac.manchester.tornado.runtime.graph.nodes.AbstractNode;
++import uk.ac.manchester.tornado.runtime.graph.nodes.AllocateMultipleBuffersNode;
+ import uk.ac.manchester.tornado.runtime.graph.nodes.ContextOpNode;
++import uk.ac.manchester.tornado.runtime.graph.nodes.CopyInNode;
++import uk.ac.manchester.tornado.runtime.graph.nodes.CopyOutNode;
++import uk.ac.manchester.tornado.runtime.graph.nodes.DeallocateNode;
+ import uk.ac.manchester.tornado.runtime.graph.nodes.DependentReadNode;
++import uk.ac.manchester.tornado.runtime.graph.nodes.OnDeviceObjectNode;
++import uk.ac.manchester.tornado.runtime.graph.nodes.PersistedObjectNode;
++import uk.ac.manchester.tornado.runtime.graph.nodes.StreamInNode;
++import uk.ac.manchester.tornado.runtime.graph.nodes.TaskNode;
+ 
+ public class TornadoVMGraphCompiler {
+     /**
+@@ -69,21 +80,66 @@ public class TornadoVMGraphCompiler {
+ 
+             // Generate Context + BEGIN bytecode
+             tornadoVMBytecodeBuilder.begin(1, 1, intermediateTornadoGraph.getNumberOfDependencies() + 1);
++            boolean useCUDAGraphs = executionContext.isExecutionGraphEnabled();
++            boolean noBatches = executionContext.getBatchSize() == TornadoExecutionContext.INIT_VALUE;
++            if (noBatches && useCUDAGraphs) {
++                // ── Execution Graph path ──
++                // Phase 1: Emit allocation nodes OUTSIDE the capture region.
++                // cuMemAlloc is not a stream operation and cannot be captured.
++                scheduleAndEmitFilteredBytecodes(tornadoVMBytecodeBuilder, graph,
++                        intermediateTornadoGraph, 0, 0, 0, i, executionContext,
++                        node -> node instanceof AllocateMultipleBuffersNode
++                                || node instanceof OnDeviceObjectNode
++                                || node instanceof PersistedObjectNode);
++
++                // Phase 2: Graph launch/capture boundary + capturable operations.
++                // EXECUTION_GRAPH_LAUNCH is emitted first — the interpreter checks
++                // whether a captured graph exists:
++                //   - Yes → replay it, skip to after END_CAPTURE
++                //   - No  → fall through into BEGIN_CAPTURE (first execution)
++               // tornadoVMBytecodeBuilder.executionGraphLaunch(0);
++                tornadoVMBytecodeBuilder.executionGraphBeginCapture(0);
++
++                scheduleAndEmitFilteredBytecodes(tornadoVMBytecodeBuilder, graph,
++                        intermediateTornadoGraph, 0, 0, 0, i, executionContext,
++                        node -> node instanceof CopyInNode
++                                || node instanceof StreamInNode
++                                || node instanceof TaskNode
++                                || node instanceof CopyOutNode);
++
++                tornadoVMBytecodeBuilder.executionGraphEndCapture(0);
++                tornadoVMBytecodeBuilder.executionGraphLaunch(0);
++                tornadoVMBytecodeBuilder.barrier(intermediateTornadoGraph.getNumberOfDependencies());
++
++                // Phase 3: Emit deallocation nodes AFTER the graph has completed.
++                final int[] nodeIds = intermediateTornadoGraph.getNodeIds();
++                for (int j = 0; j < nodeIds.length; j++) {
++                    AbstractNode node = graph.getNode(nodeIds[j]);
++                    if (node instanceof DeallocateNode deallocNode) {
++                        if (shouldEmitAsyncNodeForTheCurrentContext(i, (ContextOpNode) deallocNode,
++                                tornadoVMBytecodeBuilder.isSingleContext(), executionContext)) {
++                            tornadoVMBytecodeBuilder.emitAsyncNode(deallocNode, -1, 0, 0, 0);
++                        }
++                    }
++                }
+ 
+-            // Generate bytecodes with no batches
+-            if (executionContext.getBatchSize() == TornadoExecutionContext.INIT_VALUE) {
+-                scheduleAndEmitTornadoVMBytecodes(tornadoVMBytecodeBuilder, graph, intermediateTornadoGraph, 0, 0, 0, i, executionContext);
++            } else if (noBatches) {
++                // ── Standard path (no batches, no execution graphs) ──
++                scheduleAndEmitTornadoVMBytecodes(tornadoVMBytecodeBuilder, graph,
++                        intermediateTornadoGraph, 0, 0, 0, i, executionContext);
+             } else {
+-                // Generate bytecodes for batch processing.
+-                // It splits the iteration space and the input arrays into batches
+-                scheduleBatchDependentBytecodes(executionContext, tornadoVMBytecodeBuilder, graph, intermediateTornadoGraph);
++                // ── Batch path ──
++                scheduleBatchDependentBytecodes(executionContext, tornadoVMBytecodeBuilder,
++                        graph, intermediateTornadoGraph);
+             }
+ 
+             // Last operation -> perform synchronisation
+-            if (TornadoOptions.ENABLE_STREAM_OUT_BLOCKING) {
+-                synchronizeOperationLastByteCode(tornadoVMBytecodeBuilder, intermediateTornadoGraph.getNumberOfDependencies());
+-            } else {
+-                tornadoVMBytecodeBuilder.barrier(intermediateTornadoGraph.getNumberOfDependencies());
++            if (!useCUDAGraphs) {
++                if (TornadoOptions.ENABLE_STREAM_OUT_BLOCKING) {
++                    synchronizeOperationLastByteCode(tornadoVMBytecodeBuilder, intermediateTornadoGraph.getNumberOfDependencies());
++                } else {
++                    tornadoVMBytecodeBuilder.barrier(intermediateTornadoGraph.getNumberOfDependencies());
++                }
+             }
+ 
+             // Generate END bytecode
+@@ -100,6 +156,79 @@ public class TornadoVMGraphCompiler {
+         return tornadoVMBytecodeResults;
+     }
+ 
++    private static void scheduleAndEmitFilteredBytecodes(
++            TornadoVMBytecodeBuilder tornadoVMBytecodeBuilder, TornadoGraph graph,
++            IntermediateTornadoGraph intermediateTornadoGraph, long offset,
++            long bufferBatchSize, long nThreads, int id,
++            TornadoExecutionContext executionContext,
++            Predicate<AbstractNode> nodeFilter) {
++
++        final int[] nodeIds = intermediateTornadoGraph.getNodeIds();
++        final BitSet[] dependencies = intermediateTornadoGraph.getDependencies();
++
++        final BitSet scheduled = new BitSet(dependencies.length);
++        scheduled.clear();
++        final BitSet nodes = new BitSet(graph.getValid().length());
++        final int[] depLists = new int[dependencies.length];
++        Arrays.fill(depLists, -1);
++        int index = 0;
++        for (int i = 0; i < dependencies.length; i++) {
++            if (!dependencies[i].isEmpty()) {
++                final AbstractNode current = graph.getNode(nodeIds[i]);
++                if (current instanceof DependentReadNode) {
++                    continue;
++                }
++                depLists[i] = index;
++                index++;
++            }
++        }
++
++        while (scheduled.cardinality() < dependencies.length) {
++            for (int i = 0; i < dependencies.length; i++) {
++                if (!scheduled.get(i)) {
++                    final BitSet outstandingDeps = new BitSet(nodes.length());
++                    outstandingDeps.or(dependencies[i]);
++                    outstandingDeps.andNot(nodes);
++
++                    if (outstandingDeps.isEmpty()) {
++                        final ContextOpNode asyncNode = (ContextOpNode) graph.getNode(nodeIds[i]);
++
++                        // Only emit bytecodes for nodes that match the filter
++                        if (nodeFilter.test(asyncNode)
++                                && shouldEmitAsyncNodeForTheCurrentContext(id, asyncNode,
++                                tornadoVMBytecodeBuilder.isSingleContext(), executionContext)) {
++                            try {
++                                tornadoVMBytecodeBuilder.emitAsyncNode(asyncNode,
++                                        (dependencies[i].isEmpty()) ? -1 : depLists[i],
++                                        offset, bufferBatchSize, nThreads);
++                            } catch (BufferOverflowException e) {
++                                throw new TornadoRuntimeException(
++                                        "[ERROR] Buffer Overflow exception. To increase the buffer size, use "
++                                                + "-Dtornado.tvm.maxbytecodesize="
++                                                + TornadoVMBytecodeBuilder.MAX_TORNADO_VM_BYTECODE_SIZE);
++                            }
++
++                            // Emit dependency edges only for nodes that were actually emitted
++                            for (int j = 0; j < dependencies.length; j++) {
++                                if (j == i) {
++                                    continue;
++                                }
++                                if (dependencies[j].get(nodeIds[i]) && depLists[j] != -1) {
++                                    tornadoVMBytecodeBuilder.emitAddDependency(depLists[j]);
++                                }
++                            }
++                        }
++
++                        // Always mark as scheduled regardless of filter,
++                        // so downstream nodes' dependencies are satisfied
++                        scheduled.set(i);
++                        nodes.set(nodeIds[i]);
++                    }
++                }
++            }
++        }
++    }
++
+     private static boolean shouldGenerateSingleBytecode(TornadoExecutionContext executionContext) {
+         boolean isSingleDeviceExecution = executionContext.getValidContextSize() == 1;
+         boolean isBatchEnabled = executionContext.getBatchSize() != -1;
+@@ -223,4 +352,13 @@ public class TornadoVMGraphCompiler {
+         return singleContext || (id >= 0 && id < executionContext.getDevices().size() && asyncNode.getContext().getDevice() == executionContext.getDevices().get(id));
+     }
+ 
++    private static boolean shouldEmitExecutionGraphBytecodes(TornadoExecutionContext executionContext) {
++        // Check if the first device supports execution graphs.
++        TornadoDevice device = executionContext.getDeviceOfFirstTask();
++        if (device instanceof TornadoXPUDevice xpuDevice) {
++            return xpuDevice.supportsExecutionGraphs();
++        }
++        return false;
++    }
++
+ }
+diff --git a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/interpreter/TornadoVMInterpreter.java b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/interpreter/TornadoVMInterpreter.java
+index c8dfcb212..255ccdd03 100644
+--- a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/interpreter/TornadoVMInterpreter.java
++++ b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/interpreter/TornadoVMInterpreter.java
+@@ -31,6 +31,7 @@ import java.util.Arrays;
+ import java.util.BitSet;
+ import java.util.HashMap;
+ import java.util.List;
++import java.util.Map;
+ import java.util.Objects;
+ import java.util.concurrent.atomic.AtomicInteger;
+ 
+@@ -106,6 +107,8 @@ public class TornadoVMInterpreter {
+ 
+     private HashMap<Object, Integer> currentBatchNumberPerObject = new HashMap<>();
+     private HashMap<Object, Integer> totalEvenBatchesPerObject = new HashMap<>();
++    private final HashMap<Integer, Long> executionGraphHandles = new HashMap<>();
++    private KernelStackFrame pendingGraphKernelStackFrame;
+ 
+     private TornadoLogger logger = new TornadoLogger(this.getClass());
+ 
+@@ -293,12 +296,18 @@ public class TornadoVMInterpreter {
+                 if (isWarmup) {
+                     continue;
+                 }
++                if (!executionGraphHandles.isEmpty()) {
++                    continue;
++                }
+                 lastEvent = executeAlloc(logBuilder, args, sizeBatch);
+             } else if (op == TornadoVMBytecodes.DEALLOC.value()) {
+                 final int objectIndex = bytecodeResult.getInt();
+                 if (isWarmup) {
+                     continue;
+                 }
++                if (!executionGraphHandles.isEmpty()) {
++                    continue;
++                }
+                 lastEvent = executeDeAlloc(logBuilder, objectIndex);
+             } else if (op == TornadoVMBytecodes.TRANSFER_HOST_TO_DEVICE_ONCE.value()) {
+                 final int objectIndex = bytecodeResult.getInt();
+@@ -380,6 +389,48 @@ public class TornadoVMInterpreter {
+                     continue;
+                 }
+                 lastEvent = executeBarrier(logBuilder, eventId, waitList);
++            } else if (op == TornadoVMBytecodes.CUDA_GRAPH_LAUNCH.value()) {
++                final int graphId = bytecodeResult.getInt();
++                if (isWarmup) {
++                    continue;
++                }
++                lastEvent = executeGraphLaunch(logBuilder, graphId);
++                // Graph not yet captured — fall through to BEGIN_CAPTURE
++
++            } else if (op == TornadoVMBytecodes.CUDA_GRAPH_BEGIN_CAPTURE.value()) {
++                final int graphId = bytecodeResult.getInt();
++                if (isWarmup) {
++                    continue;
++                }
++                if (executionGraphHandles.containsKey(graphId)) {
++                    // Graph already captured → skip entire capture region
++                    skipToAfterEndCapture(graphId);
++                } else {
++                    // First execution → force all lazy allocations, then capture
++                    preCompileLaunchesInCaptureRegion(logBuilder);
++                    executeGraphBeginCapture(logBuilder, graphId);
++                }
++
++            } else if (op == TornadoVMBytecodes.CUDA_GRAPH_END_CAPTURE.value()) {
++                final int graphId = bytecodeResult.getInt();
++                if (isWarmup) {
++                    continue;
++                }
++                executeGraphEndCapture(logBuilder, graphId);
++
++            } else if (op == TornadoVMBytecodes.CUDA_GRAPH_DESTROY.value()) {
++                final int graphId = bytecodeResult.getInt();
++                if (isWarmup) {
++                    continue;
++                }
++                Long handle = executionGraphHandles.remove(graphId);
++                if (handle != null) {
++                    interpreterDevice.destroyExecutionGraph(handle);
++                    if (TornadoOptions.LOG_BYTECODES()) {
++                        logBuilder.append("bc: ").append(InterpreterUtilities.debugHighLightBC(
++                                "EXECUTION_GRAPH_DESTROY")).append(" graphId=").append(graphId).append("\n");
++                    }
++                }
+             } else if (op == TornadoVMBytecodes.END.value()) {
+                 if (!isWarmup && TornadoOptions.LOG_BYTECODES()) {
+                     logBuilder.append("bc: ").append(InterpreterUtilities.debugHighLightBC("END\n")).append("\n");
+@@ -426,6 +477,143 @@ public class TornadoVMInterpreter {
+         return barrier;
+     }
+ 
++    private void preCompileLaunchesInCaptureRegion(StringBuilder logBuilder) {
++        int savedPosition = bytecodeResult.position();  // save without corrupting mark
++
++        while (bytecodeResult.hasRemaining()) {
++            final byte op = bytecodeResult.get();
++
++            if (op == TornadoVMBytecodes.CUDA_GRAPH_END_CAPTURE.value()) {
++                bytecodeResult.getInt();
++                break;
++            } else if (op == TornadoVMBytecodes.LAUNCH.value()) {
++                final int callWrapperIndex = bytecodeResult.getInt();
++                final int taskIndex = bytecodeResult.getInt();
++                final int numArgs = bytecodeResult.getInt();
++                final int eventId = bytecodeResult.getInt();
++                final long offset = bytecodeResult.getLong();
++                final long batchThreads = bytecodeResult.getLong();
++
++                compileTaskFromBytecodeToBinary(callWrapperIndex, numArgs,
++                        eventId, taskIndex, batchThreads);
++
++                for (int i = 0; i < numArgs; i++) {
++                    bytecodeResult.get();
++                    bytecodeResult.getInt();
++                }
++            } else {
++                skipBytecodeOperands(op);
++            }
++        }
++
++        bytecodeResult.position(savedPosition);  // restore without touching mark
++    }
++
++    private void skipToAfterEndCapture(int graphId) {
++        while (bytecodeResult.hasRemaining()) {
++            final byte op = bytecodeResult.get();
++            if (op == TornadoVMBytecodes.CUDA_GRAPH_END_CAPTURE.value()) {
++                int endGraphId = bytecodeResult.getInt();
++                if (endGraphId == graphId) {
++                    return;
++                }
++            } else {
++                skipBytecodeOperands(op);
++            }
++        }
++    }
++
++    public void destroyExecutionGraphs() {
++        for (Map.Entry<Integer, Long> entry : executionGraphHandles.entrySet()) {
++            System.out.println("[TornadoVM] Destroying execution graph " + entry.getKey());
++            interpreterDevice.destroyExecutionGraph(entry.getValue());
++        }
++        executionGraphHandles.clear();
++    }
++
++    private void skipBytecodeOperands(byte op) {
++        if (op == TornadoVMBytecodes.ALLOC.value()) {
++            bytecodeResult.getLong();  // sizeBatch
++            int argSize = bytecodeResult.getInt();
++            for (int i = 0; i < argSize; i++) {
++                bytecodeResult.getInt();
++            }
++        } else if (op == TornadoVMBytecodes.DEALLOC.value()) {
++            bytecodeResult.getInt();  // objectIndex
++        } else if (op == TornadoVMBytecodes.TRANSFER_HOST_TO_DEVICE_ONCE.value()
++                || op == TornadoVMBytecodes.TRANSFER_HOST_TO_DEVICE_ALWAYS.value()
++                || op == TornadoVMBytecodes.TRANSFER_DEVICE_TO_HOST_ALWAYS.value()
++                || op == TornadoVMBytecodes.TRANSFER_DEVICE_TO_HOST_ALWAYS_BLOCKING.value()) {
++            bytecodeResult.getInt();   // objectIndex
++            bytecodeResult.getInt();   // eventId
++            bytecodeResult.getLong();  // offset
++            bytecodeResult.getLong();  // sizeBatch
++        } else if (op == TornadoVMBytecodes.LAUNCH.value()) {
++            bytecodeResult.getInt();   // callWrapperIndex
++            bytecodeResult.getInt();   // taskIndex
++            int numArgs = bytecodeResult.getInt();
++            bytecodeResult.getInt();   // eventId
++            bytecodeResult.getLong();  // offset
++            bytecodeResult.getLong();  // batchThreads
++            for (int i = 0; i < numArgs; i++) {
++                bytecodeResult.get();      // PUSH_CONSTANT or PUSH_REFERENCE opcode
++                bytecodeResult.getInt();   // argIndex
++            }
++        } else if (op == TornadoVMBytecodes.ADD_DEPENDENCY.value()
++                || op == TornadoVMBytecodes.BARRIER.value()
++                || op == TornadoVMBytecodes.CONTEXT.value()) {
++            bytecodeResult.getInt();
++        } else if (op == TornadoVMBytecodes.ON_DEVICE.value()
++                || op == TornadoVMBytecodes.PERSIST.value()) {
++            bytecodeResult.getInt();
++            bytecodeResult.getInt();
++        } else if (op == TornadoVMBytecodes.CUDA_GRAPH_BEGIN_CAPTURE.value()
++                || op == TornadoVMBytecodes.CUDA_GRAPH_LAUNCH.value()
++                || op == TornadoVMBytecodes.CUDA_GRAPH_DESTROY.value()) {
++            bytecodeResult.getInt();  // graphId
++        } else if (op == TornadoVMBytecodes.BEGIN.value()
++                || op == TornadoVMBytecodes.END.value()) {
++            // no operands
++        } else if (op == TornadoVMBytecodes.PUSH_CONSTANT_ARGUMENT.value()
++                || op == TornadoVMBytecodes.PUSH_REFERENCE_ARGUMENT.value()) {
++            bytecodeResult.getInt();
++        }
++    }
++
++    private void executeGraphBeginCapture(StringBuilder logBuilder, int graphId) {
++        if (!interpreterDevice.supportsExecutionGraphs()) {
++            throw new TornadoBailoutRuntimeException(
++                    "EXECUTION_GRAPH_BEGIN_CAPTURE bytecode reached a device that does not support " +
++                            "execution graphs: " + interpreterDevice.getDeviceName() +
++                            ". This is a compiler bug — graph bytecodes should not have been emitted.");
++        }
++        if (TornadoOptions.LOG_BYTECODES()) {
++            logBuilder.append("bc: ").append(InterpreterUtilities.debugHighLightBC(
++                    "EXECUTION_GRAPH_BEGIN_CAPTURE")).append(" graphId=").append(graphId).append("\n");
++        }
++        interpreterDevice.beginExecutionGraphCapture(graphExecutionContext.getExecutionPlanId());
++    }
++
++    private void executeGraphEndCapture(StringBuilder logBuilder, int graphId) {
++        if (TornadoOptions.LOG_BYTECODES()) {
++            logBuilder.append("bc: ").append(InterpreterUtilities.debugHighLightBC(
++                    "EXECUTION_GRAPH_END_CAPTURE")).append(" graphId=").append(graphId).append("\n");
++        }
++        long handle = interpreterDevice.endExecutionGraphCaptureAndInstantiate(
++                graphExecutionContext.getExecutionPlanId());
++        executionGraphHandles.put(graphId, handle);
++    }
++
++    private int executeGraphLaunch(StringBuilder logBuilder, int graphId) {
++        if (TornadoOptions.LOG_BYTECODES()) {
++            logBuilder.append("bc: ").append(InterpreterUtilities.debugHighLightBC(
++                    "EXECUTION_GRAPH_LAUNCH")).append(" graphId=").append(graphId).append("\n");
++        }
++        return interpreterDevice.launchExecutionGraph(
++                graphExecutionContext.getExecutionPlanId(),
++                executionGraphHandles.get(graphId));
++    }
++
+     private void initWaitEventList() {
+         for (int[] waitList : events) {
+             Arrays.fill(waitList, -1);
+diff --git a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/tasks/TornadoTaskGraph.java b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/tasks/TornadoTaskGraph.java
+index 47bdefdb5..685ea5e3b 100644
+--- a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/tasks/TornadoTaskGraph.java
++++ b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/tasks/TornadoTaskGraph.java
+@@ -161,6 +161,8 @@ public class TornadoTaskGraph implements TornadoTaskGraphInterface {
+     private List<StreamingObject> outputModeObjects; // List of objects with its data transfer mode (OUT)
+     private StringBuilder bufferLogProfiler = new StringBuilder();
+     private Graph compilationGraph;
++    private boolean useCUDAGraph = false;
++
+     /**
+      * Options for new reductions - experimental.
+      */
+@@ -1224,6 +1226,7 @@ public class TornadoTaskGraph implements TornadoTaskGraphInterface {
+             return;
+         }
+ 
++        vm.destroyExecutionGraphs();
+         freeIOObjects();
+         meta().getXPUDevice().getDeviceContext().reset(executionPlanId);
+     }
+@@ -1781,6 +1784,12 @@ public class TornadoTaskGraph implements TornadoTaskGraphInterface {
+         executionContext.setBatchSize(this.batchSizeBytes);
+     }
+ 
++    @Override
++    public void withCUDAGraph() {
++        this.useCUDAGraph = true;
++        executionContext.setExecutionGraphEnabled(true);
++    }
++
+     @Override
+     public void withMemoryLimit(String memoryLimit) {
+         this.memoryLimitSizeBytes = parseSizeToBytes(memoryLimit);
+diff --git a/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/arrays/TestArrays.java b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/arrays/TestArrays.java
+index f14d09568..7b8e78eae 100644
+--- a/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/arrays/TestArrays.java
++++ b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/arrays/TestArrays.java
+@@ -321,6 +321,35 @@ public class TestArrays extends TornadoTestBase {
+         }
+     }
+ 
++    @Test
++    public void testVectorAdditionDoubleCUDAGraph() throws TornadoExecutionPlanException {
++        final int numElements = 4096;
++        DoubleArray a = new DoubleArray(numElements);
++        DoubleArray b = new DoubleArray(numElements);
++        DoubleArray c = new DoubleArray(numElements);
++
++        IntStream.range(0, numElements).sequential().forEach(i -> {
++            a.set(i, (float) Math.random());
++            b.set(i, (float) Math.random());
++        });
++
++        TaskGraph taskGraph = new TaskGraph("s0") //
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, a, b) //
++                .task("t0", TestArrays::vectorAddDouble, a, b, c) //
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
++
++        ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
++        try (TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph)) {
++            executionPlan.withCUDAGraph();
++            executionPlan.execute();
++            executionPlan.execute();
++        }
++
++        for (int i = 0; i < c.getSize(); i++) {
++            assertEquals(a.get(i) + b.get(i), c.get(i), 0.01);
++        }
++    }
++
+     @Test
+     public void testVectorAdditionFloat() throws TornadoExecutionPlanException {
+         final int numElements = 4096;

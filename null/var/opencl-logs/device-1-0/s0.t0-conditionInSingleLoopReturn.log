@@ -1,0 +1,3 @@
+<kernel>:52:1: error: extraneous closing brace ('}')
+}  //  kernel
+^

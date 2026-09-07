@@ -1,0 +1,3 @@
+<kernel>:37:5: error: invalid operands to binary expression ('int' and '__global float *')
+    *((__global float *) ul_15)  =  f_17; // base is ul_1, so b : correct 
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1,0 +1,30 @@
+{
+    "s0": {
+        "TOTAL_BYTE_CODE_GENERATION": "24477166",
+        "COPY_OUT_TIME": "4256",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "287616",
+        "TOTAL_TASK_GRAPH_TIME": "536295074",
+        "TOTAL_CODE_GENERATION_TIME": "14174491",
+        "COPY_IN_TIME": "9120",
+        "TOTAL_GRAAL_COMPILE_TIME": "183230262",
+        "TOTAL_KERNEL_TIME": "24672",
+        "TOTAL_DRIVER_COMPILE_TIME": "17617089",
+        "TOTAL_DISPATCH_KERNEL_TIME": "9472",
+        "ALLOCATION_BYTES": "98376",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65584",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "32792",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddDouble",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "13221",
+            "TASK_CODE_GENERATION_TIME": "14174491",
+            "TASK_KERNEL_TIME": "24672",
+            "TASK_COMPILE_GRAAL_TIME": "183230262",
+            "TASK_COMPILE_DRIVER_TIME": "17617089"
+        }
+    }
+}
+

@@ -1,0 +1,17 @@
+diff --git a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/compiler/plugins/OCLGraphBuilderPlugins.java b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/compiler/plugins/OCLGraphBuilderPlugins.java
+index 74435278d..a0cb4ef6a 100644
+--- a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/compiler/plugins/OCLGraphBuilderPlugins.java
++++ b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/compiler/plugins/OCLGraphBuilderPlugins.java
+@@ -269,9 +269,9 @@ public class OCLGraphBuilderPlugins {
+     }
+ 
+     private static void registerAtomicAddOperation(Registration r) {
+-        registerAtomicAddPlugin(r, "atomicAdd", IntArray.class, OCLKind.UINT, 6);
+-        registerAtomicAddPlugin(r, "atomicAdd", int[].class, OCLKind.UINT, 6);
+-        registerAtomicAddPlugin(r, "atomicAdd", LongArray.class, OCLKind.ULONG, 3);
++        registerAtomicAddPlugin(r, "atomicAdd", IntArray.class, OCLKind.UINT, 4);
++        registerAtomicAddPlugin(r, "atomicAdd", int[].class, OCLKind.UINT, 4);
++        registerAtomicAddPlugin(r, "atomicAdd", LongArray.class, OCLKind.ULONG, 2);
+         registerUnsupportedAtomicAddPlugin(r);
+         registerUnsupportedAtomicAddPlugin(r);
+     }

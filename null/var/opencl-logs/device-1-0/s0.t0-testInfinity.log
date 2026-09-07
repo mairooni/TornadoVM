@@ -1,0 +1,6 @@
+<kernel>:32:39: error: use of undeclared identifier 'InfinityF'
+      *((__global float *) ul_11)  =  InfinityF;
+                                      ^
+<kernel>:37:40: error: use of undeclared identifier 'InfinityF'
+      *((__global float *) ul_11)  =  -InfinityF;
+                                       ^

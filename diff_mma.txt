@@ -1,0 +1,3827 @@
+commit fb1dae15eee4b77ce431e1ff171079a0f84317da
+Author: MaryXek <xekalaki.mary@gmail.com>
+Date:   Mon May 18 17:56:20 2026 +0300
+
+    [WIP] MMA instructions
+
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java
+index cd4ba3c47..249eacc6c 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java
+@@ -17,6 +17,7 @@
+  */
+ package uk.ac.manchester.tornado.api;
+ 
++import uk.ac.manchester.tornado.api.enums.MMAShape;
+ import uk.ac.manchester.tornado.api.types.HalfFloat;
+ import uk.ac.manchester.tornado.api.types.arrays.DoubleArray;
+ import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
+@@ -304,4 +305,112 @@ public class KernelContext implements ExecutionContext {
+     @Override
+     public void atomicAdd(DoubleArray array, int index, double val) {
+     }
++
++    /**
++     * Declares a C/D accumulator fragment for MMA operations.
++     * Lowered by the PTX backend to register allocation — never executed on GPU.
++     *
++     * PTX equivalent: mov.f32 rd0..rd3, v  (register-backed accumulator fragment)
++     */
++    public float[] mmaFragment(float v) {
++        // CPU fallback: return a 4-element accumulator fragment initialised to v.
++        // On GPU this is replaced by an MMAFragmentNode by the plugin.
++        return new float[]{ v, v, v, v };
++    }
++
++    /**
++     * Loads the A fragment for mma.sync from a shared-memory tile.
++     * Each lane receives its 8 owned f16 elements as per PTX ISA m16n8k16 layout.
++     *
++     * PTX equivalent: ld.shared.b32 ra0..ra3, [tile + offset]
++     */
++    public HalfFloat[] mmaLoadA(float[] aTile, int wmmaK) {
++        // CPU fallback: return an 8-element fragment.
++        // On GPU this is replaced by an MMALoadANode by the plugin.
++        return new HalfFloat[8];
++    }
++
++    public HalfFloat[] mmaLoadA(int[] aTile, int wmmaK) {
++        // CPU fallback: return an 8-element fragment.
++        // On GPU this is replaced by an MMALoadANode by the plugin.
++        return new HalfFloat[8];
++    }
++
++    /**
++     * Loads the B fragment for mma.sync from a shared-memory tile.
++     * Each lane receives its 4 owned f16 elements as per PTX ISA m16n8k16 layout.
++     *
++     * PTX equivalent: ld.shared.b32 rb0..rb1, [tile + offset]
++     */
++    public HalfFloat[] mmaLoadB(float[] bTile, int wmmaK) {
++        // CPU fallback: return a 4-element fragment.
++        // On GPU this is replaced by an MMALoadBNode by the plugin.
++        return new HalfFloat[4];
++    }
++
++    public HalfFloat[] mmaLoadB(int[] bTile, int wmmaK) {
++        // CPU fallback: return a 4-element fragment.
++        // On GPU this is replaced by an MMALoadBNode by the plugin.
++        return new HalfFloat[4];
++    }
++
++    /**
++     * Warp-collective matrix multiply-accumulate: D = A * B + C.
++     *
++     * PTX equivalent:
++     *   mma.sync.aligned.{shape}.row.col.f32.f16.f16.f32
++     *       {rd0..rd3}, {ra0..ra3}, {rb0..rb1}, {rc0..rc3}
++     */
++    public float[] mma(HalfFloat[] fragA, HalfFloat[] fragB, float[] fragC, MMAShape mmaShape) {
++        // CPU fallback: return the accumulator unchanged.
++        // On GPU this is replaced by an MMAComputeNode by the plugin.
++        return fragC;
++    }
++
++    /**
++     * Stores the D fragment to a global output matrix.
++     *
++     * PTX equivalent: st.global.f32 [addr], rd0..rd3  (×4 per lane)
++     */
++    public void mmaStore(float[] fragD, FloatArray c, int tileRow, int tileCol, int dimN) {
++        // CPU fallback: no-op (matches other GPU-only constructs like localBarrier).
++        // On GPU this is replaced by an MMAStoreNode by the plugin.
++    }
++
++    // --- Int8 MMA ---
++
++    /**
++     * Allocates a 4×s32 accumulator fragment for int8 MMA, initialised to the given value.
++     */
++    public int[] mmaFragmentInt(int initValue) {
++        return new int[4];
++    }
++
++    /**
++     * Loads an A fragment (16×32 int8 tile) for mma.sync.m16n8k32.
++     */
++    public byte[] mmaLoadAInt8(int[] aTile, int tileK) {
++        return new byte[16];
++    }
++
++    /**
++     * Loads a B fragment (32×8 int8 tile, col-major) for mma.sync.m16n8k32.
++     */
++    public byte[] mmaLoadBInt8(int[] bTile, int tileK) {
++        return new byte[8];
++    }
++
++    /**
++     * Warp-collective int8 MMA: D = A*B + C.
++     */
++    public int[] mmaInt8(byte[] fragA, byte[] fragB, int[] fragC, MMAShape shape) {
++        return new int[4];
++    }
++
++    /**
++     * Stores the int32 accumulator fragment to global memory.
++     */
++    public void mmaStoreInt(int[] fragD, IntArray out, int row, int col, int stride) {
++        // no-op placeholder
++    }
+ }
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/enums/MMAShape.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/enums/MMAShape.java
+new file mode 100644
+index 000000000..6ced34220
+--- /dev/null
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/enums/MMAShape.java
+@@ -0,0 +1,41 @@
++/*
++ * Copyright (c) 2026, APT Group, Department of Computer Science,
++ * The University of Manchester.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ *
++ */
++package uk.ac.manchester.tornado.api.enums;
++
++/**
++ * Supported mma.sync tile shapes for TornadoVM's PTX backend.
++ * Each entry encodes the M, N, K dimensions and the minimum sm requirement.
++ *
++ * PTX instruction emitted:
++ *   mma.sync.aligned.{shape}.row.col.f32.f16.f16.f32
++ */
++public enum MMAShape {
++    M16N8K8("m16n8k8"),
++    M16N8K16("m16n8k16"),
++    M16N8K32("m16n8k32");
++
++    private final String ptxName;
++
++    MMAShape(String ptxName) {
++        this.ptxName = ptxName;
++    }
++
++    public String getPtxName() {
++        return ptxName;
++    }
++}
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/PTXVariablePrefix.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/PTXVariablePrefix.java
+index 0d9df8b6f..ff82ca1a6 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/PTXVariablePrefix.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/PTXVariablePrefix.java
+@@ -41,7 +41,13 @@ public enum PTXVariablePrefix {
+         F16("f16", "rfh"),
+         F32("f32", "rfi"),
+         F64("f64", "rfd"),
+-        PRED("pred", "rpb");
++        PRED("pred", "rpb"),
++        MMA_FRAG_ACC_F32("mma_frag_acc_f32", "rmmaaccf32"),
++        MMA_FRAG_A_F16("mma_frag_a_f16", "rmmaaf16"),
++        MMA_FRAG_B_F16("mma_frag_b_f16", "rmmabf16"),
++        MMA_FRAG_ACC_S32("mma_frag_acc_s32", "rmmaaccs32"),
++        MMA_FRAG_A_S8("mma_frag_a_s8", "rmmaas8"),
++        MMA_FRAG_B_S8("mma_frag_b_s8", "rmmabs8");
+     // @formatter:on
+ 
+     private final String type;
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/asm/PTXAssembler.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/asm/PTXAssembler.java
+index de9ebc2fa..6cd47c174 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/asm/PTXAssembler.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/asm/PTXAssembler.java
+@@ -44,6 +44,7 @@ import static uk.ac.manchester.tornado.drivers.ptx.graal.asm.PTXAssemblerConstan
+ 
+ import java.util.ArrayList;
+ import java.util.Arrays;
++import java.util.HashSet;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
+@@ -822,4 +823,14 @@ public class PTXAssembler extends Assembler {
+         }
+     }
+ 
++    private Set<String> declaredFragRegs = new HashSet<>();
++
++    public boolean isFragRegDeclared(String baseName) {
++        return declaredFragRegs.contains(baseName);
++    }
++
++    public void markFragRegDeclared(String baseName) {
++        declaredFragRegs.add(baseName);
++    }
++
+ }
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/compiler/plugins/PTXGraphBuilderPlugins.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/compiler/plugins/PTXGraphBuilderPlugins.java
+index 93bbe7943..54c61836a 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/compiler/plugins/PTXGraphBuilderPlugins.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/compiler/plugins/PTXGraphBuilderPlugins.java
+@@ -28,6 +28,7 @@ import jdk.vm.ci.meta.JavaConstant;
+ import jdk.vm.ci.meta.JavaKind;
+ import jdk.vm.ci.meta.MetaAccessProvider;
+ import jdk.vm.ci.meta.RawConstant;
++import jdk.vm.ci.meta.ResolvedJavaField;
+ import jdk.vm.ci.meta.ResolvedJavaMethod;
+ import jdk.vm.ci.meta.ResolvedJavaType;
+ import org.graalvm.compiler.core.common.memory.BarrierType;
+@@ -49,6 +50,7 @@ import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugin;
+ import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugin.Receiver;
+ import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugins;
+ import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugins.Registration;
++import org.graalvm.compiler.nodes.java.LoadFieldNode;
+ import org.graalvm.compiler.nodes.java.NewArrayNode;
+ import org.graalvm.compiler.nodes.java.StoreIndexedNode;
+ import org.graalvm.compiler.nodes.memory.address.AddressNode;
+@@ -57,7 +59,9 @@ import org.graalvm.compiler.nodes.util.GraphUtil;
+ import org.graalvm.compiler.replacements.InlineDuringParsingPlugin;
+ import org.graalvm.word.LocationIdentity;
+ import uk.ac.manchester.tornado.api.KernelContext;
++import uk.ac.manchester.tornado.api.enums.MMAShape;
+ import uk.ac.manchester.tornado.api.exceptions.Debug;
++import uk.ac.manchester.tornado.api.types.HalfFloat;
+ import uk.ac.manchester.tornado.api.types.arrays.DoubleArray;
+ import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
+ import uk.ac.manchester.tornado.api.types.arrays.Int8Array;
+@@ -70,6 +74,13 @@ import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXKind;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.AtomAddNodeTemplate;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.DP4APackedNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.Dp4aNode;
++import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMAComputeNode;
++import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMAFragmentNode;
++import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMALoadAInt8Node;
++import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMALoadANode;
++import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMALoadBInt8Node;
++import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMALoadBNode;
++import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMAStoreNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.PTXSimdSumNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.PTXShuffleDownNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.PTXSimdBroadcastFirstNode;
+@@ -433,6 +444,7 @@ public class PTXGraphBuilderPlugins {
+         localArraysPlugins(r);
+         registerAtomicAddOperation(r);
+         registerSIMDPlugins(r);
++        registerMMAPlugins(r);
+     }
+ 
+     private static void registerSIMDPlugins(Registration r) {
+@@ -461,6 +473,196 @@ public class PTXGraphBuilderPlugins {
+         });
+     }
+ 
++    private static void registerMMAPlugins(Registration r) {
++        // --- mmaFragment(float v) -> float[] ---
++        r.register(new InvocationPlugin("mmaFragment",
++                InvocationPlugin.Receiver.class, float.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod,
++                                 Receiver receiver, ValueNode initValue) {
++                receiver.get(true);
++                b.addPush(JavaKind.Object, new MMAFragmentNode(initValue));
++                return true;
++            }
++        });
++
++        // --- mmaLoadA(float[] aTile, int wmmaK) -> HalfFloat[] ---
++        r.register(new InvocationPlugin("mmaLoadA",
++                InvocationPlugin.Receiver.class, int[].class, int.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod,
++                                 Receiver receiver, ValueNode tile, ValueNode wmmaK) {
++                receiver.get(true);
++                b.addPush(JavaKind.Object, new MMALoadANode(tile, wmmaK));
++                return true;
++            }
++        });
++
++        // --- mmaLoadB(float[] bTile, int wmmaK) -> HalfFloat[] ---
++        r.register(new InvocationPlugin("mmaLoadB",
++                InvocationPlugin.Receiver.class, int[].class, int.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod,
++                                 Receiver receiver, ValueNode tile, ValueNode wmmaK) {
++                receiver.get(true);
++                b.addPush(JavaKind.Object, new MMALoadBNode(tile, wmmaK));
++                return true;
++            }
++        });
++
++        // --- mma(HalfFloat[] fragA, HalfFloat[] fragB, float[] fragC, MMAShape shape) -> float[] ---
++        r.register(new InvocationPlugin("mma",
++                InvocationPlugin.Receiver.class,
++                HalfFloat[].class, HalfFloat[].class, float[].class, MMAShape.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod,
++                                 Receiver receiver,
++                                 ValueNode fragA, ValueNode fragB, ValueNode fragC,
++                                 ValueNode shapeNode) {
++                receiver.get(true);
++                MMAShape shape = resolveShape(b, shapeNode);
++                b.addPush(JavaKind.Object, new MMAComputeNode(fragA, fragB, fragC, shape));
++                return true;
++            }
++        });
++
++        // --- mmaStore(float[] fragD, FloatArray c, int tileRow, int tileCol, int dimN) -> void ---
++        r.register(new InvocationPlugin("mmaStore",
++                InvocationPlugin.Receiver.class,
++                float[].class, FloatArray.class, int.class, int.class, int.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod,
++                                 Receiver receiver,
++                                 ValueNode fragD, ValueNode target,
++                                 ValueNode tileRow, ValueNode tileCol, ValueNode dimN) {
++                receiver.get(true);
++                int headerElements = TornadoCoreRuntime.getVMConfig()
++                        .getArrayBaseOffset(JavaKind.Float) / JavaKind.Float.getByteCount();
++                b.add(new MMAStoreNode(fragD, target, tileRow, tileCol, dimN, headerElements));
++                return true;
++            }
++        });
++
++        r.register(new InvocationPlugin("mmaFragmentInt",
++                InvocationPlugin.Receiver.class, int.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod,
++                                 Receiver receiver, ValueNode initValue) {
++                receiver.get(true);
++                b.addPush(JavaKind.Object, new MMAFragmentNode(initValue, true));
++                return true;
++            }
++        });
++
++// --- mmaLoadAInt8(int[], int) -> byte[] ---
++        r.register(new InvocationPlugin("mmaLoadAInt8",
++                InvocationPlugin.Receiver.class, int[].class, int.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod,
++                                 Receiver receiver, ValueNode tile, ValueNode tileK) {
++                receiver.get(true);
++                b.addPush(JavaKind.Object, new MMALoadAInt8Node(tile, tileK));
++                return true;
++            }
++        });
++
++// --- mmaLoadBInt8(int[], int) -> byte[] ---
++        r.register(new InvocationPlugin("mmaLoadBInt8",
++                InvocationPlugin.Receiver.class, int[].class, int.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod,
++                                 Receiver receiver, ValueNode tile, ValueNode tileK) {
++                receiver.get(true);
++                b.addPush(JavaKind.Object, new MMALoadBInt8Node(tile, tileK));
++                return true;
++            }
++        });
++
++// --- mmaInt8(byte[], byte[], int[], MMAShape) -> int[] ---
++        r.register(new InvocationPlugin("mmaInt8",
++                InvocationPlugin.Receiver.class,
++                byte[].class, byte[].class, int[].class, MMAShape.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod,
++                                 Receiver receiver,
++                                 ValueNode fragA, ValueNode fragB, ValueNode fragC,
++                                 ValueNode shapeNode) {
++                receiver.get(true);
++                MMAShape shape = resolveShape(b, shapeNode);
++                b.addPush(JavaKind.Object, new MMAComputeNode(fragA, fragB, fragC, shape));
++                return true;
++            }
++        });
++
++// --- mmaStoreInt(int[], IntArray, int, int, int) -> void ---
++        r.register(new InvocationPlugin("mmaStoreInt",
++                InvocationPlugin.Receiver.class,
++                int[].class, IntArray.class, int.class, int.class, int.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod,
++                                 Receiver receiver,
++                                 ValueNode fragD, ValueNode target,
++                                 ValueNode tileRow, ValueNode tileCol, ValueNode dimN) {
++                receiver.get(true);
++                int headerElements = TornadoCoreRuntime.getVMConfig()
++                        .getArrayBaseOffset(JavaKind.Int) / JavaKind.Int.getByteCount();
++                b.add(new MMAStoreNode(fragD, target, tileRow, tileCol, dimN, headerElements, true));
++                return true;
++            }
++        });
++
++    }
++
++    /**
++     * Resolves an MMAShape enum ValueNode to its compile-time constant.
++     *
++     * Enum references in bytecode appear as getstatic loads (LoadFieldNode) that
++     * are only constant-folded in a later phase. We read the static field directly
++     * via ConstantReflectionProvider.
++     *
++     * We can't use SnippetReflection.asObject() because TornadoVM's implementation
++     * throws unimplemented(). Instead, we read the enum's ordinal field and index
++     * into MMAShape.values().
++     */
++    private static MMAShape resolveShape(GraphBuilderContext b, ValueNode shapeNode) {
++        JavaConstant constant = shapeNode.asJavaConstant();
++
++        // Enum constants usually reach the plugin as a LoadFieldNode — resolve
++        // the static-final field directly if it hasn't been folded yet.
++        if (constant == null && shapeNode instanceof LoadFieldNode) {
++            LoadFieldNode load = (LoadFieldNode) shapeNode;
++            if (load.field().isStatic()) {
++                constant = b.getConstantReflection().readFieldValue(load.field(), null);
++            }
++        }
++
++        if (constant == null || constant.isNull()) {
++            throw new IllegalStateException(
++                    "MMAShape argument to ctx.mma() must be a compile-time constant");
++        }
++
++        // Read the `ordinal` field inherited from java.lang.Enum to identify
++        // which MMAShape constant this is, then look it up in values().
++        ResolvedJavaType enumType = b.getMetaAccess().lookupJavaType(MMAShape.class);
++        ResolvedJavaField ordinalField = null;
++        for (ResolvedJavaField f : enumType.getInstanceFields(true)) {
++            if (f.getName().equals("ordinal")) {
++                ordinalField = f;
++                break;
++            }
++        }
++        if (ordinalField == null) {
++            throw new IllegalStateException("Cannot locate Enum.ordinal field on MMAShape");
++        }
++
++        JavaConstant ordinalConst = b.getConstantReflection().readFieldValue(ordinalField, constant);
++        if (ordinalConst == null) {
++            throw new IllegalStateException("Failed to read ordinal of MMAShape constant");
++        }
++
++        return MMAShape.values()[ordinalConst.asInt()];
++    }
++
+     private static void registerFPIntrinsics(Registration r, Class<?> type, JavaKind kind) {
+         r.register(new InvocationPlugin("pow", type, type) {
+             @Override
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXKind.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXKind.java
+index 87fda7b95..36aabeba4 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXKind.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXKind.java
+@@ -163,6 +163,12 @@ public enum PTXKind implements PlatformKind {
+     VECTORHALF4(4, VectorHalf4.TYPE, B16),
+     VECTORHALF8(8, VectorHalf8.TYPE, B16),
+     VECTORHALF16(16, VectorHalf16.TYPE, B16),
++    MMA_FRAG_A_F16(4, null, B32),    // A: 4 × b32 = 8 × f16 per lane (row-major 16×16 tile slice)
++    MMA_FRAG_B_F16(2, null, B32),    // B: 2 × b32 = 4 × f16 per lane (col-major 16×8 tile slice)
++    MMA_FRAG_ACC_F32(4, null, F32),  // C/D: 4 × f32 per lane (row-major 16×8 tile slice)
++    MMA_FRAG_ACC_S32(4, null, S32),
++    MMA_FRAG_A_S8(4, null, B32),
++    MMA_FRAG_B_S8(2, null, B32),
+     ILLEGAL(0, null);
+     // @formatter:on
+ 
+@@ -517,6 +523,24 @@ public enum PTXKind implements PlatformKind {
+         return size == 8 && !isVector();
+     }
+ 
++    public boolean isMMAFragmentA() {
++        return kind == MMA_FRAG_A_F16;
++    }
++
++    public boolean isMMAFragmentB() {
++        return kind == MMA_FRAG_B_F16;
++    }
++
++    public boolean isMMAFragmentAccumulator() {
++        return kind == MMA_FRAG_ACC_F32;
++    }
++
++    public boolean isMMAFragment() {
++        //return isMMAFragmentA() || isMMAFragmentB() || isMMAFragmentAccumulator();
++        return this == MMA_FRAG_ACC_F32 || this == MMA_FRAG_A_F16 || this == MMA_FRAG_B_F16
++                || this == MMA_FRAG_ACC_S32 || this == MMA_FRAG_A_S8  || this == MMA_FRAG_B_S8;
++    }
++
+     public PTXKind toUntyped() {
+         switch (size) {
+             case 1:
+@@ -532,4 +556,5 @@ public enum PTXKind implements PlatformKind {
+                 return null;
+         }
+     }
++
+ }
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXLIRStmt.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXLIRStmt.java
+index c143ebd6e..190483233 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXLIRStmt.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXLIRStmt.java
+@@ -59,6 +59,7 @@ import org.graalvm.compiler.lir.Variable;
+ import org.graalvm.compiler.lir.asm.CompilationResultBuilder;
+ 
+ import jdk.vm.ci.meta.Value;
++import uk.ac.manchester.tornado.api.enums.MMAShape;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.PTXArchitecture;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.asm.PTXAssembler;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.asm.PTXAssembler.PTXNullaryOp;
+@@ -866,6 +867,44 @@ public class PTXLIRStmt {
+ 
+     }
+ 
++    @Opcode("HALF_BITS_TO_INT")
++    public static class HalfBitsToIntStmt extends AbstractInstruction {
++
++        public static final LIRInstructionClass<HalfBitsToIntStmt> TYPE =
++                LIRInstructionClass.create(HalfBitsToIntStmt.class);
++
++        @Def  protected Value result;
++        @Use  protected Value src;
++        @Temp protected Value b16Tmp;
++
++        public HalfBitsToIntStmt(Value result, Value src, Value b16Tmp) {
++            super(TYPE);
++            this.result = result;
++            this.src = src;
++            this.b16Tmp = b16Tmp;
++        }
++
++        @Override
++        public void emitCode(PTXCompilationResultBuilder crb, PTXAssembler asm) {
++            // Bitcast f16 → b16 (reinterpret raw bits, no value conversion)
++            asm.emitSymbol(TAB);
++            asm.emit(MOVE + DOT + "b16 ");
++            asm.emitValue(b16Tmp);
++            asm.emit(COMMA + SPACE);
++            asm.emitValue(src);
++            asm.delimiter();
++            asm.eol();
++            // Zero-extend b16 → u32
++            asm.emitSymbol(TAB);
++            asm.emit(CONVERT + DOT + "u32.u16 ");
++            asm.emitValue(result);
++            asm.emit(COMMA + SPACE);
++            asm.emitValue(b16Tmp);
++            asm.delimiter();
++            asm.eol();
++        }
++    }
++
+     public static class ConvertFloatToHalfStmt extends AbstractInstruction {
+ 
+         public static final LIRInstructionClass<ConvertFloatToHalfStmt> TYPE = LIRInstructionClass.create(ConvertFloatToHalfStmt.class);
+@@ -976,6 +1015,9 @@ public class PTXLIRStmt {
+         }
+ 
+         public static boolean shouldEmitMove(PTXKind lhsKind, PTXKind rhsKind) {
++            if (lhsKind.isMMAFragment() || rhsKind.isMMAFragment()) {
++                return true;
++            }
+             if (rhsKind.isF16() && lhsKind.isB16() || rhsKind.isB16() && lhsKind.isF16()) {
+                 return true;
+             }
+@@ -986,6 +1028,72 @@ public class PTXLIRStmt {
+         public void emitCode(PTXCompilationResultBuilder crb, PTXAssembler asm) {
+             if (rhs instanceof PTXLIROp) {
+                 ((PTXLIROp) rhs).emit(crb, asm, (Variable) lhs);
++            } else if (lhsKind.isMMAFragment() || rhsKind.isMMAFragment()) {
++                int numRegs;
++                String movType;
++                String regType;
++                //TODO: uncomment for FP16
++//                if (lhsKind == PTXKind.MMA_FRAG_ACC_F32 || rhsKind == PTXKind.MMA_FRAG_ACC_F32) {
++//                    numRegs = 4;
++//                    movType = "mov.f32";
++//                    regType = ".f32";
++//                } else if (lhsKind == PTXKind.MMA_FRAG_A_F16 || rhsKind == PTXKind.MMA_FRAG_A_F16) {
++//                    numRegs = 4;
++//                    movType = "mov.b32";
++//                    regType = ".b32";
++//                } else {
++//                    numRegs = 2;
++//                    movType = "mov.b32";
++//                    regType = ".b32";
++//                }
++                if (lhsKind == PTXKind.MMA_FRAG_ACC_F32 || rhsKind == PTXKind.MMA_FRAG_ACC_F32) {
++                    numRegs = 4;
++                    movType = "mov.f32";
++                    regType = ".f32";
++                } else if (lhsKind == PTXKind.MMA_FRAG_ACC_S32 || rhsKind == PTXKind.MMA_FRAG_ACC_S32) {
++                    numRegs = 4;
++                    movType = "mov.s32";
++                    regType = ".s32";
++                } else if (lhsKind == PTXKind.MMA_FRAG_A_F16 || rhsKind == PTXKind.MMA_FRAG_A_F16
++                        || lhsKind == PTXKind.MMA_FRAG_A_S8 || rhsKind == PTXKind.MMA_FRAG_A_S8) {
++                    numRegs = 4;
++                    movType = "mov.b32";
++                    regType = ".b32";
++                } else {
++                    numRegs = 2;
++                    movType = "mov.b32";
++                    regType = ".b32";
++                }
++                // Get the base name for tracking
++                String lhsBase = PTXAssembler.toString(lhs);
++
++                // Only declare once — phi resolution emits this for both
++                // loop entry and back-edge, but PTX forbids redeclaration
++                if (!asm.isFragRegDeclared(lhsBase)) {
++                    asm.markFragRegDeclared(lhsBase);
++                    asm.emitSymbol(TAB);
++                    asm.emit(".reg " + regType + " ");
++                    for (int i = 0; i < numRegs; i++) {
++                        if (i > 0) asm.emitSymbol(COMMA + SPACE);
++                        asm.emit(lhsBase + "_" + i);
++                    }
++                    asm.delimiter();
++                    asm.eol();
++                }
++
++                // Emit per-register moves
++                for (int i = 0; i < numRegs; i++) {
++                    asm.emitSymbol(TAB);
++                    asm.emit(movType);
++                    asm.emitSymbol(TAB);
++                    asm.emit(lhsBase + "_" + i);
++                    asm.emitSymbol(COMMA + SPACE);
++                    asm.emitValue(rhs);
++                    asm.emit("_" + i);
++                    asm.delimiter();
++                    asm.eol();
++                }
++                return;
+             } else if (lhsKind.isVector() && rhsKind.isVector()) {
+                 Variable rhsVar = (Variable) rhs;
+                 Variable lhsVar = (Variable) lhs;
+@@ -1732,4 +1840,1149 @@ public class PTXLIRStmt {
+             asm.eol();
+         }
+     }
++
++    @Opcode("MMA_FRAGMENT")
++    public static class MMAFragmentStmt extends AbstractInstruction {
++
++        public static final LIRInstructionClass<MMAFragmentStmt> TYPE =
++                LIRInstructionClass.create(MMAFragmentStmt.class);
++
++        @Def protected Value result;
++        @Use protected Value initValue;
++        private final int fragmentSize;
++        private final String movType;
++        private final String regType;
++
++        public MMAFragmentStmt(Value result, Value initValue, int fragmentSize,
++                               String movType, String regType) {
++            super(TYPE);
++            this.result = result;
++            this.initValue = initValue;
++            this.fragmentSize = fragmentSize;
++            this.movType = movType;
++            this.regType = regType;
++        }
++
++        @Override
++        public void emitCode(PTXCompilationResultBuilder crb, PTXAssembler asm) {
++            // Declare the N physical f32 registers that make up the accumulator fragment.
++            //   .reg .f32 <base>_0, <base>_1, <base>_2, <base>_3;
++//            asm.emitSymbol(TAB);
++//            asm.emit(".reg .f32 ");
++//            for (int i = 0; i < fragmentSize; i++) {
++//                if (i > 0) {
++//                    asm.emitSymbol(COMMA + SPACE);
++//                }
++//                asm.emitValue(result);
++//                asm.emit("_" + i);
++//            }
++//            asm.delimiter();
++//            asm.eol();
++//
++//            // Initialise each register.
++//            //   mov.f32 <base>_i, <initValue>;
++//            for (int i = 0; i < fragmentSize; i++) {
++//                asm.emitSymbol(TAB);
++//                asm.emit("mov.f32");
++//                asm.emitSymbol(SPACE);
++//                asm.emitValue(result);
++//                asm.emit("_" + i);
++//                asm.emitSymbol(COMMA + SPACE);
++//                asm.emitValue(initValue);
++//                asm.delimiter();
++//                asm.eol();
++//            }
++            asm.emitSymbol(TAB);
++            asm.emit(".reg " + regType + " ");
++            for (int i = 0; i < fragmentSize; i++) {
++                if (i > 0) asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(result);
++                asm.emit("_" + i);
++            }
++            asm.delimiter();
++            asm.eol();
++
++            for (int i = 0; i < fragmentSize; i++) {
++                asm.emitSymbol(TAB);
++                asm.emit(movType);
++                asm.emitSymbol(SPACE);
++                asm.emitValue(result);
++                asm.emit("_" + i);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(initValue);
++                asm.delimiter();
++                asm.eol();
++            }
++        }
++    }
++
++
++    @Opcode("LDMATRIX")
++    public static class LdmatrixStmt extends AbstractInstruction {
++
++        public enum Variant {
++            X4(4, false),      // A fragment: 4 regs, row-major
++            X2_TRANS(2, true);  // B fragment: 2 regs, transposed (col-major)
++
++            final int numRegs;
++            final boolean trans;
++
++            Variant(int numRegs, boolean trans) {
++                this.numRegs = numRegs;
++                this.trans = trans;
++            }
++        }
++
++        public static final LIRInstructionClass<LdmatrixStmt> TYPE =
++                LIRInstructionClass.create(LdmatrixStmt.class);
++
++        @Def protected Value result;
++        @Use protected Value tile;
++
++        // Scratch registers for address calculation
++        @Temp protected Value lane;
++        @Temp protected Value rowInTile;
++        @Temp protected Value group;
++        @Temp protected Value rowOff;
++        @Temp protected Value colOff;
++        @Temp protected Value row;
++        @Temp protected Value byteOff;
++        @Temp protected Value addr32;
++        @Temp protected Value genAddr64;
++
++        private final Variant variant;
++        private final int rowStride;  // bytes per row in shared memory (e.g. 32 for 16×16 b16)
++
++        public LdmatrixStmt(Variant variant, Value result, Value tile,
++                            Value lane, Value rowInTile, Value group,
++                            Value rowOff, Value colOff, Value row,
++                            Value byteOff, Value addr32, Value genAddr64,
++                            int rowStride) {
++            super(TYPE);
++            this.variant = variant;
++            this.result = result;
++            this.tile = tile;
++            this.lane = lane;
++            this.rowInTile = rowInTile;
++            this.group = group;
++            this.rowOff = rowOff;
++            this.colOff = colOff;
++            this.row = row;
++            this.byteOff = byteOff;
++            this.addr32 = addr32;
++            this.genAddr64 = genAddr64;
++            this.rowStride = rowStride;
++        }
++
++        @Override
++        public void emitCode(PTXCompilationResultBuilder crb, PTXAssembler asm) {
++            int numRegs = variant.numRegs;
++
++            // Declare fragment output registers
++            asm.emitSymbol(TAB);
++            asm.emit(".reg .b32 ");
++            for (int i = 0; i < numRegs; i++) {
++                if (i > 0) asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(result);
++                asm.emit("_" + i);
++            }
++            asm.delimiter();
++            asm.eol();
++
++            // Declare temp registers (dedup)
++            if (!asm.isFragRegDeclared("__ldm_temps")) {
++                asm.markFragRegDeclared("__ldm_temps");
++                asm.emitSymbol(TAB);
++                asm.emit(".reg .u32 __ldm_lane, __ldm_rowInTile, __ldm_group");
++                asm.delimiter();
++                asm.eol();
++                asm.emitSymbol(TAB);
++                asm.emit(".reg .u32 __ldm_rowOff, __ldm_colOff, __ldm_row");
++                asm.delimiter();
++                asm.eol();
++                asm.emitSymbol(TAB);
++                asm.emit(".reg .u32 __ldm_rowBytes, __ldm_byteOff, __ldm_addr");
++                asm.delimiter();
++                asm.eol();
++            }
++
++            // Lane ID
++            asm.emitSymbol(TAB);
++            asm.emit("mov.u32 __ldm_lane, %tid.x");
++            asm.delimiter();
++            asm.eol();
++
++            // rowInTile = lane % 8
++            asm.emitSymbol(TAB);
++            asm.emit("and.b32 __ldm_rowInTile, __ldm_lane, 7");
++            asm.delimiter();
++            asm.eol();
++
++            // group = lane / 8
++            asm.emitSymbol(TAB);
++            asm.emit("shr.b32 __ldm_group, __ldm_lane, 3");
++            asm.delimiter();
++            asm.eol();
++
++            if (variant == Variant.X4) {
++                // A fragment: 4 sub-tiles of a 16×N row-major matrix
++                // group 0 → (rows 0-7, k 0-7)     reg 0
++                // group 1 → (rows 8-15, k 0-7)    reg 1
++                // group 2 → (rows 0-7, k 8-15)    reg 2
++                // group 3 → (rows 8-15, k 8-15)   reg 3
++
++                // rowOff = (group & 1) * 8
++                asm.emitSymbol(TAB);
++                asm.emit("and.b32 __ldm_rowOff, __ldm_group, 1");
++                asm.delimiter();
++                asm.eol();
++                asm.emitSymbol(TAB);
++                asm.emit("shl.b32 __ldm_rowOff, __ldm_rowOff, 3");
++                asm.delimiter();
++                asm.eol();
++
++                // colOff = (group >> 1) * 16 bytes (8 b16 × 2 bytes)
++                asm.emitSymbol(TAB);
++                asm.emit("shr.b32 __ldm_colOff, __ldm_group, 1");
++                asm.delimiter();
++                asm.eol();
++                asm.emitSymbol(TAB);
++                asm.emit("shl.b32 __ldm_colOff, __ldm_colOff, 4");
++                asm.delimiter();
++                asm.eol();
++
++                // row = rowOff + rowInTile
++                asm.emitSymbol(TAB);
++                asm.emit("add.u32 __ldm_row, __ldm_rowOff, __ldm_rowInTile");
++                asm.delimiter();
++                asm.eol();
++
++                // byteOff = row * rowStride + colOff
++                int rowStrideShift = Integer.numberOfTrailingZeros(rowStride);
++                asm.emitSymbol(TAB);
++                asm.emit("shl.b32 __ldm_rowBytes, __ldm_row, " + rowStrideShift);
++                asm.delimiter();
++                asm.eol();
++                asm.emitSymbol(TAB);
++                asm.emit("add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff");
++                asm.delimiter();
++                asm.eol();
++
++            } else {
++                // B fragment (X2_TRANS): 2 sub-tiles of an 8×N col-major matrix
++                // group 0 (T0-T7)   → k rows 0-7
++                // group 1 (T8-T15)  → k rows 8-15
++                // groups 2,3 reuse groups 0,1 addresses (only x2 uses first 16 threads)
++
++                // For .trans: each thread provides address of a column
++                // But with x2, only groups 0 and 1 matter
++                // colOff = (group & 1) * 16 bytes (second 8-row k-block)
++                asm.emitSymbol(TAB);
++                asm.emit("and.b32 __ldm_colOff, __ldm_group, 1");
++                asm.delimiter();
++                asm.eol();
++                asm.emitSymbol(TAB);
++                asm.emit("shl.b32 __ldm_colOff, __ldm_colOff, 4");
++                asm.delimiter();
++                asm.eol();
++
++                // byteOff = rowInTile * rowStride + colOff
++                int rowStrideShift = Integer.numberOfTrailingZeros(rowStride);
++                asm.emitSymbol(TAB);
++                asm.emit("shl.b32 __ldm_rowBytes, __ldm_rowInTile, " + rowStrideShift);
++                asm.delimiter();
++                asm.eol();
++                asm.emitSymbol(TAB);
++                asm.emit("add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff");
++                asm.delimiter();
++                asm.eol();
++            }
++
++            // Get 32-bit shared memory address (shared vars are u32 in PTX)
++            asm.emitSymbol(TAB);
++            asm.emit("mov.u32 __ldm_addr, ");
++            asm.emitValue(tile);
++            asm.delimiter();
++            asm.eol();
++
++            // Add byte offset
++            asm.emitSymbol(TAB);
++            asm.emit("add.u32 __ldm_addr, __ldm_addr, __ldm_byteOff");
++            asm.delimiter();
++            asm.eol();
++
++            // THE INSTRUCTION
++            asm.emitSymbol(TAB);
++            if (variant == Variant.X4) {
++                asm.emit("ldmatrix.sync.aligned.m8n8.x4.shared.b16 {");
++            } else {
++                asm.emit("ldmatrix.sync.aligned.m8n8.x2.trans.shared.b16 {");
++            }
++            for (int i = 0; i < numRegs; i++) {
++                if (i > 0) asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(result);
++                asm.emit("_" + i);
++            }
++            asm.emit("}, [__ldm_addr]");
++            asm.delimiter();
++            asm.eol();
++        }
++    }
++
++    @Opcode("MMA_LOAD")
++    public static class MMALoadStmt extends AbstractInstruction {
++
++        public enum Operand {
++            A(4, 16),   // 4 b32 regs, 16 f32 slots per row
++            B(2, 16);   // 2 b32 regs, 16 f32 slots per row (col-major in shared)
++
++            private final int numRegs;
++            private final int slotsPerRow;
++
++            Operand(int numRegs, int slotsPerRow) {
++                this.numRegs = numRegs;
++                this.slotsPerRow = slotsPerRow;
++            }
++        }
++
++        public static final LIRInstructionClass<MMALoadStmt> TYPE =
++                LIRInstructionClass.create(MMALoadStmt.class);
++
++        @Def protected Value result;
++        @Use protected Value tile;
++        @Use protected Value wmmaK;
++
++        @Def protected Value laneId;
++        @Def protected Value rowId;
++        @Def protected Value kOffset;
++        @Def protected Value rowComponent;
++        @Def protected Value kComponent;
++        @Def protected Value baseSlot;
++        @Def protected Value slotWithStep;
++        @Def protected Value byteOffset;
++        @Def protected Value sharedBase;
++        @Def protected Value address;
++
++        @Def protected Value tmpF32;
++        @Def protected Value tmpF16lo;
++        @Def protected Value tmpF16hi;
++
++        private final Operand operand;
++
++        public MMALoadStmt(Operand operand, Value result, Value tile, Value wmmaK,
++                           Value laneId, Value rowId, Value kOffset,
++                           Value rowComponent, Value kComponent,
++                           Value baseSlot, Value slotWithStep,
++                           Value byteOffset, Value sharedBase, Value address,
++                           Value tmpF32, Value tmpF16lo, Value tmpF16hi) {
++            super(TYPE);
++            this.operand = operand;
++            this.result = result;
++            this.tile = tile;
++            this.wmmaK = wmmaK;
++            this.laneId = laneId;
++            this.rowId = rowId;
++            this.kOffset = kOffset;
++            this.rowComponent = rowComponent;
++            this.kComponent = kComponent;
++            this.baseSlot = baseSlot;
++            this.slotWithStep = slotWithStep;
++            this.byteOffset = byteOffset;
++            this.sharedBase = sharedBase;
++            this.address = address;
++            this.tmpF32 = tmpF32;
++            this.tmpF16lo = tmpF16lo;
++            this.tmpF16hi = tmpF16hi;
++        }
++
++        @Override
++        public void emitCode(PTXCompilationResultBuilder crb, PTXAssembler asm) {
++            int numRegs = operand.numRegs;
++
++            // Declare fragment sub-registers
++            asm.emitSymbol(TAB);
++            asm.emit(".reg .b32 ");
++            for (int i = 0; i < numRegs; i++) {
++                if (i > 0) asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(result);
++                asm.emit("_" + i);
++            }
++            asm.delimiter();
++            asm.eol();
++
++            // Lane coordinates
++            //   laneId = %tid.x
++            emitInstruction(asm, "mov.u32", laneId, "%tid.x");
++            //   rowId = lane / 4
++            emitInstruction(asm, "shr.s32", rowId, laneId, "2");
++            //   kOffset = lane % 4
++            emitInstruction(asm, "and.b32", kOffset, laneId, "3");
++
++            // f32 layout: 16 f32 slots per row
++            //   rowComponent = rowId * 16
++            emitInstruction(asm, "shl.b32", rowComponent, rowId, "4");
++            //   kComponent = kOffset * 2
++            emitInstruction(asm, "shl.b32", kComponent, kOffset, "1");
++            //   baseSlot = rowComponent + kComponent
++            emitBinaryReg(asm, "add.s32", baseSlot, rowComponent, kComponent);
++
++            // Get shared-space base address
++            emitBinaryVal(asm, "cvta.shared.u64", sharedBase, tile);
++
++            // For each b32 fragment register:
++            //   load 2 consecutive f32 from shared → convert to f16 → pack into b32
++            for (int i = 0; i < numRegs; i++) {
++                int evenSlotOffset;
++                if (operand == Operand.A) {
++                    int rowOff = (i % 2 != 0) ? 8 * 16 : 0;  // 0, 128, 0, 128
++                    int kOff   = (i >= 2) ? 8 : 0;             // 0, 0, 8, 8
++                    evenSlotOffset = rowOff + kOff;
++//                    int rowOff = (i >= 2) ? 8 * 16 : 0;
++//                    int kOff   = (i % 2 == 0) ? 0 : 8;
++//                    evenSlotOffset = rowOff + kOff;
++                } else {
++                    int kOff = (i == 0) ? 0 : 8;
++                    evenSlotOffset = kOff;
++                }
++
++                // even element: slotWithStep = baseSlot + evenSlotOffset
++                emitBinaryImm(asm, "add.s32", slotWithStep, baseSlot, evenSlotOffset);
++
++                // Load even f32 from shared → convert to f16
++                emitIndexedLoadAndConvert(asm, tmpF16lo, slotWithStep);
++
++                // odd element: slotWithStep + 1
++                emitBinaryImm(asm, "add.s32", slotWithStep, slotWithStep, 1);
++
++                // Load odd f32 from shared → convert to f16
++                emitIndexedLoadAndConvert(asm, tmpF16hi, slotWithStep);
++
++                // Pack two f16 into one b32
++                asm.emitSymbol(TAB);
++                asm.emit("mov.b32");
++                asm.emitSymbol(SPACE);
++                asm.emitValue(result);
++                asm.emit("_" + i);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emit("{");
++                asm.emitValue(tmpF16lo);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(tmpF16hi);
++                asm.emit("}");
++                asm.delimiter();
++                asm.eol();
++            }
++        }
++
++        /**
++         * Emits: mul.wide.s32 byteOff, slot, 4; add.u64 addr, base, byteOff;
++         *        ld.shared.f32 tmpF32, [addr]; cvt.rn.f16.f32 destF16, tmpF32;
++         *
++         * If convertToF16 is true, loads as f32 into tmpF32 then converts to f16 dest.
++         */
++        private void emitAddrCalcAndLoad(PTXAssembler asm, String loadOp,
++                                         Value destF16, Value slot,
++                                         Value byteOff, Value base, Value addr,
++                                         boolean convertToF16) {
++            // byteOffset = slot * 4
++            asm.emitSymbol(TAB);
++            asm.emit("mul.wide.s32");
++            asm.emitSymbol(SPACE);
++            asm.emitValue(byteOff);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(slot);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emit("4");
++            asm.delimiter();
++            asm.eol();
++
++            // address = base + byteOffset
++            asm.emitSymbol(TAB);
++            asm.emit("add.u64");
++            asm.emitSymbol(SPACE);
++            asm.emitValue(addr);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(base);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(byteOff);
++            asm.delimiter();
++            asm.eol();
++
++            // ld.shared.f32 tmpF32, [address]
++            asm.emitSymbol(TAB);
++            asm.emit("ld.f32");
++            asm.emitSymbol(SPACE);
++            asm.emitValue(tmpF32);
++            asm.emitSymbol(COMMA + SPACE + "[");
++            asm.emitValue(addr);
++            asm.emitSymbol("]");
++            asm.delimiter();
++            asm.eol();
++
++            // cvt.rn.f16.f32 destF16, tmpF32
++            asm.emitSymbol(TAB);
++            asm.emit("cvt.rn.f16.f32");
++            asm.emitSymbol(SPACE);
++            asm.emitValue(destF16);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(tmpF32);
++            asm.delimiter();
++            asm.eol();
++        }
++
++        private void emitInstruction(PTXAssembler asm, String op, Value dest, Value src, String imm) {
++            asm.emitSymbol(TAB);
++            asm.emit(op);
++            asm.emitSymbol(SPACE);
++            asm.emitValue(dest);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(src);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emit(imm);
++            asm.delimiter();
++            asm.eol();
++        }
++
++        private void emitBinaryVal(PTXAssembler asm, String op, Value dest, Value src) {
++            asm.emitSymbol(TAB);
++            asm.emit(op);
++            asm.emitSymbol(SPACE);
++            asm.emitValue(dest);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(src);
++            asm.delimiter();
++            asm.eol();
++        }
++
++        private void emitInstruction(PTXAssembler asm, String op, Value dest, String src) {
++            asm.emitSymbol(TAB);
++            asm.emit(op);
++            asm.emitSymbol(SPACE);
++            asm.emitValue(dest);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emit(src);
++            asm.delimiter();
++            asm.eol();
++        }
++
++        private void emitIndexedLoadAndConvert(PTXAssembler asm,
++                                               Value destF16, Value slot) {
++            // ld.shared.f32 tmpF32, tile[slot]
++            asm.emitSymbol(TAB);
++            asm.emit("ld.shared.f32");
++            asm.emitSymbol(SPACE);
++            asm.emitValue(tmpF32);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(tile);
++            asm.emit("[");
++            asm.emitValue(slot);
++            asm.emit("]");
++            asm.delimiter();
++            asm.eol();
++
++            // cvt.rn.f16.f32 destF16, tmpF32
++            asm.emitSymbol(TAB);
++            asm.emit("cvt.rn.f16.f32");
++            asm.emitSymbol(SPACE);
++            asm.emitValue(destF16);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(tmpF32);
++            asm.delimiter();
++            asm.eol();
++        }
++
++        private void emitBinaryReg(PTXAssembler asm, String op, Value dest, Value src1, Value src2) {
++            asm.emitSymbol(TAB);
++            asm.emit(op);
++            asm.emitSymbol(SPACE);
++            asm.emitValue(dest);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(src1);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(src2);
++            asm.delimiter();
++            asm.eol();
++        }
++
++        private void emitBinaryImm(PTXAssembler asm, String op, Value dest, Value src, int imm) {
++            asm.emitSymbol(TAB);
++            asm.emit(op);
++            asm.emitSymbol(SPACE);
++            asm.emitValue(dest);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(src);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emit(Integer.toString(imm));
++            asm.delimiter();
++            asm.eol();
++        }
++    }
++
++    @Opcode("MMA_LOAD_INT8")
++    public static class MMALoadInt8Stmt extends AbstractInstruction {
++
++        public enum Operand {
++            A(4, 32),   // 4 b32 regs, 32 elements per row for m16n8k32
++            B(2, 32);   // 2 b32 regs
++
++            private final int numRegs;
++            private final int slotsPerRow;
++
++            Operand(int numRegs, int slotsPerRow) {
++                this.numRegs = numRegs;
++                this.slotsPerRow = slotsPerRow;
++            }
++        }
++
++        public static final LIRInstructionClass<MMALoadInt8Stmt> TYPE =
++                LIRInstructionClass.create(MMALoadInt8Stmt.class);
++
++        @Def protected Value result;
++        @Use protected Value tile;
++        @Use protected Value wmmaK;
++
++        @Def protected Value laneId;
++        @Def protected Value rowId;
++        @Def protected Value kOffset;
++        @Def protected Value rowComponent;
++        @Def protected Value kComponent;
++        @Def protected Value baseSlot;
++        @Def protected Value slotWithStep;
++
++        private final Operand operand;
++
++        public MMALoadInt8Stmt(Operand operand, Value result, Value tile, Value wmmaK,
++                               Value laneId, Value rowId, Value kOffset,
++                               Value rowComponent, Value kComponent,
++                               Value baseSlot, Value slotWithStep) {
++            super(TYPE);
++            this.operand = operand;
++            this.result = result;
++            this.tile = tile;
++            this.wmmaK = wmmaK;
++            this.laneId = laneId;
++            this.rowId = rowId;
++            this.kOffset = kOffset;
++            this.rowComponent = rowComponent;
++            this.kComponent = kComponent;
++            this.baseSlot = baseSlot;
++            this.slotWithStep = slotWithStep;
++        }
++
++        @Override
++        public void emitCode(PTXCompilationResultBuilder crb, PTXAssembler asm) {
++            int numRegs = operand.numRegs;
++
++            // Declare fragment sub-registers
++            asm.emitSymbol(TAB);
++            asm.emit(".reg .b32 ");
++            for (int i = 0; i < numRegs; i++) {
++                if (i > 0) asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(result);
++                asm.emit("_" + i);
++            }
++            asm.delimiter();
++            asm.eol();
++
++            // Declare temp registers for byte packing
++//            asm.emitSymbol(TAB);
++//            asm.emit(".reg .s32 __byte0, __byte1, __byte2, __byte3, __packed");
++//            asm.delimiter();
++//            asm.eol();
++            if (!asm.isFragRegDeclared("__byte_temps")) {
++                asm.markFragRegDeclared("__byte_temps");
++                asm.emitSymbol(TAB);
++                asm.emit(".reg .s32 __byte0, __byte1, __byte2, __byte3, __packed");
++                asm.delimiter();
++                asm.eol();
++            }
++
++            // Lane coordinates
++            emitInstruction(asm, "mov.u32", laneId, "%tid.x");
++            emitInstruction(asm, "shr.s32", rowId, laneId, "2");
++            emitInstruction(asm, "and.b32", kOffset, laneId, "3");
++
++            // For m16n8k32 with s32 shared tile (one s8 per s32 slot):
++            // rowComponent = rowId * 32 (32 elements per row for K=32)
++            emitInstruction(asm, "shl.b32", rowComponent, rowId, "5");
++            // kComponent = kOffset * 4 (each lane owns 4 consecutive bytes)
++            emitInstruction(asm, "shl.b32", kComponent, kOffset, "2");
++            // baseSlot = rowComponent + kComponent
++            emitBinaryReg(asm, "add.s32", baseSlot, rowComponent, kComponent);
++
++            // For each b32 register: load 4 bytes, pack into one b32
++            for (int i = 0; i < numRegs; i++) {
++                int slotOffset;
++                if (operand == Operand.A) {
++                    // m16n8k32 A fragment layout (row-major):
++                    // reg 0: (row,    k_base+0..3)    — first 4 bytes of first k-half
++                    // reg 1: (row+8,  k_base+0..3)    — same k, lower row block
++                    // reg 2: (row,    k_base+16..19)  — second k-half
++                    // reg 3: (row+8,  k_base+16..19)
++                    int rowOff = (i % 2 != 0) ? 8 * 32 : 0;
++                    int kOff   = (i >= 2) ? 16 : 0;
++                    slotOffset = rowOff + kOff;
++                } else {
++                    // B fragment: 2 regs, col-major
++                    // reg 0: k_base+0..3
++                    // reg 1: k_base+16..19
++                    slotOffset = (i == 0) ? 0 : 16;
++                }
++
++                // slotWithStep = baseSlot + slotOffset
++                emitBinaryImm(asm, "add.s32", slotWithStep, baseSlot, slotOffset);
++
++                // Load 4 consecutive s32 values (each holds one s8),
++                // mask to 8 bits, shift, and OR into one b32.
++                //
++                // __byte0 = tile[slot] & 0xFF
++                // __byte1 = (tile[slot+1] & 0xFF) << 8
++                // __byte2 = (tile[slot+2] & 0xFF) << 16
++                // __byte3 = (tile[slot+3] & 0xFF) << 24
++                // packed = __byte0 | __byte1 | __byte2 | __byte3
++                for (int b = 0; b < 4; b++) {
++                    String byteReg = "__byte" + b;
++                    if (b > 0) {
++                        emitBinaryImm(asm, "add.s32", slotWithStep, slotWithStep, 1);
++                    }
++                    // Load s32 from shared tile
++                    asm.emitSymbol(TAB);
++                    asm.emit("ld.shared.s32 " + byteReg + ", ");
++                    asm.emitValue(tile);
++                    asm.emit("[");
++                    asm.emitValue(slotWithStep);
++                    asm.emit("]");
++                    asm.delimiter();
++                    asm.eol();
++
++                    // Mask to 8 bits
++                    asm.emitSymbol(TAB);
++                    asm.emit("and.b32 " + byteReg + ", " + byteReg + ", 255");
++                    asm.delimiter();
++                    asm.eol();
++
++                    // Shift into position
++                    if (b > 0) {
++                        asm.emitSymbol(TAB);
++                        asm.emit("shl.b32 " + byteReg + ", " + byteReg + ", " + (b * 8));
++                        asm.delimiter();
++                        asm.eol();
++                    }
++                }
++
++                // OR all four bytes together
++                asm.emitSymbol(TAB);
++                asm.emit("or.b32 __packed, __byte0, __byte1");
++                asm.delimiter();
++                asm.eol();
++                asm.emitSymbol(TAB);
++                asm.emit("or.b32 __packed, __packed, __byte2");
++                asm.delimiter();
++                asm.eol();
++                asm.emitSymbol(TAB);
++                asm.emit("or.b32 __packed, __packed, __byte3");
++                asm.delimiter();
++                asm.eol();
++
++                // Move packed value into fragment register
++                asm.emitSymbol(TAB);
++                asm.emit("mov.b32 ");
++                asm.emitValue(result);
++                asm.emit("_" + i + ", __packed");
++                asm.delimiter();
++                asm.eol();
++            }
++        }
++
++        // Helper methods — same as MMALoadStmt
++        private void emitInstruction(PTXAssembler asm, String op, Value dest, Value src, String imm) {
++            asm.emitSymbol(TAB);
++            asm.emit(op);
++            asm.emitSymbol(SPACE);
++            asm.emitValue(dest);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(src);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emit(imm);
++            asm.delimiter();
++            asm.eol();
++        }
++
++        private void emitInstruction(PTXAssembler asm, String op, Value dest, String src) {
++            asm.emitSymbol(TAB);
++            asm.emit(op);
++            asm.emitSymbol(SPACE);
++            asm.emitValue(dest);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emit(src);
++            asm.delimiter();
++            asm.eol();
++        }
++
++        private void emitBinaryReg(PTXAssembler asm, String op, Value dest, Value src1, Value src2) {
++            asm.emitSymbol(TAB);
++            asm.emit(op);
++            asm.emitSymbol(SPACE);
++            asm.emitValue(dest);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(src1);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(src2);
++            asm.delimiter();
++            asm.eol();
++        }
++
++        private void emitBinaryImm(PTXAssembler asm, String op, Value dest, Value src, int imm) {
++            asm.emitSymbol(TAB);
++            asm.emit(op);
++            asm.emitSymbol(SPACE);
++            asm.emitValue(dest);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(src);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emit(Integer.toString(imm));
++            asm.delimiter();
++            asm.eol();
++        }
++    }
++
++    @Opcode("MMA_COMPUTE")
++    public static class MMAComputeStmt extends AbstractInstruction {
++
++        public static final LIRInstructionClass<MMAComputeStmt> TYPE =
++                LIRInstructionClass.create(MMAComputeStmt.class);
++
++        @Def protected Value result;
++        @Use protected Value fragA;
++        @Use protected Value fragB;
++        @Use protected Value fragC;
++
++        private final MMAShape shape;
++
++        public MMAComputeStmt(Value result, Value fragA, Value fragB, Value fragC, MMAShape shape) {
++            super(TYPE);
++            this.result = result;
++            this.fragA = fragA;
++            this.fragB = fragB;
++            this.fragC = fragC;
++            this.shape = shape;
++        }
++
++        @Override
++        public void emitCode(PTXCompilationResultBuilder crb, PTXAssembler asm) {
++            // Declare the D fragment registers. These are the *output* registers of this
++            // mma.sync — they are distinct from the C (input) fragment, even though
++            // for D = A*B + C with accumulate-in-place semantics, a typical caller
++            // feeds the D output of one mma back as the C input of the next.
++//            asm.emitSymbol(TAB);
++//            asm.emit(".reg .f32 ");
++//            for (int i = 0; i < 4; i++) {
++//                if (i > 0) {
++//                    asm.emitSymbol(COMMA + SPACE);
++//                }
++//                asm.emitValue(result);
++//                asm.emit("_" + i);
++//            }
++//            asm.delimiter();
++//            asm.eol();
++//
++//            // mma.sync.aligned.<shape>.row.col.f32.f16.f16.f32
++//            //     {D0..D3}, {A0..A3}, {B0..B1}, {C0..C3};
++//            asm.emitSymbol(TAB);
++//            asm.emit("mma.sync.aligned.");
++//            asm.emit(shape.getPtxName());
++//            asm.emit(".row.col.f32.f16.f16.f32");
++//            asm.emitSymbol(SPACE);
++//
++//            emitFragmentList(asm, result, 4);
++//            asm.emitSymbol(COMMA + SPACE);
++//            emitFragmentList(asm, fragA, 4);
++//            asm.emitSymbol(COMMA + SPACE);
++//            emitFragmentList(asm, fragB, 2);
++//            asm.emitSymbol(COMMA + SPACE);
++//            emitFragmentList(asm, fragC, 4);
++//
++//            asm.delimiter();
++//            asm.eol();
++            String regType;
++            String instrSuffix;
++            if (shape == MMAShape.M16N8K32) {
++                regType = ".s32";
++                instrSuffix = ".row.col.s32.s8.s8.s32";
++            } else {
++                regType = ".f32";
++                instrSuffix = ".row.col.f32.f16.f16.f32";
++            }
++
++            // Declare D fragment registers
++            asm.emitSymbol(TAB);
++            asm.emit(".reg " + regType + " ");
++            for (int i = 0; i < 4; i++) {
++                if (i > 0) asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(result);
++                asm.emit("_" + i);
++            }
++            asm.delimiter();
++            asm.eol();
++
++            // mma.sync.aligned.<shape>.<suffix>
++            asm.emitSymbol(TAB);
++            asm.emit("mma.sync.aligned.");
++            asm.emit(shape.getPtxName());
++            asm.emit(instrSuffix);
++            asm.emitSymbol(SPACE);
++
++            emitFragmentList(asm, result, 4);
++            asm.emitSymbol(COMMA + SPACE);
++            emitFragmentList(asm, fragA, 4);
++            asm.emitSymbol(COMMA + SPACE);
++            emitFragmentList(asm, fragB, 2);
++            asm.emitSymbol(COMMA + SPACE);
++            emitFragmentList(asm, fragC, 4);
++
++            asm.delimiter();
++            asm.eol();
++        }
++
++        private static void emitFragmentList(PTXAssembler asm, Value fragment, int count) {
++            asm.emit("{");
++            for (int i = 0; i < count; i++) {
++                if (i > 0) {
++                    asm.emitSymbol(COMMA + SPACE);
++                }
++                asm.emitValue(fragment);
++                asm.emit("_" + i);
++            }
++            asm.emit("}");
++        }
++    }
++
++    @Opcode("MMA_STORE")
++    public static class MMAStoreStmt extends AbstractInstruction {
++
++        public static final LIRInstructionClass<MMAStoreStmt> TYPE =
++                LIRInstructionClass.create(MMAStoreStmt.class);
++
++        @Use protected Value fragD;
++        @Use protected Value target;
++        @Use protected Value tileRow;
++        @Use protected Value tileCol;
++        @Use protected Value dimN;
++
++        @Def protected Value laneId;
++        @Def protected Value rowInTile;
++        @Def protected Value colInTile;
++        @Def protected Value globalRow;
++        @Def protected Value globalCol;
++        @Def protected Value elementOffset;
++        @Def protected Value byteOffset;
++        @Def protected Value address;
++        @Use protected Value headerSize;
++        boolean isInt8;
++
++        public MMAStoreStmt(Value fragD, Value target,
++                            Value tileRow, Value tileCol, Value dimN,
++                            Value laneId, Value rowInTile, Value colInTile,
++                            Value globalRow, Value globalCol,
++                            Value elementOffset, Value byteOffset,
++                            Value address, Value headerSize, boolean isInt8) {
++            super(TYPE);
++            this.fragD = fragD;
++            this.target = target;
++            this.tileRow = tileRow;
++            this.tileCol = tileCol;
++            this.dimN = dimN;
++            this.laneId = laneId;
++            this.rowInTile = rowInTile;
++            this.colInTile = colInTile;
++            this.globalRow = globalRow;
++            this.globalCol = globalCol;
++            this.elementOffset = elementOffset;
++            this.byteOffset = byteOffset;
++            this.address = address;
++            this.headerSize = headerSize;
++            this.isInt8 = isInt8;
++        }
++
++        @Override
++        public void emitCode(PTXCompilationResultBuilder crb, PTXAssembler asm) {
++            // mov.u32 laneId, %tid.x;
++            asm.emitSymbol(TAB);
++            asm.emit("mov.u32");
++            asm.emitSymbol(SPACE);
++            asm.emitValue(laneId);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emit("%tid.x");
++            asm.delimiter();
++            asm.eol();
++
++            // PTX ISA m16n8k16 C/D layout per lane t:
++            //   r0 = t/4,     r1 = t/4 + 8
++            //   c0 = (t%4)*2, c1 = (t%4)*2 + 1
++            for (int i = 0; i < 4; i++) {
++                int rowSelect = (i < 2) ? 0 : 8;   // 0 for r0, 8 for r1
++                int colSelect = i % 2;             // 0 for c0, 1 for c1
++
++                // rowInTile = lane/4
++                asm.emitSymbol(TAB);
++                asm.emit("shr.s32");
++                asm.emitSymbol(SPACE);
++                asm.emitValue(rowInTile);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(laneId);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emit("2");
++                asm.delimiter();
++                asm.eol();
++
++                if (rowSelect != 0) {
++                    // rowInTile += 8
++                    asm.emitSymbol(TAB);
++                    asm.emit("add.s32");
++                    asm.emitSymbol(SPACE);
++                    asm.emitValue(rowInTile);
++                    asm.emitSymbol(COMMA + SPACE);
++                    asm.emitValue(rowInTile);
++                    asm.emitSymbol(COMMA + SPACE);
++                    asm.emit(Integer.toString(rowSelect));
++                    asm.delimiter();
++                    asm.eol();
++                }
++
++                // colInTile = (lane%4)*2
++                asm.emitSymbol(TAB);
++                asm.emit("and.b32");
++                asm.emitSymbol(SPACE);
++                asm.emitValue(colInTile);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(laneId);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emit("3");
++                asm.delimiter();
++                asm.eol();
++
++                asm.emitSymbol(TAB);
++                asm.emit("shl.b32");
++                asm.emitSymbol(SPACE);
++                asm.emitValue(colInTile);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(colInTile);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emit("1");
++                asm.delimiter();
++                asm.eol();
++
++                if (colSelect != 0) {
++                    // colInTile += 1
++                    asm.emitSymbol(TAB);
++                    asm.emit("add.s32");
++                    asm.emitSymbol(SPACE);
++                    asm.emitValue(colInTile);
++                    asm.emitSymbol(COMMA + SPACE);
++                    asm.emitValue(colInTile);
++                    asm.emitSymbol(COMMA + SPACE);
++                    asm.emit("1");
++                    asm.delimiter();
++                    asm.eol();
++                }
++
++                // globalRow = tileRow + rowInTile
++                asm.emitSymbol(TAB);
++                asm.emit("add.s32");
++                asm.emitSymbol(SPACE);
++                asm.emitValue(globalRow);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(tileRow);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(rowInTile);
++                asm.delimiter();
++                asm.eol();
++
++                // globalCol = tileCol + colInTile
++                asm.emitSymbol(TAB);
++                asm.emit("add.s32");
++                asm.emitSymbol(SPACE);
++                asm.emitValue(globalCol);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(tileCol);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(colInTile);
++                asm.delimiter();
++                asm.eol();
++
++                // elementOffset = globalRow * dimN
++                asm.emitSymbol(TAB);
++                asm.emit("mul.lo.s32");
++                asm.emitSymbol(SPACE);
++                asm.emitValue(elementOffset);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(globalRow);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(dimN);
++                asm.delimiter();
++                asm.eol();
++
++                // elementOffset += globalCol
++                asm.emitSymbol(TAB);
++                asm.emit("add.s32");
++                asm.emitSymbol(SPACE);
++                asm.emitValue(elementOffset);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(elementOffset);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(globalCol);
++                asm.delimiter();
++                asm.eol();
++
++                // elementOffset += headerElements (FloatArray header skip)
++                asm.emitSymbol(TAB);
++                asm.emit("add.s32");
++                asm.emitSymbol(SPACE);
++                asm.emitValue(elementOffset);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(elementOffset);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(headerSize);
++                asm.delimiter();
++                asm.eol();
++
++                // byteOffset = elementOffset * 4 (f32 byte size); widen to 64-bit for address arithmetic.
++                asm.emitSymbol(TAB);
++                asm.emit("mul.wide.s32");
++                asm.emitSymbol(SPACE);
++                asm.emitValue(byteOffset);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(elementOffset);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emit("4");
++                asm.delimiter();
++                asm.eol();
++
++                // address = target + byteOffset  (target is already a .global u64)
++                asm.emitSymbol(TAB);
++                asm.emit("add.u64");
++                asm.emitSymbol(SPACE);
++                asm.emitValue(address);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(target);
++                asm.emitSymbol(COMMA + SPACE);
++                asm.emitValue(byteOffset);
++                asm.delimiter();
++                asm.eol();
++
++                // st.global.f32 [address], fragD_i
++                asm.emitSymbol(TAB);
++                String storeType = isInt8 ? "st.global.s32" : "st.global.f32";
++                asm.emit(storeType);
++                asm.emitSymbol(SPACE + "[");
++                asm.emitValue(address);
++                asm.emitSymbol("]" + COMMA + SPACE);
++                asm.emitValue(fragD);
++                asm.emit("_" + i);
++                asm.delimiter();
++                asm.eol();
++            }
++        }
++
++    }
+ }
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMAComputeNode.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMAComputeNode.java
+new file mode 100644
+index 000000000..13d83372f
+--- /dev/null
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMAComputeNode.java
+@@ -0,0 +1,72 @@
++package uk.ac.manchester.tornado.drivers.ptx.graal.nodes;
++
++import jdk.vm.ci.meta.JavaKind;
++import jdk.vm.ci.meta.Value;
++import org.graalvm.compiler.core.common.LIRKind;
++import org.graalvm.compiler.core.common.type.StampFactory;
++import org.graalvm.compiler.graph.NodeClass;
++import org.graalvm.compiler.lir.Variable;
++import org.graalvm.compiler.lir.gen.LIRGeneratorTool;
++import org.graalvm.compiler.nodeinfo.NodeInfo;
++import org.graalvm.compiler.nodes.FixedWithNextNode;
++import org.graalvm.compiler.nodes.ValueNode;
++import org.graalvm.compiler.nodes.spi.LIRLowerable;
++import org.graalvm.compiler.nodes.spi.NodeLIRBuilderTool;
++import uk.ac.manchester.tornado.api.enums.MMAShape;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXKind;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXLIRStmt;
++/**
++ * Graal IR node for
++ * {@code KernelContext.mma(HalfFloat[], HalfFloat[], float[], MMAShape)}.
++ *
++ * <p>Warp-collective matrix multiply-accumulate: {@code D = A * B + C}.
++ *
++ * <p>Lowers to a single
++ * {@code mma.sync.aligned.<shape>.row.col.f32.f16.f16.f32} instruction.
++ * The shape parameter determines which instruction variant is emitted.
++ *
++ * <p>Extends {@link FixedWithNextNode} — {@code mma.sync} is warp-collective
++ * and must not be hoisted or sunk out of the surrounding control flow.
++ */
++@NodeInfo(shortName = "MMACompute")
++public class MMAComputeNode extends FixedWithNextNode implements LIRLowerable {
++
++    public static final NodeClass<MMAComputeNode> TYPE = NodeClass.create(MMAComputeNode.class);
++
++    @Input private ValueNode fragA;
++    @Input private ValueNode fragB;
++    @Input private ValueNode fragC;
++
++    private final MMAShape shape;
++
++    public MMAComputeNode(ValueNode fragA, ValueNode fragB, ValueNode fragC, MMAShape shape) {
++        super(TYPE, StampFactory.forKind(JavaKind.Object));
++        this.fragA = fragA;
++        this.fragB = fragB;
++        this.fragC = fragC;
++        this.shape = shape;
++    }
++
++    @Override
++    public void generate(NodeLIRBuilderTool gen) {
++//        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++//        Value aVal = gen.operand(fragA);
++//        Value bVal = gen.operand(fragB);
++//        Value cVal = gen.operand(fragC);
++//        Variable fragD = tool.newVariable(LIRKind.value(PTXKind.MMA_FRAG_ACC_F32));
++//        tool.append(new PTXLIRStmt.MMAComputeStmt(fragD, aVal, bVal, cVal, shape));
++//        gen.setResult(this, fragD);
++        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++        Value aVal = gen.operand(fragA);
++        Value bVal = gen.operand(fragB);
++        Value cVal = gen.operand(fragC);
++
++        PTXKind accKind = (shape == MMAShape.M16N8K32)
++                ? PTXKind.MMA_FRAG_ACC_S32
++                : PTXKind.MMA_FRAG_ACC_F32;
++
++        Variable fragD = tool.newVariable(LIRKind.value(accKind));
++        tool.append(new PTXLIRStmt.MMAComputeStmt(fragD, aVal, bVal, cVal, shape));
++        gen.setResult(this, fragD);
++    }
++}
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMAFragmentNode.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMAFragmentNode.java
+new file mode 100644
+index 000000000..0c1caec8a
+--- /dev/null
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMAFragmentNode.java
+@@ -0,0 +1,74 @@
++package uk.ac.manchester.tornado.drivers.ptx.graal.nodes;
++
++import jdk.vm.ci.meta.JavaKind;
++import jdk.vm.ci.meta.Value;
++import org.graalvm.compiler.core.common.LIRKind;
++import org.graalvm.compiler.core.common.type.StampFactory;
++import org.graalvm.compiler.graph.Node;
++import org.graalvm.compiler.graph.NodeClass;
++import org.graalvm.compiler.lir.Variable;
++import org.graalvm.compiler.nodes.FixedWithNextNode;
++import org.graalvm.compiler.nodes.spi.LIRLowerable;
++import org.graalvm.compiler.nodes.spi.NodeLIRBuilderTool;
++import org.graalvm.compiler.lir.gen.LIRGeneratorTool;
++import org.graalvm.compiler.nodeinfo.NodeInfo;
++import org.graalvm.compiler.nodes.ValueNode;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXKind;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXLIRStmt;
++
++/**
++ * Graal IR node for {@code KernelContext.mmaFragment(float)}.
++ *
++ * <p>Declares a per-lane C/D accumulator fragment for MMA operations.
++ * For shape {@code m16n8k16} this corresponds to 4 × f32 registers per lane
++ * ({@code rd0..rd3}).
++ *
++ * <p>Lowers to {@code mov.f32 <reg_N>, <initValue>;} emitted once per
++ * fragment register (4 movs total for m16n8k16).
++ *
++ * <p>Extends {@link FixedWithNextNode} because the fragment's register scope
++ * must remain consistent across the warp-collective {@code mma.sync} instruction
++ * that consumes it. Letting Graal float this node could result in the
++ * accumulator being re-materialised inside a loop, breaking K-dimension
++ * accumulation.
++ */
++@NodeInfo(shortName = "MMAFragment")
++public class MMAFragmentNode extends FixedWithNextNode implements LIRLowerable {
++
++    public static final NodeClass<MMAFragmentNode> TYPE = NodeClass.create(MMAFragmentNode.class);
++
++    @Input private ValueNode initValue;
++    private final boolean isInt8;
++    /** Number of f32 registers per lane — fixed at 4 for m16n8k16. */
++    private static final int FRAGMENT_SIZE = 4;
++
++    public MMAFragmentNode(ValueNode initValue, boolean isInt8) {
++        super(TYPE, StampFactory.forKind(JavaKind.Object));
++        this.initValue = initValue;
++        this.isInt8 = isInt8;
++    }
++
++    public MMAFragmentNode(ValueNode initValue) {
++        super(TYPE, StampFactory.forKind(JavaKind.Object));
++        this.initValue = initValue;
++        this.isInt8 = false;
++    }
++
++    @Override
++    public void generate(NodeLIRBuilderTool gen) {
++//        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++//        Value initVal = gen.operand(initValue);
++//        Variable fragment = tool.newVariable(LIRKind.value(PTXKind.MMA_FRAG_ACC_F32));
++//        tool.append(new PTXLIRStmt.MMAFragmentStmt(fragment, initVal, FRAGMENT_SIZE));
++//        gen.setResult(this, fragment);
++        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++        Value initVal = gen.operand(initValue);
++        PTXKind fragKind = isInt8 ? PTXKind.MMA_FRAG_ACC_S32 : PTXKind.MMA_FRAG_ACC_F32;
++        Variable fragment = tool.newVariable(LIRKind.value(fragKind));
++
++        String movType = isInt8 ? "mov.s32" : "mov.f32";
++        String regType = isInt8 ? ".s32" : ".f32";
++        tool.append(new PTXLIRStmt.MMAFragmentStmt(fragment, initVal, FRAGMENT_SIZE, movType, regType));
++        gen.setResult(this, fragment);
++    }
++}
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadAInt8Node.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadAInt8Node.java
+new file mode 100644
+index 000000000..4a1075610
+--- /dev/null
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadAInt8Node.java
+@@ -0,0 +1,80 @@
++package uk.ac.manchester.tornado.drivers.ptx.graal.nodes;
++
++import jdk.vm.ci.meta.JavaKind;
++import jdk.vm.ci.meta.Value;
++import org.graalvm.compiler.core.common.LIRKind;
++import org.graalvm.compiler.core.common.type.StampFactory;
++import org.graalvm.compiler.graph.NodeClass;
++import org.graalvm.compiler.lir.Variable;
++import org.graalvm.compiler.lir.gen.LIRGeneratorTool;
++import org.graalvm.compiler.nodeinfo.NodeInfo;
++import org.graalvm.compiler.nodes.FixedWithNextNode;
++import org.graalvm.compiler.nodes.ValueNode;
++import org.graalvm.compiler.nodes.spi.LIRLowerable;
++import org.graalvm.compiler.nodes.spi.NodeLIRBuilderTool;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXKind;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXLIRStmt;
++
++@NodeInfo(shortName = "MMALoadAInt8")
++public class MMALoadAInt8Node extends FixedWithNextNode implements LIRLowerable {
++
++    public static final NodeClass<MMALoadAInt8Node> TYPE = NodeClass.create(MMALoadAInt8Node.class);
++
++    @Input private ValueNode tile;
++    @Input private ValueNode wmmaK;
++
++    public MMALoadAInt8Node(ValueNode tile, ValueNode wmmaK) {
++        super(TYPE, StampFactory.forKind(JavaKind.Object));
++        this.tile = tile;
++        this.wmmaK = wmmaK;
++    }
++
++//    @Override
++//    public void generate(NodeLIRBuilderTool gen) {
++//        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++//        Value tileVal = gen.operand(tile);
++//        Value kVal = gen.operand(wmmaK);
++//
++//        Variable fragA = tool.newVariable(LIRKind.value(PTXKind.MMA_FRAG_A_S8));
++//
++//        LIRKind u32 = LIRKind.value(PTXKind.U32);
++//        Variable laneId       = tool.newVariable(u32);
++//        Variable rowId        = tool.newVariable(u32);
++//        Variable kOffset      = tool.newVariable(u32);
++//        Variable rowComponent = tool.newVariable(u32);
++//        Variable kComponent   = tool.newVariable(u32);
++//        Variable baseSlot     = tool.newVariable(u32);
++//        Variable slotWithStep = tool.newVariable(u32);
++//
++//        tool.append(new PTXLIRStmt.MMALoadInt8Stmt(
++//                PTXLIRStmt.MMALoadInt8Stmt.Operand.A,
++//                fragA, tileVal, kVal,
++//                laneId, rowId, kOffset,
++//                rowComponent, kComponent, baseSlot, slotWithStep));
++//
++//        gen.setResult(this, fragA);
++//    }
++@Override
++public void generate(NodeLIRBuilderTool gen) {
++    LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++    Value tileVal = gen.operand(tile);
++
++    Variable fragA = tool.newVariable(LIRKind.value(PTXKind.MMA_FRAG_A_S8));
++
++    LIRKind u32 = LIRKind.value(PTXKind.U32);
++    LIRKind u64 = LIRKind.value(PTXKind.U64);
++
++    // 16×32 s8 viewed as 16×16 b16: rowStride = 16 b16 × 2 bytes = 32
++    int rowStride = 32;
++
++    tool.append(new PTXLIRStmt.LdmatrixStmt(
++            PTXLIRStmt.LdmatrixStmt.Variant.X4,
++            fragA, tileVal,
++            tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u32),
++            tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u32),
++            tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u64),
++            rowStride));
++
++    gen.setResult(this, fragA);
++}
++}
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadANode.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadANode.java
+new file mode 100644
+index 000000000..dbebdf10a
+--- /dev/null
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadANode.java
+@@ -0,0 +1,103 @@
++package uk.ac.manchester.tornado.drivers.ptx.graal.nodes;
++
++import jdk.vm.ci.meta.JavaKind;
++import jdk.vm.ci.meta.Value;
++import org.graalvm.compiler.core.common.LIRKind;
++import org.graalvm.compiler.core.common.type.StampFactory;
++import org.graalvm.compiler.graph.Node;
++import org.graalvm.compiler.graph.NodeClass;
++import org.graalvm.compiler.lir.Variable;
++import org.graalvm.compiler.lir.gen.LIRGeneratorTool;
++import org.graalvm.compiler.nodeinfo.NodeInfo;
++import org.graalvm.compiler.nodes.FixedWithNextNode;
++import org.graalvm.compiler.nodes.ValueNode;
++import org.graalvm.compiler.nodes.spi.LIRLowerable;
++import org.graalvm.compiler.nodes.spi.NodeLIRBuilderTool;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXKind;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXLIRStmt;
++
++/**
++ * Graal IR node for {@code KernelContext.mmaLoadA(float[], int)}.
++ *
++ * <p>Loads the A fragment for {@code mma.sync.m16n8k16}: 8 × f16 elements per
++ * lane, packed into 4 × b32 registers ({@code ra0..ra3}).
++ *
++ * <p>Lowers to 4 × {@code ld.shared.b32} with lane-specific offsets following
++ * PTX ISA Table 108 A-operand row-major layout.
++ */
++@NodeInfo(shortName = "MMALoadA")
++public class MMALoadANode extends FixedWithNextNode implements LIRLowerable {
++
++    public static final NodeClass<MMALoadANode> TYPE = NodeClass.create(MMALoadANode.class);
++
++    @Input private ValueNode tile;
++    @Input private ValueNode wmmaK;
++
++    public MMALoadANode(ValueNode tile, ValueNode wmmaK) {
++        super(TYPE, StampFactory.forKind(JavaKind.Object));
++        this.tile = tile;
++        this.wmmaK = wmmaK;
++    }
++
++    @Override
++    public void generate(NodeLIRBuilderTool gen) {
++        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++        Value tileVal = gen.operand(tile);
++
++        Variable fragA = tool.newVariable(LIRKind.value(PTXKind.MMA_FRAG_A_F16));
++
++        LIRKind u32 = LIRKind.value(PTXKind.U32);
++        LIRKind u64 = LIRKind.value(PTXKind.U64);
++
++        // rowStride = 16 b16 × 2 bytes = 32 bytes for 16-wide f16 row
++        int rowStride = 32;
++
++        tool.append(new PTXLIRStmt.LdmatrixStmt(
++                PTXLIRStmt.LdmatrixStmt.Variant.X4,
++                fragA, tileVal,
++                tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u32),
++                tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u32),
++                tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u64),
++                rowStride));
++
++        gen.setResult(this, fragA);
++    }
++
++//    @Override
++//    public void generate(NodeLIRBuilderTool gen) {
++//        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++//        Value tileVal = gen.operand(tile);
++//        Value kVal = gen.operand(wmmaK);
++//
++//        Variable fragA = tool.newVariable(LIRKind.value(PTXKind.MMA_FRAG_A_F16));
++//
++//        // Separate variables for each stage of the address computation —
++//        // reusing one variable (as we did before) caused shl.b32 overwrites
++//        // instead of additions in the emitted PTX.
++//        LIRKind u32 = LIRKind.value(PTXKind.U32);
++//        LIRKind u64 = LIRKind.value(PTXKind.U64);
++//        Variable laneId       = tool.newVariable(u32);
++//        Variable rowId        = tool.newVariable(u32);
++//        Variable kOffset      = tool.newVariable(u32);
++//        Variable rowComponent = tool.newVariable(u32);  // rowId * 8
++//        Variable kComponent   = tool.newVariable(u32);  // kOffset * 2
++//        Variable baseSlot     = tool.newVariable(u32);  // rowComponent + kComponent
++//        Variable slotWithStep = tool.newVariable(u32);  // baseSlot + perLoadStep
++//        Variable byteOffset   = tool.newVariable(u64);
++//        Variable sharedBase   = tool.newVariable(u64);  // generic-addr-converted shared base
++//        Variable address      = tool.newVariable(u64);
++//        Variable tmpF32   = tool.newVariable(LIRKind.value(PTXKind.F32));
++//        Variable tmpF16lo = tool.newVariable(LIRKind.value(PTXKind.F16));
++//        Variable tmpF16hi = tool.newVariable(LIRKind.value(PTXKind.F16));
++//
++//        tool.append(new PTXLIRStmt.MMALoadStmt(
++//                PTXLIRStmt.MMALoadStmt.Operand.A,  // or .B
++//                fragA, tileVal, kVal,
++//                laneId, rowId, kOffset,
++//                rowComponent, kComponent, baseSlot, slotWithStep,
++//                byteOffset, sharedBase, address,
++//                tmpF32, tmpF16lo, tmpF16hi));
++//
++//        gen.setResult(this, fragA);
++//    }
++}
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBInt8Node.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBInt8Node.java
+new file mode 100644
+index 000000000..76e0be421
+--- /dev/null
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBInt8Node.java
+@@ -0,0 +1,84 @@
++package uk.ac.manchester.tornado.drivers.ptx.graal.nodes;
++
++import jdk.vm.ci.meta.JavaKind;
++import jdk.vm.ci.meta.Value;
++import org.graalvm.compiler.core.common.LIRKind;
++import org.graalvm.compiler.core.common.type.StampFactory;
++import org.graalvm.compiler.graph.NodeClass;
++import org.graalvm.compiler.lir.Variable;
++import org.graalvm.compiler.lir.gen.LIRGeneratorTool;
++import org.graalvm.compiler.nodeinfo.NodeInfo;
++import org.graalvm.compiler.nodes.FixedWithNextNode;
++import org.graalvm.compiler.nodes.ValueNode;
++import org.graalvm.compiler.nodes.spi.LIRLowerable;
++import org.graalvm.compiler.nodes.spi.NodeLIRBuilderTool;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXKind;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXLIRStmt;
++
++@NodeInfo(shortName = "MMALoadBInt8")
++public class MMALoadBInt8Node extends FixedWithNextNode implements LIRLowerable {
++
++    public static final NodeClass<MMALoadBInt8Node> TYPE = NodeClass.create(MMALoadBInt8Node.class);
++
++    @Input private ValueNode tile;
++    @Input private ValueNode wmmaK;
++
++    public MMALoadBInt8Node(ValueNode tile, ValueNode wmmaK) {
++        super(TYPE, StampFactory.forKind(JavaKind.Object));
++        this.tile = tile;
++        this.wmmaK = wmmaK;
++    }
++
++//    @Override
++//    public void generate(NodeLIRBuilderTool gen) {
++//        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++//        Value tileVal = gen.operand(tile);
++//        Value kVal = gen.operand(wmmaK);
++//
++//        Variable fragB = tool.newVariable(LIRKind.value(PTXKind.MMA_FRAG_B_S8));
++//
++//        LIRKind u32 = LIRKind.value(PTXKind.U32);
++//        Variable laneId       = tool.newVariable(u32);
++//        Variable rowId        = tool.newVariable(u32);
++//        Variable kOffset      = tool.newVariable(u32);
++//        Variable rowComponent = tool.newVariable(u32);
++//        Variable kComponent   = tool.newVariable(u32);
++//        Variable baseSlot     = tool.newVariable(u32);
++//        Variable slotWithStep = tool.newVariable(u32);
++//
++//        tool.append(new PTXLIRStmt.MMALoadInt8Stmt(
++//                PTXLIRStmt.MMALoadInt8Stmt.Operand.B,
++//                fragB, tileVal, kVal,
++//                laneId, rowId, kOffset,
++//                rowComponent, kComponent, baseSlot, slotWithStep));
++//
++//        gen.setResult(this, fragB);
++//    }
++
++    @Override
++    public void generate(NodeLIRBuilderTool gen) {
++        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++        Value tileVal = gen.operand(tile);
++
++        Variable fragB = tool.newVariable(LIRKind.value(PTXKind.MMA_FRAG_B_S8));
++
++        LIRKind u32 = LIRKind.value(PTXKind.U32);
++        LIRKind u64 = LIRKind.value(PTXKind.U64);
++
++        // 8×32 s8 viewed as 8×16 b16: rowStride = 16 b16 × 2 = 32 bytes
++        // Wait — B is col-major: K rows × 8 cols. As b16: K/2 rows × 8 cols.
++        // For K=16: 8 rows × 8 cols of b16. rowStride = 8 b16 × 2 = 16 bytes
++        // For K=32: 16 rows × 8 cols of b16. rowStride = 8 b16 × 2 = 16 bytes
++        int rowStride = 16;
++
++        tool.append(new PTXLIRStmt.LdmatrixStmt(
++                PTXLIRStmt.LdmatrixStmt.Variant.X2_TRANS,
++                fragB, tileVal,
++                tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u32),
++                tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u32),
++                tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u64),
++                rowStride));
++
++        gen.setResult(this, fragB);
++    }
++}
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBNode.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBNode.java
+new file mode 100644
+index 000000000..1d86cc405
+--- /dev/null
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBNode.java
+@@ -0,0 +1,105 @@
++package uk.ac.manchester.tornado.drivers.ptx.graal.nodes;
++
++import jdk.vm.ci.meta.JavaKind;
++import jdk.vm.ci.meta.Value;
++import org.graalvm.compiler.core.common.LIRKind;
++import org.graalvm.compiler.core.common.type.StampFactory;
++import org.graalvm.compiler.graph.NodeClass;
++import org.graalvm.compiler.lir.Variable;
++import org.graalvm.compiler.lir.gen.LIRGeneratorTool;
++import org.graalvm.compiler.nodeinfo.NodeInfo;
++import org.graalvm.compiler.nodes.FixedWithNextNode;
++import org.graalvm.compiler.nodes.ValueNode;
++import org.graalvm.compiler.nodes.spi.LIRLowerable;
++import org.graalvm.compiler.nodes.spi.NodeLIRBuilderTool;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXKind;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXLIRStmt;
++
++/**
++ * Graal IR node for {@code KernelContext.mmaLoadB(float[], int)}.
++ *
++ * <p>Loads the B fragment for {@code mma.sync.m16n8k16}: 4 × f16 elements per
++ * lane, packed into 2 × b32 registers ({@code rb0..rb1}).
++ *
++ * <p>The input tile is expected to be col-major in shared memory as required
++ * by the {@code .col} specifier in the {@code mma.sync} instruction. Callers
++ * arrange this layout in their cooperative load loop.
++ *
++ * <p>Lowers to 2 × {@code ld.shared.b32} with lane-specific offsets following
++ * PTX ISA Table 108 B-operand col-major layout.
++ */
++@NodeInfo(shortName = "MMALoadB")
++public class MMALoadBNode extends FixedWithNextNode implements LIRLowerable {
++
++    public static final NodeClass<MMALoadBNode> TYPE = NodeClass.create(MMALoadBNode.class);
++
++    @Input private ValueNode tile;
++    @Input private ValueNode wmmaK;
++
++    public MMALoadBNode(ValueNode tile, ValueNode wmmaK) {
++        super(TYPE, StampFactory.forKind(JavaKind.Object));
++        this.tile = tile;
++        this.wmmaK = wmmaK;
++    }
++
++//    @Override
++//    public void generate(NodeLIRBuilderTool gen) {
++//        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++//        Value tileVal = gen.operand(tile);
++//        Value kVal = gen.operand(wmmaK);
++//
++//        Variable fragA = tool.newVariable(LIRKind.value(PTXKind.MMA_FRAG_A_F16));
++//
++//        // Separate variables for each stage of the address computation —
++//        // reusing one variable (as we did before) caused shl.b32 overwrites
++//        // instead of additions in the emitted PTX.
++//        LIRKind u32 = LIRKind.value(PTXKind.U32);
++//        LIRKind u64 = LIRKind.value(PTXKind.U64);
++//        Variable laneId       = tool.newVariable(u32);
++//        Variable rowId        = tool.newVariable(u32);
++//        Variable kOffset      = tool.newVariable(u32);
++//        Variable rowComponent = tool.newVariable(u32);  // rowId * 8
++//        Variable kComponent   = tool.newVariable(u32);  // kOffset * 2
++//        Variable baseSlot     = tool.newVariable(u32);  // rowComponent + kComponent
++//        Variable slotWithStep = tool.newVariable(u32);  // baseSlot + perLoadStep
++//        Variable byteOffset   = tool.newVariable(u64);
++//        Variable sharedBase   = tool.newVariable(u64);  // generic-addr-converted shared base
++//        Variable address      = tool.newVariable(u64);
++//        Variable tmpF32   = tool.newVariable(LIRKind.value(PTXKind.F32));
++//        Variable tmpF16lo = tool.newVariable(LIRKind.value(PTXKind.F16));
++//        Variable tmpF16hi = tool.newVariable(LIRKind.value(PTXKind.F16));
++//
++//        tool.append(new PTXLIRStmt.MMALoadStmt(
++//                PTXLIRStmt.MMALoadStmt.Operand.B,  // or .B
++//                fragA, tileVal, kVal,
++//                laneId, rowId, kOffset,
++//                rowComponent, kComponent, baseSlot, slotWithStep,
++//                byteOffset, sharedBase, address,
++//                tmpF32, tmpF16lo, tmpF16hi));
++//
++//        gen.setResult(this, fragA);
++//    }
++@Override
++public void generate(NodeLIRBuilderTool gen) {
++    LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++    Value tileVal = gen.operand(tile);
++
++    Variable fragB = tool.newVariable(LIRKind.value(PTXKind.MMA_FRAG_B_F16));
++
++    LIRKind u32 = LIRKind.value(PTXKind.U32);
++    LIRKind u64 = LIRKind.value(PTXKind.U64);
++
++    // B tile is 8 columns × K rows, col-major: each column = K f16 × 2 bytes = 32 bytes
++    int rowStride = 32;
++
++    tool.append(new PTXLIRStmt.LdmatrixStmt(
++            PTXLIRStmt.LdmatrixStmt.Variant.X2_TRANS,
++            fragB, tileVal,
++            tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u32),
++            tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u32),
++            tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u64),
++            rowStride));
++
++    gen.setResult(this, fragB);
++}
++}
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMAStoreNode.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMAStoreNode.java
+new file mode 100644
+index 000000000..bd7e11216
+--- /dev/null
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMAStoreNode.java
+@@ -0,0 +1,96 @@
++package uk.ac.manchester.tornado.drivers.ptx.graal.nodes;
++
++import jdk.vm.ci.meta.Value;
++import org.graalvm.compiler.core.common.LIRKind;
++import org.graalvm.compiler.core.common.type.StampFactory;
++import org.graalvm.compiler.graph.NodeClass;
++import org.graalvm.compiler.lir.ConstantValue;
++import org.graalvm.compiler.lir.Variable;
++import org.graalvm.compiler.lir.gen.LIRGeneratorTool;
++import org.graalvm.compiler.nodeinfo.NodeInfo;
++import org.graalvm.compiler.nodes.FixedWithNextNode;
++import org.graalvm.compiler.nodes.ValueNode;
++import org.graalvm.compiler.nodes.spi.LIRLowerable;
++import org.graalvm.compiler.nodes.spi.NodeLIRBuilderTool;
++import jdk.vm.ci.meta.JavaConstant;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXKind;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXLIRStmt;
++
++/**
++ * Graal IR node for
++ * {@code KernelContext.mmaStore(float[], FloatArray, int, int, int)}.
++ *
++ * <p>Stores the D fragment to a global output matrix. Each lane writes 4 × f32
++ * elements to its owned positions in the 16×8 output panel following PTX ISA
++ * Table 108 C/D-operand row-major layout.
++ *
++ * <p>Lowers to 4 × {@code st.global.f32} with lane-specific offsets.
++ */
++@NodeInfo(shortName = "MMAStore")
++public class MMAStoreNode extends FixedWithNextNode implements LIRLowerable {
++
++    public static final NodeClass<MMAStoreNode> TYPE = NodeClass.create(MMAStoreNode.class);
++
++    @Input private ValueNode fragD;
++    @Input private ValueNode target;
++    @Input private ValueNode tileRow;
++    @Input private ValueNode tileCol;
++    @Input private ValueNode dimN;
++
++    private final int headerElements;
++    private final boolean isInt8;
++
++    public MMAStoreNode(ValueNode fragD, ValueNode target,
++                        ValueNode tileRow, ValueNode tileCol, ValueNode dimN,
++                        int headerElements, boolean isInt8) {
++        super(TYPE, StampFactory.forVoid());
++        this.fragD = fragD;
++        this.target = target;
++        this.tileRow = tileRow;
++        this.tileCol = tileCol;
++        this.dimN = dimN;
++        this.headerElements = headerElements;
++        this.isInt8 = isInt8;
++    }
++
++    public MMAStoreNode(ValueNode fragD, ValueNode target,
++                        ValueNode tileRow, ValueNode tileCol, ValueNode dimN,
++                        int headerElements) {
++        super(TYPE, StampFactory.forVoid());
++        this.fragD = fragD;
++        this.target = target;
++        this.tileRow = tileRow;
++        this.tileCol = tileCol;
++        this.dimN = dimN;
++        this.headerElements = headerElements;
++        this.isInt8 = false;
++    }
++
++    @Override
++    public void generate(NodeLIRBuilderTool gen) {
++        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++        Value dVal = gen.operand(fragD);
++        Value targetVal = gen.operand(target);
++        Value rowVal = gen.operand(tileRow);
++        Value colVal = gen.operand(tileCol);
++        Value dimNVal = gen.operand(dimN);
++
++        LIRKind u32 = LIRKind.value(PTXKind.U32);
++        LIRKind u64 = LIRKind.value(PTXKind.U64);
++        Variable laneId        = tool.newVariable(u32);
++        Variable rowInTile     = tool.newVariable(u32);
++        Variable colInTile     = tool.newVariable(u32);
++        Variable globalRow     = tool.newVariable(u32);
++        Variable globalCol     = tool.newVariable(u32);
++        Variable elementOffset = tool.newVariable(u32);
++        Variable byteOffset    = tool.newVariable(u64);
++        Variable address       = tool.newVariable(u64);
++
++        Value headerSize = new ConstantValue(u32, JavaConstant.forInt(headerElements));
++
++        tool.append(new PTXLIRStmt.MMAStoreStmt(
++                dVal, targetVal, rowVal, colVal, dimNVal,
++                laneId, rowInTile, colInTile, globalRow, globalCol,
++                elementOffset, byteOffset, address, headerSize, isInt8));
++    }
++}
+\ No newline at end of file
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/PTXConvertHalfBitsToIntNode.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/PTXConvertHalfBitsToIntNode.java
+new file mode 100644
+index 000000000..96bfad51f
+--- /dev/null
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/PTXConvertHalfBitsToIntNode.java
+@@ -0,0 +1,70 @@
++/*
++ * Copyright (c) 2026, APT Group, Department of Computer Science,
++ * The University of Manchester. All rights reserved.
++ * Copyright (c) 2009, 2017, Oracle and/or its affiliates. All rights reserved.
++ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
++ *
++ * This code is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU General Public License version 2 only, as
++ * published by the Free Software Foundation.
++ *
++ * This code is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
++ * version 2 for more details (a copy is included in the LICENSE file that
++ * accompanied this code).
++ *
++ * You should have received a copy of the GNU General Public License version
++ * 2 along with this work; if not, write to the Free Software Foundation,
++ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ */
++package uk.ac.manchester.tornado.drivers.ptx.graal.nodes;
++
++import jdk.vm.ci.meta.JavaKind;
++import jdk.vm.ci.meta.Value;
++import org.graalvm.compiler.core.common.LIRKind;
++import org.graalvm.compiler.core.common.type.StampFactory;
++import org.graalvm.compiler.graph.NodeClass;
++import org.graalvm.compiler.lir.Variable;
++import org.graalvm.compiler.lir.gen.LIRGeneratorTool;
++import org.graalvm.compiler.nodeinfo.NodeInfo;
++import org.graalvm.compiler.nodes.ValueNode;
++import org.graalvm.compiler.nodes.spi.LIRLowerable;
++import org.graalvm.compiler.nodes.spi.NodeLIRBuilderTool;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXKind;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXLIRStmt;
++
++/**
++ * Reinterprets the raw bit pattern of an f16 value as an unsigned 32-bit
++ * integer (zero-extended).  Used to pack two f16 values into a single int32
++ * for ldmatrix-based shared-memory tiles.
++ *
++ * PTX emitted:
++ *   mov.b16 __hbits_tmp, %f16_src;   // bitcast, no value conversion
++ *   cvt.u32.u16 %u32_result, __hbits_tmp;
++ */
++@NodeInfo
++public class PTXConvertHalfBitsToIntNode extends ValueNode implements LIRLowerable {
++
++    public static final NodeClass<PTXConvertHalfBitsToIntNode> TYPE =
++            NodeClass.create(PTXConvertHalfBitsToIntNode.class);
++
++    @Input
++    private ValueNode halfValueNode;
++
++    public PTXConvertHalfBitsToIntNode(ValueNode halfValueNode) {
++        super(TYPE, StampFactory.forKind(JavaKind.Int));
++        this.halfValueNode = halfValueNode;
++    }
++
++    @Override
++    public void generate(NodeLIRBuilderTool generator) {
++        LIRGeneratorTool tool = generator.getLIRGeneratorTool();
++        Variable result = tool.newVariable(LIRKind.value(PTXKind.U32));
++        Variable b16Tmp = tool.newVariable(LIRKind.value(PTXKind.B16));
++        Value halfValue = generator.operand(halfValueNode);
++        tool.append(new PTXLIRStmt.HalfBitsToIntStmt(result, halfValue, b16Tmp));
++        generator.setResult(this, result);
++    }
++}
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java
+index 37708cfcd..381ff609d 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java
+@@ -55,6 +55,7 @@ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.AddHalfNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.HalfFloatConstantNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MultHalfNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.PTXConvertFloatToHalf;
++import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.PTXConvertHalfBitsToIntNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.PTXConvertHalfToFloat;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.PTXHalfFloatDivisionNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.ReadHalfFloatNode;
+@@ -218,6 +219,19 @@ public class TornadoHalfFloatReplacement extends BasePhase<TornadoHighTierContex
+             }
+         }
+ 
++        // Replace any remaining HalfFloatPlaceholder nodes in arithmetic contexts
++        // (e.g. getHalfFloatValue() used in bit-packing: lo = a.get(i).getHalfFloatValue() & 0xFFFF).
++        // These were not consumed by the write-context handler above.
++        for (HalfFloatPlaceholder placeholder : graph.getNodes().filter(HalfFloatPlaceholder.class).snapshot()) {
++            if (!placeholder.isDeleted()) {
++                PTXConvertHalfBitsToIntNode bitsNode =
++                        new PTXConvertHalfBitsToIntNode(placeholder.getInput());
++                graph.addWithoutUnique(bitsNode);
++                placeholder.replaceAtUsages(bitsNode);
++                placeholder.safeDelete();
++            }
++        }
++
+     }
+ 
+     private static void replaceFieldAccess(LoadFieldNode loadFieldNode) {
+diff --git a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graal/phases/sketcher/TornadoDataflowAnalysis.java b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graal/phases/sketcher/TornadoDataflowAnalysis.java
+index 7d539c7b8..b16e5e920 100644
+--- a/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graal/phases/sketcher/TornadoDataflowAnalysis.java
++++ b/tornado-runtime/src/main/java/uk/ac/manchester/tornado/runtime/graal/phases/sketcher/TornadoDataflowAnalysis.java
+@@ -171,6 +171,7 @@ public class TornadoDataflowAnalysis extends BasePhase<TornadoSketchTierContext>
+                 currentNode.getClass().getName().equals("uk.ac.manchester.tornado.drivers.metal.graal.nodes.IncAtomicNode") || //
+                 currentNode.getClass().getName().equals("uk.ac.manchester.tornado.drivers.metal.graal.nodes.DecAtomicNode") || //
+                 currentNode.getClass().getName().equals("uk.ac.manchester.tornado.drivers.metal.graal.nodes.GetAtomicNode") || //
++                currentNode.getClass().getName().equals("uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMAStoreNode") ||
+                 currentNode.getClass().getName().equals("uk.ac.manchester.tornado.drivers.metal.graal.nodes.AtomAddNodeTemplate");
+     }
+ 
+diff --git a/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/BenchmarkMMA.java b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/BenchmarkMMA.java
+new file mode 100644
+index 000000000..843b12bd8
+--- /dev/null
++++ b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/BenchmarkMMA.java
+@@ -0,0 +1,524 @@
++package uk.ac.manchester.tornado.unittests.kernelcontext.matrices;
++
++import uk.ac.manchester.tornado.api.GridScheduler;
++import uk.ac.manchester.tornado.api.ImmutableTaskGraph;
++import uk.ac.manchester.tornado.api.KernelContext;
++import uk.ac.manchester.tornado.api.TaskGraph;
++import uk.ac.manchester.tornado.api.TornadoExecutionPlan;
++import uk.ac.manchester.tornado.api.WorkerGrid;
++import uk.ac.manchester.tornado.api.WorkerGrid1D;
++import uk.ac.manchester.tornado.api.WorkerGrid2D;
++import uk.ac.manchester.tornado.api.enums.DataTransferMode;
++import uk.ac.manchester.tornado.api.enums.MMAShape;
++import uk.ac.manchester.tornado.api.exceptions.TornadoExecutionPlanException;
++import uk.ac.manchester.tornado.api.types.arrays.ByteArray;
++import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
++import uk.ac.manchester.tornado.api.types.arrays.HalfFloatArray;
++import uk.ac.manchester.tornado.api.types.HalfFloat;
++
++import org.junit.Test;
++import uk.ac.manchester.tornado.api.types.arrays.IntArray;
++
++import java.util.Arrays;
++import java.util.Random;
++
++public class BenchmarkMMA {
++
++    // -----------------------------------------------------------------------
++    // Tuning constants
++    // -----------------------------------------------------------------------
++    static final int WARMUP    = 10;
++    static final int MEASURED  = 50;
++    static final int WARP_SIZE = 32;
++
++    // f16 MMA constants
++    static final int WMMA_M_F16 = 16;
++    static final int WMMA_N_F16 = 16;
++    static final int WMMA_K_F16 = 16;
++
++    // int8 MMA constants
++    static final int WMMA_M_I8 = 16;
++    static final int WMMA_N_I8 = 16;
++    static final int WMMA_K_I8 = 32;
++
++    // Baseline tiled matmul
++    static final int TILE_SIZE = 16;
++
++    // =====================================================================
++    //  KERNELS
++    // =====================================================================
++
++    // -----------------------------------------------------------------------
++    // 1. f16 MMA Kernel (tensor cores, mma.sync.m16n8k16)
++    // -----------------------------------------------------------------------
++//    public static void gemmMMAf16(KernelContext ctx,
++//                                  HalfFloatArray a, HalfFloatArray b, FloatArray c,
++//                                  int dimM, int dimN, int dimK) {
++//
++//        if (ctx.globalIdx < 0) c.set(0, 0.0f);
++//
++//        int warpId = ctx.groupIdx;
++//        int lane   = ctx.localIdx;
++//
++//        int numTilesN = dimN / WMMA_N_F16;
++//        int tileRow   = (warpId / numTilesN) * WMMA_M_F16;
++//        int tileCol   = (warpId % numTilesN) * WMMA_N_F16;
++//
++//        float[] aTile  = ctx.allocateFloatLocalArray(WMMA_M_F16 * WMMA_K_F16);
++//        float[] bTile0 = ctx.allocateFloatLocalArray(8 * WMMA_K_F16);
++//        float[] bTile1 = ctx.allocateFloatLocalArray(8 * WMMA_K_F16);
++//
++//        float[] fragC0 = ctx.mmaFragment(0.0f);
++//        float[] fragC1 = ctx.mmaFragment(0.0f);
++//
++//        for (int kBase = 0; kBase < dimK; kBase += WMMA_K_F16) {
++//            for (int idx = lane; idx < WMMA_M_F16 * WMMA_K_F16; idx += WARP_SIZE) {
++//                int r  = idx / WMMA_K_F16;
++//                int kk = idx % WMMA_K_F16;
++//                aTile[r * WMMA_K_F16 + kk] = a.get((tileRow + r) * dimK + kBase + kk).getFloat32();
++//            }
++//            for (int idx = lane; idx < 8 * WMMA_K_F16; idx += WARP_SIZE) {
++//                int col = idx / WMMA_K_F16;
++//                int kk  = idx % WMMA_K_F16;
++//                bTile0[col * WMMA_K_F16 + kk] = b.get((kBase + kk) * dimN + tileCol     + col).getFloat32();
++//                bTile1[col * WMMA_K_F16 + kk] = b.get((kBase + kk) * dimN + tileCol + 8 + col).getFloat32();
++//            }
++//            ctx.localBarrier();
++//
++//            HalfFloat[] fragA  = ctx.mmaLoadA(aTile, WMMA_K_F16);
++//            HalfFloat[] fragB0 = ctx.mmaLoadB(bTile0, WMMA_K_F16);
++//            fragC0 = ctx.mma(fragA, fragB0, fragC0, MMAShape.M16N8K16);
++//            HalfFloat[] fragB1 = ctx.mmaLoadB(bTile1, WMMA_K_F16);
++//            fragC1 = ctx.mma(fragA, fragB1, fragC1, MMAShape.M16N8K16);
++//
++//            ctx.localBarrier();
++//        }
++//
++//        ctx.mmaStore(fragC0, c, tileRow, tileCol,     dimN);
++//        ctx.mmaStore(fragC1, c, tileRow, tileCol + 8, dimN);
++//    }
++
++    static final int WMMA_M  = 16;
++    static final int WMMA_N  = 16;  // covered by two m16n8k16 calls
++    static final int WMMA_K  = 16;
++
++    public static void gemmMMAf16(KernelContext ctx,
++                                  HalfFloatArray a, HalfFloatArray b, FloatArray c,
++                                  int dimM, int dimN, int dimK) {
++
++        int warpId = ctx.groupIdx;
++        int lane   = ctx.localIdx;
++
++        int numTilesN = dimN / WMMA_N;
++        int tileRow   = (warpId / numTilesN) * WMMA_M;
++        int tileCol   = (warpId % numTilesN) * WMMA_N;
++
++        // Packed shared tiles: 2 f16 per int = b16 pairs
++        // A: 16 rows × 8 packed ints = 128 (was 256 floats)
++        // B: 8 cols × 8 packed ints = 64 per panel (was 128 floats)
++        int[] aTile  = ctx.allocateIntLocalArray(WMMA_M * WMMA_K / 2);
++        int[] bTile0 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
++        int[] bTile1 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
++
++        float[] fragC0 = ctx.mmaFragment(0.0f);
++        float[] fragC1 = ctx.mmaFragment(0.0f);
++
++        for (int kBase = 0; kBase < dimK; kBase += WMMA_K) {
++
++            // Cooperative load A: pack 2 adjacent f16 as b16 pair into one int
++            // Each thread handles 2 f16 elements per iteration
++            for (int idx = lane; idx < (WMMA_M * WMMA_K) / 2; idx += WARP_SIZE) {
++                int elemBase = idx * 2;
++                int r  = elemBase / WMMA_K;
++                int kk = elemBase % WMMA_K;
++                int globalBase = (tileRow + r) * dimK + kBase + kk;
++                int lo = a.get(globalBase).getHalfFloatValue() & 0xFFFF;
++                int hi = a.get(globalBase + 1).getHalfFloatValue() & 0xFFFF;
++                aTile[r * (WMMA_K / 2) + kk / 2] = lo | (hi << 16);
++            }
++
++            // Cooperative load B: col-major, pack 2 adjacent k-values per int
++            for (int idx = lane; idx < (8 * WMMA_K) / 2; idx += WARP_SIZE) {
++                int elemBase = idx * 2;
++                int col = elemBase / WMMA_K;
++                int kk  = elemBase % WMMA_K;
++                int g0 = (kBase + kk) * dimN + tileCol + col;
++                int g1 = (kBase + kk + 1) * dimN + tileCol + col;
++                int lo0 = b.get(g0).getHalfFloatValue() & 0xFFFF;
++                int hi0 = b.get(g1).getHalfFloatValue() & 0xFFFF;
++                bTile0[col * (WMMA_K / 2) + kk / 2] = lo0 | (hi0 << 16);
++
++                int g2 = (kBase + kk) * dimN + tileCol + 8 + col;
++                int g3 = (kBase + kk + 1) * dimN + tileCol + 8 + col;
++                int lo1 = b.get(g2).getHalfFloatValue() & 0xFFFF;
++                int hi1 = b.get(g3).getHalfFloatValue() & 0xFFFF;
++                bTile1[col * (WMMA_K / 2) + kk / 2] = lo1 | (hi1 << 16);
++            }
++
++            ctx.localBarrier();
++
++            HalfFloat[] fragA  = ctx.mmaLoadA(aTile, WMMA_K);
++            HalfFloat[] fragB0 = ctx.mmaLoadB(bTile0, WMMA_K);
++            fragC0 = ctx.mma(fragA, fragB0, fragC0, MMAShape.M16N8K16);
++            HalfFloat[] fragB1 = ctx.mmaLoadB(bTile1, WMMA_K);
++            fragC1 = ctx.mma(fragA, fragB1, fragC1, MMAShape.M16N8K16);
++
++            ctx.localBarrier();
++        }
++
++        ctx.mmaStore(fragC0, c, tileRow, tileCol,     dimN);
++        ctx.mmaStore(fragC1, c, tileRow, tileCol + 8, dimN);
++    }
++
++    // -----------------------------------------------------------------------
++    // 2. int8 MMA Kernel (tensor cores, mma.sync.m16n8k32)
++    // -----------------------------------------------------------------------
++//    public static void gemmMMAint8(KernelContext ctx,
++//                                   ByteArray a, ByteArray b, IntArray c,
++//                                   int dimM, int dimN, int dimK) {
++//
++//        if (ctx.globalIdx < 0) c.set(0, 0);
++//
++//        int warpId = ctx.groupIdx;
++//        int lane   = ctx.localIdx;
++//
++//        int numTilesN = dimN / WMMA_N_I8;
++//        int tileRow   = (warpId / numTilesN) * WMMA_M_I8;
++//        int tileCol   = (warpId % numTilesN) * WMMA_N_I8;
++//
++//        int[] aTile  = ctx.allocateIntLocalArray(WMMA_M_I8 * WMMA_K_I8);
++//        int[] bTile0 = ctx.allocateIntLocalArray(8 * WMMA_K_I8);
++//        int[] bTile1 = ctx.allocateIntLocalArray(8 * WMMA_K_I8);
++//
++//        int[] fragC0 = ctx.mmaFragmentInt(0);
++//        int[] fragC1 = ctx.mmaFragmentInt(0);
++//
++//        for (int kBase = 0; kBase < dimK; kBase += WMMA_K_I8) {
++//            for (int idx = lane; idx < WMMA_M_I8 * WMMA_K_I8; idx += WARP_SIZE) {
++//                int r  = idx / WMMA_K_I8;
++//                int kk = idx % WMMA_K_I8;
++//                aTile[r * WMMA_K_I8 + kk] = a.get((tileRow + r) * dimK + kBase + kk);
++//            }
++//            for (int idx = lane; idx < 8 * WMMA_K_I8; idx += WARP_SIZE) {
++//                int col = idx / WMMA_K_I8;
++//                int kk  = idx % WMMA_K_I8;
++//                bTile0[col * WMMA_K_I8 + kk] = b.get((kBase + kk) * dimN + tileCol     + col);
++//                bTile1[col * WMMA_K_I8 + kk] = b.get((kBase + kk) * dimN + tileCol + 8 + col);
++//            }
++//            ctx.localBarrier();
++//
++//            byte[] fragA  = ctx.mmaLoadAInt8(aTile, WMMA_K_I8);
++//            byte[] fragB0 = ctx.mmaLoadBInt8(bTile0, WMMA_K_I8);
++//            fragC0 = ctx.mmaInt8(fragA, fragB0, fragC0, MMAShape.M16N8K32);
++//            byte[] fragB1 = ctx.mmaLoadBInt8(bTile1, WMMA_K_I8);
++//            fragC1 = ctx.mmaInt8(fragA, fragB1, fragC1, MMAShape.M16N8K32);
++//
++//            ctx.localBarrier();
++//        }
++//
++//        ctx.mmaStoreInt(fragC0, c, tileRow, tileCol,     dimN);
++//        ctx.mmaStoreInt(fragC1, c, tileRow, tileCol + 8, dimN);
++//    }
++    public static void gemmMMAint8(KernelContext ctx,
++                                   ByteArray a, ByteArray b, IntArray c,
++                                   int dimM, int dimN, int dimK) {
++
++        int warpId = ctx.groupIdx;
++        int lane   = ctx.localIdx;
++
++        int numTilesN = dimN / WMMA_N;
++        int tileRow   = (warpId / numTilesN) * WMMA_M;
++        int tileCol   = (warpId % numTilesN) * WMMA_N;
++
++        // Packed shared tiles: 2 bytes per b16 slot, stored as int pairs
++        // A: 16×32 s8 → 16×16 b16 → 16 rows × 8 ints = 128
++        // B: 8 cols × 32 k → 8 cols × 16 b16 → 8 rows × 8 ints = 64 per panel
++        int[] aTile  = ctx.allocateIntLocalArray(WMMA_M * WMMA_K / 2);
++        int[] bTile0 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
++        int[] bTile1 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
++
++        int[] fragC0 = ctx.mmaFragmentInt(0);
++        int[] fragC1 = ctx.mmaFragmentInt(0);
++
++        for (int kBase = 0; kBase < dimK; kBase += WMMA_K) {
++
++            // Cooperative load A: pack 2 adjacent bytes as b16 into one int pair
++            for (int idx = lane; idx < (WMMA_M * WMMA_K) / 4; idx += WARP_SIZE) {
++                int elemBase = idx * 4;
++                int r  = elemBase / WMMA_K;
++                int kk = elemBase % WMMA_K;
++                int base = (tileRow + r) * dimK + kBase + kk;
++                int packed = (a.get(base)     & 0xFF)
++                        | ((a.get(base + 1) & 0xFF) << 8)
++                        | ((a.get(base + 2) & 0xFF) << 16)
++                        | ((a.get(base + 3) & 0xFF) << 24);
++                aTile[r * (WMMA_K / 4) + kk / 4] = packed;
++            }
++        }
++    }
++
++    // -----------------------------------------------------------------------
++    // 3. Baseline Kernel (tiled matmul, no tensor cores, f32 throughout)
++    // -----------------------------------------------------------------------
++    public static void gemmBaseline(KernelContext ctx,
++                                    HalfFloatArray a, HalfFloatArray b, FloatArray c,
++                                    int dimM, int dimN, int dimK) {
++
++        int row = ctx.globalIdx;
++        int col = ctx.globalIdy;
++
++        float[] aTile = ctx.allocateFloatLocalArray(TILE_SIZE * TILE_SIZE);
++        float[] bTile = ctx.allocateFloatLocalArray(TILE_SIZE * TILE_SIZE);
++
++        int localRow = ctx.localIdx;
++        int localCol = ctx.localIdy;
++
++        float sum = 0.0f;
++        for (int t = 0; t < dimK; t += TILE_SIZE) {
++            if (row < dimM && (t + localCol) < dimK) {
++                aTile[localRow * TILE_SIZE + localCol] = a.get(row * dimK + t + localCol).getFloat32();
++            } else {
++                aTile[localRow * TILE_SIZE + localCol] = 0.0f;
++            }
++            if ((t + localRow) < dimK && col < dimN) {
++                bTile[localRow * TILE_SIZE + localCol] = b.get((t + localRow) * dimN + col).getFloat32();
++            } else {
++                bTile[localRow * TILE_SIZE + localCol] = 0.0f;
++            }
++            ctx.localBarrier();
++
++            for (int k = 0; k < TILE_SIZE; k++) {
++                sum += aTile[localRow * TILE_SIZE + k] * bTile[k * TILE_SIZE + localCol];
++            }
++            ctx.localBarrier();
++        }
++
++        if (row < dimM && col < dimN) {
++            c.set(row * dimN + col, sum);
++        }
++    }
++
++    // =====================================================================
++    //  CPU REFERENCES
++    // =====================================================================
++
++    private static void gemmReferenceF16(HalfFloatArray a, HalfFloatArray b, FloatArray ref,
++                                         int M, int N, int K) {
++        for (int i = 0; i < M; i++)
++            for (int j = 0; j < N; j++) {
++                float sum = 0.0f;
++                for (int k = 0; k < K; k++)
++                    sum += a.get(i * K + k).getFloat32() * b.get(k * N + j).getFloat32();
++                ref.set(i * N + j, sum);
++            }
++    }
++
++    private static void gemmReferenceInt8(ByteArray a, ByteArray b, IntArray ref,
++                                          int M, int N, int K) {
++        for (int i = 0; i < M; i++)
++            for (int j = 0; j < N; j++) {
++                int sum = 0;
++                for (int k = 0; k < K; k++)
++                    sum += a.get(i * K + k) * b.get(k * N + j);
++                ref.set(i * N + j, sum);
++            }
++    }
++
++    // =====================================================================
++    //  BENCHMARK HELPERS
++    // =====================================================================
++
++    private static double[] runTimed(TornadoExecutionPlan plan, int warmup, int measured)
++            throws TornadoExecutionPlanException {
++        for (int i = 0; i < warmup; i++) plan.execute();
++
++        double[] times = new double[measured];
++        for (int i = 0; i < measured; i++) {
++            long start = System.nanoTime();
++            plan.execute();
++            long end = System.nanoTime();
++            times[i] = (end - start) / 1e9;
++        }
++        Arrays.sort(times);
++        return times;
++    }
++
++    private static void printResults(String label, double[] times, double gflops) {
++        double min    = times[0];
++        double median = times[times.length / 2];
++        double mean   = Arrays.stream(times).average().orElse(0);
++
++        System.out.printf("  %s:%n", label);
++        System.out.printf("    min    = %.4f ms  →  %7.2f GFLOP/s%n", min * 1e3, gflops / min);
++        System.out.printf("    median = %.4f ms  →  %7.2f GFLOP/s%n", median * 1e3, gflops / median);
++        System.out.printf("    mean   = %.4f ms  →  %7.2f GFLOP/s%n", mean * 1e3, gflops / mean);
++    }
++
++    // =====================================================================
++    //  BENCHMARK RUNNER
++    // =====================================================================
++
++    private void benchmarkSize(int M, int N, int K) throws TornadoExecutionPlanException {
++        System.out.printf("%n====== GEMM %d x %d x %d ======%n", M, N, K);
++
++        Random rng = new Random(42);
++        double gflops = 2.0 * M * N * K / 1e9;
++
++        // --- Shared f16 data ---
++        HalfFloatArray aF16 = new HalfFloatArray(M * K);
++        HalfFloatArray bF16 = new HalfFloatArray(K * N);
++        for (int i = 0; i < M * K; i++)
++            aF16.set(i, new HalfFloat((float) (rng.nextDouble() * 2.0 - 1.0)));
++        for (int i = 0; i < K * N; i++)
++            bF16.set(i, new HalfFloat((float) (rng.nextDouble() * 2.0 - 1.0)));
++
++        // --- 1. f16 MMA benchmark ---
++        {
++            FloatArray c = new FloatArray(M * N);
++            int numWarps   = (M / WMMA_M_F16) * (N / WMMA_N_F16);
++            int globalSize = numWarps * WARP_SIZE;
++
++            WorkerGrid1D workerGrid = new WorkerGrid1D(globalSize);
++            workerGrid.setLocalWork(WARP_SIZE, 1, 1);
++            GridScheduler grid = new GridScheduler("bench_mma_f16.gemm", workerGrid);
++            KernelContext ctx = new KernelContext();
++
++            TaskGraph tg = new TaskGraph("bench_mma_f16")
++                    .transferToDevice(DataTransferMode.EVERY_EXECUTION, aF16, bF16)
++                    .task("gemm", BenchmarkMMA::gemmMMAf16, ctx, aF16, bF16, c, M, N, K)
++                    .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
++
++            ImmutableTaskGraph itg = tg.snapshot();
++            try (TornadoExecutionPlan plan = new TornadoExecutionPlan(itg)) {
++                plan.withGridScheduler(grid);
++                double[] times = runTimed(plan, WARMUP, MEASURED);
++                printResults("f16 MMA (tensor core)", times, gflops);
++
++                FloatArray ref = new FloatArray(M * N);
++                gemmReferenceF16(aF16, bF16, ref, M, N, K);
++                float err = Math.abs(ref.get(0) - c.get(0));
++                System.out.printf("    correctness: ref[0]=%.4f  gpu[0]=%.4f  err=%.4f%n",
++                        ref.get(0), c.get(0), err);
++            }
++        }
++
++        // --- 2. int8 MMA benchmark (only if K is a multiple of 32) ---
++        if (K % WMMA_K_I8 == 0) {
++            ByteArray aI8 = new ByteArray(M * K);
++            ByteArray bI8 = new ByteArray(K * N);
++            for (int i = 0; i < M * K; i++)
++                aI8.set(i, (byte) (rng.nextInt(7) - 3));   // [-3, 3]
++            for (int i = 0; i < K * N; i++)
++                bI8.set(i, (byte) (rng.nextInt(7) - 3));
++
++            IntArray c = new IntArray(M * N);
++            int numWarps   = (M / WMMA_M_I8) * (N / WMMA_N_I8);
++            int globalSize = numWarps * WARP_SIZE;
++
++            WorkerGrid1D workerGrid = new WorkerGrid1D(globalSize);
++            workerGrid.setLocalWork(WARP_SIZE, 1, 1);
++            GridScheduler grid = new GridScheduler("bench_mma_i8.gemm", workerGrid);
++            KernelContext ctx = new KernelContext();
++
++            TaskGraph tg = new TaskGraph("bench_mma_i8")
++                    .transferToDevice(DataTransferMode.EVERY_EXECUTION, aI8, bI8)
++                    .task("gemm", BenchmarkMMA::gemmMMAint8, ctx, aI8, bI8, c, M, N, K)
++                    .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
++
++            ImmutableTaskGraph itg = tg.snapshot();
++            try (TornadoExecutionPlan plan = new TornadoExecutionPlan(itg)) {
++                plan.withGridScheduler(grid);
++                double[] times = runTimed(plan, WARMUP, MEASURED);
++                printResults("int8 MMA (tensor core)", times, gflops);
++
++                IntArray ref = new IntArray(M * N);
++                gemmReferenceInt8(aI8, bI8, ref, M, N, K);
++                int err = Math.abs(ref.get(0) - c.get(0));
++                System.out.printf("    correctness: ref[0]=%d  gpu[0]=%d  err=%d%n",
++                        ref.get(0), c.get(0), err);
++            }
++        } else {
++            System.out.printf("  int8 MMA: SKIPPED (K=%d not a multiple of %d)%n", K, WMMA_K_I8);
++        }
++
++        // --- 3. Baseline benchmark (2D grid, tiled, no tensor cores) ---
++        {
++            FloatArray c = new FloatArray(M * N);
++
++            WorkerGrid workerGrid = new WorkerGrid2D(M, N);
++            workerGrid.setLocalWork(TILE_SIZE, TILE_SIZE, 1);
++            GridScheduler grid = new GridScheduler("bench_base.gemm", workerGrid);
++            KernelContext ctx = new KernelContext();
++
++            TaskGraph tg = new TaskGraph("bench_base")
++                    .transferToDevice(DataTransferMode.EVERY_EXECUTION, aF16, bF16)
++                    .task("gemm", BenchmarkMMA::gemmBaseline, ctx, aF16, bF16, c, M, N, K)
++                    .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
++
++            ImmutableTaskGraph itg = tg.snapshot();
++            try (TornadoExecutionPlan plan = new TornadoExecutionPlan(itg)) {
++                plan.withGridScheduler(grid);
++                double[] times = runTimed(plan, WARMUP, MEASURED);
++                printResults("Baseline (tiled, no TC)", times, gflops);
++            }
++        }
++    }
++
++    // =====================================================================
++    //  TEST ENTRY POINTS
++    // =====================================================================
++
++    /** Small square — sanity check, launch-overhead dominated. */
++    @Test
++    public void bench_128x128x128() throws TornadoExecutionPlanException {
++        benchmarkSize(128, 128, 128);
++    }
++
++    /** Medium square — starts showing compute throughput. */
++    @Test
++    public void bench_256x256x256() throws TornadoExecutionPlanException {
++        benchmarkSize(256, 256, 256);
++    }
++
++    /** 512×512 — good balance of tiles and compute. */
++    @Test
++    public void bench_512x512x512() throws TornadoExecutionPlanException {
++        benchmarkSize(512, 512, 512);
++    }
++
++    /** 1024×1024 — large enough to saturate tensor cores. */
++    @Test
++    public void bench_1024x1024x1024() throws TornadoExecutionPlanException {
++        benchmarkSize(1024, 1024, 1024);
++    }
++
++    /** Attention QKV projection: seqLen=128 × headDim=128 × 3·headDim=384. */
++    @Test
++    public void bench_attn_qkv_128x384x128() throws TornadoExecutionPlanException {
++        benchmarkSize(128, 384, 128);
++    }
++
++    /** FFN single projection: 128×4096×4096. */
++    @Test
++    public void bench_ffn_slice_128x4096x4096() throws TornadoExecutionPlanException {
++        benchmarkSize(128, 4096, 4096);
++    }
++
++    /** Prefill attention scores: seqLen×seqLen×headDim = 256×256×128. */
++    @Test
++    public void bench_attn_scores_256x256x128() throws TornadoExecutionPlanException {
++        benchmarkSize(256, 256, 128);
++    }
++
++    /** 2048×2048 — stress test for large matrix sizes. */
++    @Test
++    public void bench_2048x2048x2048() throws TornadoExecutionPlanException {
++        benchmarkSize(2048, 2048, 2048);
++    }
++
++    /** Q8_0 quantization shape: seqLen=256 × K=4096 × hiddenDim=4096. */
++    @Test
++    public void bench_q8_ffn_256x4096x4096() throws TornadoExecutionPlanException {
++        benchmarkSize(256, 4096, 4096);
++    }
++}
+diff --git a/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/TestMatrixMultiplicationMMA.java b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/TestMatrixMultiplicationMMA.java
+new file mode 100644
+index 000000000..d6c67f0ee
+--- /dev/null
++++ b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/TestMatrixMultiplicationMMA.java
+@@ -0,0 +1,300 @@
++/*
++ * Copyright (c) 2026 APT Group, Department of Computer Science,
++ * The University of Manchester.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ *
++ */
++package uk.ac.manchester.tornado.unittests.kernelcontext.matrices;
++
++import org.junit.Test;
++import uk.ac.manchester.tornado.api.GridScheduler;
++import uk.ac.manchester.tornado.api.ImmutableTaskGraph;
++import uk.ac.manchester.tornado.api.KernelContext;
++import uk.ac.manchester.tornado.api.TaskGraph;
++import uk.ac.manchester.tornado.api.TornadoExecutionPlan;
++import uk.ac.manchester.tornado.api.WorkerGrid1D;
++import uk.ac.manchester.tornado.api.enums.DataTransferMode;
++import uk.ac.manchester.tornado.api.enums.MMAShape;
++import uk.ac.manchester.tornado.api.exceptions.TornadoExecutionPlanException;
++import uk.ac.manchester.tornado.api.types.HalfFloat;
++import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
++import uk.ac.manchester.tornado.api.types.arrays.HalfFloatArray;
++import uk.ac.manchester.tornado.unittests.common.TornadoTestBase;
++
++import static org.junit.Assert.assertEquals;
++
++public class TestMatrixMultiplicationMMA extends TornadoTestBase {
++    static final int WMMA_M  = 16;
++    static final int WMMA_N  = 16;  // covered by two m16n8k16 calls
++    static final int WMMA_K  = 16;
++    static final int WARP_SIZE = 32;
++
++    // -----------------------------------------------------------------------
++    // Kernel
++    // -----------------------------------------------------------------------
++
++    /**
++     * GEMM: C[M x N] = A[M x K] * B[K x N]
++     *   A : HalfFloatArray, row-major
++     *   B : HalfFloatArray, row-major in global memory,
++     *       transposed to col-major per 8-column panel in shared memory
++     *   C : FloatArray, row-major, f32 accumulator
++     *
++     * One workgroup = one warp (32 threads) = one 16x16 output tile.
++     * Each 16x16 tile requires two mma.sync calls (left + right 16x8 panels).
++     *
++     * Launch config:
++     *   localSize  = 32
++     *   globalSize = (M/16) * (N/16) * 32
++     */
++    public static void gemmMMA(KernelContext ctx,
++                                  HalfFloatArray a, HalfFloatArray b, FloatArray c,
++                                  int dimM, int dimN, int dimK) {
++
++        int warpId = ctx.groupIdx;
++        int lane   = ctx.localIdx;
++
++        int numTilesN = dimN / WMMA_N;
++        int tileRow   = (warpId / numTilesN) * WMMA_M;
++        int tileCol   = (warpId % numTilesN) * WMMA_N;
++
++        // Packed shared tiles: 2 f16 per int = b16 pairs
++        // A: 16 rows × 8 packed ints = 128 (was 256 floats)
++        // B: 8 cols × 8 packed ints = 64 per panel (was 128 floats)
++        int[] aTile  = ctx.allocateIntLocalArray(WMMA_M * WMMA_K / 2);
++        int[] bTile0 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
++        int[] bTile1 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
++
++        float[] fragC0 = ctx.mmaFragment(0.0f);
++        float[] fragC1 = ctx.mmaFragment(0.0f);
++
++        for (int kBase = 0; kBase < dimK; kBase += WMMA_K) {
++
++            // Cooperative load A: pack 2 adjacent f16 as b16 pair into one int
++            // Each thread handles 2 f16 elements per iteration
++            for (int idx = lane; idx < (WMMA_M * WMMA_K) / 2; idx += WARP_SIZE) {
++                int elemBase = idx * 2;
++                int r  = elemBase / WMMA_K;
++                int kk = elemBase % WMMA_K;
++                int globalBase = (tileRow + r) * dimK + kBase + kk;
++                int lo = a.get(globalBase).getHalfFloatValue() & 0xFFFF;
++                int hi = a.get(globalBase + 1).getHalfFloatValue() & 0xFFFF;
++                aTile[r * (WMMA_K / 2) + kk / 2] = lo | (hi << 16);
++            }
++
++            // Cooperative load B: col-major, pack 2 adjacent k-values per int
++            for (int idx = lane; idx < (8 * WMMA_K) / 2; idx += WARP_SIZE) {
++                int elemBase = idx * 2;
++                int col = elemBase / WMMA_K;
++                int kk  = elemBase % WMMA_K;
++                int g0 = (kBase + kk) * dimN + tileCol + col;
++                int g1 = (kBase + kk + 1) * dimN + tileCol + col;
++                int lo0 = b.get(g0).getHalfFloatValue() & 0xFFFF;
++                int hi0 = b.get(g1).getHalfFloatValue() & 0xFFFF;
++                bTile0[col * (WMMA_K / 2) + kk / 2] = lo0 | (hi0 << 16);
++
++                int g2 = (kBase + kk) * dimN + tileCol + 8 + col;
++                int g3 = (kBase + kk + 1) * dimN + tileCol + 8 + col;
++                int lo1 = b.get(g2).getHalfFloatValue() & 0xFFFF;
++                int hi1 = b.get(g3).getHalfFloatValue() & 0xFFFF;
++                bTile1[col * (WMMA_K / 2) + kk / 2] = lo1 | (hi1 << 16);
++            }
++
++            ctx.localBarrier();
++
++            HalfFloat[] fragA  = ctx.mmaLoadA(aTile, WMMA_K);
++            HalfFloat[] fragB0 = ctx.mmaLoadB(bTile0, WMMA_K);
++            fragC0 = ctx.mma(fragA, fragB0, fragC0, MMAShape.M16N8K16);
++            HalfFloat[] fragB1 = ctx.mmaLoadB(bTile1, WMMA_K);
++            fragC1 = ctx.mma(fragA, fragB1, fragC1, MMAShape.M16N8K16);
++
++            ctx.localBarrier();
++        }
++
++        ctx.mmaStore(fragC0, c, tileRow, tileCol,     dimN);
++        ctx.mmaStore(fragC1, c, tileRow, tileCol + 8, dimN);
++    }
++//    public static void gemmMMA(KernelContext ctx, HalfFloatArray a, HalfFloatArray b, FloatArray c, int dimM, int dimN, int dimK) {
++//
++//        int warpId = ctx.groupIdx;
++//        int lane   = ctx.localIdx;
++//
++//        int numTilesN = dimN / WMMA_N;
++//        int tileRow   = (warpId / numTilesN) * WMMA_M;
++//        int tileCol   = (warpId % numTilesN) * WMMA_N;
++//
++//        float[] aTile  = ctx.allocateFloatLocalArray(WMMA_M * WMMA_K);
++//        float[] bTile0 = ctx.allocateFloatLocalArray(8 * WMMA_K);
++//        float[] bTile1 = ctx.allocateFloatLocalArray(8 * WMMA_K);
++//
++//        float[] fragC0 = ctx.mmaFragment(0.0f);
++//        float[] fragC1 = ctx.mmaFragment(0.0f);
++//
++//        for (int kBase = 0; kBase < dimK; kBase += WMMA_K) {
++//
++//            for (int idx = lane; idx < WMMA_M * WMMA_K; idx += WARP_SIZE) {
++//                int r  = idx / WMMA_K;
++//                int kk = idx % WMMA_K;
++//                aTile[r * WMMA_K + kk] = a.get((tileRow + r) * dimK + kBase + kk).getFloat32();
++//            }
++//
++//            for (int idx = lane; idx < 8 * WMMA_K; idx += WARP_SIZE) {
++//                int col = idx / WMMA_K;
++//                int kk  = idx % WMMA_K;
++//                bTile0[col * WMMA_K + kk] = b.get((kBase + kk) * dimN + tileCol     + col).getFloat32();
++//                bTile1[col * WMMA_K + kk] = b.get((kBase + kk) * dimN + tileCol + 8 + col).getFloat32();
++//            }
++//
++//            ctx.localBarrier();
++//
++//            HalfFloat[] fragA = ctx.mmaLoadA(aTile, WMMA_K);
++//
++//            HalfFloat[] fragB0 = ctx.mmaLoadB(bTile0, WMMA_K);
++//            fragC0 = ctx.mma(fragA, fragB0, fragC0, MMAShape.M16N8K16);
++//
++//            HalfFloat[] fragB1 = ctx.mmaLoadB(bTile1, WMMA_K);
++//            fragC1 = ctx.mma(fragA, fragB1, fragC1, MMAShape.M16N8K16);
++//
++//            ctx.localBarrier();
++//        }
++//
++//        ctx.mmaStore(fragC0, c, tileRow, tileCol,     dimN);
++//        ctx.mmaStore(fragC1, c, tileRow, tileCol + 8, dimN);
++//    }
++
++    // -----------------------------------------------------------------------
++    // CPU reference
++    // -----------------------------------------------------------------------
++
++    private static void gemmReference(
++            HalfFloatArray a, HalfFloatArray b, FloatArray ref,
++            int dimM, int dimN, int dimK) {
++        for (int i = 0; i < dimM; i++) {
++            for (int j = 0; j < dimN; j++) {
++                float sum = 0.0f;
++                for (int k = 0; k < dimK; k++) {
++                    sum += a.get(i * dimK + k).getFloat32()
++                            * b.get(k * dimN + j).getFloat32();
++                }
++                ref.set(i * dimN + j, sum);
++            }
++        }
++    }
++
++    // -----------------------------------------------------------------------
++    // Tests
++    // -----------------------------------------------------------------------
++
++    /**
++     * Minimum case: M=16, N=16, K=16.
++     * One warp, two mma.sync calls (left + right panel), one K iteration.
++     */
++    @Test
++    public void testGemmMinimal() throws TornadoExecutionPlanException {
++        runGemmTest(16, 16, 16);
++    }
++
++    /**
++     * K=64: four K-iterations → four mma.sync pairs per warp.
++     * Representative of a transformer inner loop chunk.
++     */
++    @Test
++    public void testGemmDeepK() throws TornadoExecutionPlanException {
++        runGemmTest(16, 16, 64);
++    }
++
++    /**
++     * Four output tiles (2×2 grid of warps).
++     * Exercises tile coordinate arithmetic: tileRow/tileCol computation.
++     */
++    @Test
++    public void testGemmMultiTile() throws TornadoExecutionPlanException {
++        runGemmTest(32, 32, 64);
++    }
++
++    /**
++     * Wide N: one row of tiles, four warp columns.
++     * Representative of a single prefill token row against a 64-wide
++     * output projection slice.
++     */
++    @Test
++    public void testGemmWideN() throws TornadoExecutionPlanException {
++        runGemmTest(16, 64, 64);
++    }
++
++    /**
++     * Larger M: multiple seqLen rows, all four projection columns.
++     * Closest to a real prefill workload slice.
++     */
++    @Test
++    public void testGemmPrefillSlice() throws TornadoExecutionPlanException {
++        runGemmTest(64, 64, 64);
++    }
++
++    // -----------------------------------------------------------------------
++    // Runner
++    // -----------------------------------------------------------------------
++    private void runGemmTest(int dimM, int dimN, int dimK) throws TornadoExecutionPlanException {
++        HalfFloatArray a = randomFP16(dimK * dimN); //allOnesFP16(dimM * dimK);
++        HalfFloatArray b = randomFP16(dimK * dimN);
++        FloatArray c     = new FloatArray(dimM * dimN);
++
++        FloatArray ref = new FloatArray(dimM * dimN);
++        gemmReference(a, b, ref, dimM, dimN, dimK);
++
++        int numWarps   = (dimM / WMMA_M) * (dimN / WMMA_N);
++        int globalSize = numWarps * WARP_SIZE;
++        int localSize  = WARP_SIZE;                  // one warp per workgroup
++
++        // WorkerGrid1D takes global size only; local size set separately
++        WorkerGrid1D workerGrid = new WorkerGrid1D(globalSize);
++        workerGrid.setLocalWork(localSize, 1, 1);
++
++        GridScheduler gridScheduler = new GridScheduler("mma_test.gemm", workerGrid);
++
++        KernelContext ctx = new KernelContext();
++
++        TaskGraph tg = new TaskGraph("mma_test")
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, a, b)
++                .task("gemm", TestMatrixMultiplicationMMA::gemmMMA,
++                        ctx, a, b, c, dimM, dimN, dimK)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
++
++        ImmutableTaskGraph itg = tg.snapshot();
++        try (TornadoExecutionPlan plan = new TornadoExecutionPlan(itg)) {
++            plan.withGridScheduler(gridScheduler)
++                    .execute();
++        }
++
++        float tol = 0.01f;//1e-2f * dimK;
++        for (int i = 0; i < dimM; i++) {
++            for (int j = 0; j < dimN; j++) {
++                int idx = i * dimN + j;
++               // System.out.println("C[" + i + "][" + j + "] = (expected): " + ref.get(idx) + " - (actual): " + c.get(idx));
++                assertEquals(String.format("C[%d][%d]", i, j),
++                        ref.get(idx), c.get(idx), tol);
++            }
++        }
++    }
++
++    private static HalfFloatArray randomFP16(int size) {
++        HalfFloatArray arr = new HalfFloatArray(size);
++        for (int i = 0; i < size; i++) {
++            arr.set(i, new HalfFloat(1.0f));
++          //  arr.set(i, new HalfFloat((float)(Math.random() * 2.0 - 1.0)));
++        }
++        return arr;
++    }
++
++}
+diff --git a/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/TestMatrixMultiplicationMMAInt8.java b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/TestMatrixMultiplicationMMAInt8.java
+new file mode 100644
+index 000000000..9b6f94cbc
+--- /dev/null
++++ b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/TestMatrixMultiplicationMMAInt8.java
+@@ -0,0 +1,397 @@
++/*
++ * Unit tests for int8 Tensor Core MMA via KernelContext.
++ *
++ * Tests mma.sync.aligned.m16n8k32.row.col.s32.s8.s8.s32 on the PTX backend.
++ *
++ * Each 16×16 output tile requires two mma.sync calls (left + right 16×8 panels),
++ * same as the f16 path but with K=32 per MMA instruction.
++ *
++ * Usage:
++ *   tornado-test -V uk.ac.manchester.tornado.unittests.kernelcontext.matrices.TestMatrixMultiplicationMMAInt8
++ */
++package uk.ac.manchester.tornado.unittests.kernelcontext.matrices;
++
++import uk.ac.manchester.tornado.api.GridScheduler;
++import uk.ac.manchester.tornado.api.ImmutableTaskGraph;
++import uk.ac.manchester.tornado.api.KernelContext;
++import uk.ac.manchester.tornado.api.TaskGraph;
++import uk.ac.manchester.tornado.api.TornadoExecutionPlan;
++import uk.ac.manchester.tornado.api.WorkerGrid1D;
++import uk.ac.manchester.tornado.api.enums.DataTransferMode;
++import uk.ac.manchester.tornado.api.enums.MMAShape;
++import uk.ac.manchester.tornado.api.exceptions.TornadoExecutionPlanException;
++import uk.ac.manchester.tornado.api.types.arrays.ByteArray;
++import uk.ac.manchester.tornado.api.types.arrays.IntArray;
++
++import org.junit.Test;
++
++import static org.junit.Assert.assertEquals;
++
++import uk.ac.manchester.tornado.unittests.common.TornadoTestBase;
++
++import java.util.Random;
++
++public class TestMatrixMultiplicationMMAInt8 extends TornadoTestBase {
++
++    static final int WMMA_M    = 16;
++    static final int WMMA_N    = 16;   // covered by two m16n8k32 calls
++    static final int WMMA_K    = 32;   // K=32 for int8 MMA
++    static final int WARP_SIZE = 32;
++
++    // -----------------------------------------------------------------------
++    // Kernel
++    // -----------------------------------------------------------------------
++
++    /**
++     * Int8 GEMM: C[M x N] = A[M x K] * B[K x N]
++     *   A : IntArray, row-major (values in [-128, 127], stored as int32)
++     *   B : IntArray, row-major in global memory,
++     *       transposed to col-major per 8-column panel in shared memory
++     *   C : IntArray, row-major, s32 accumulator
++     *
++     * One workgroup = one warp (32 threads) = one 16x16 output tile.
++     * Each 16x16 tile requires two mma.sync calls (left + right 16x8 panels).
++     *
++     * Launch config:
++     *   localSize  = 32
++     *   globalSize = (M/16) * (N/16) * 32
++     */
++    public static void gemmMMAInt8(KernelContext ctx,
++                                   ByteArray a, ByteArray b, IntArray c,
++                                   int dimM, int dimN, int dimK) {
++
++        int warpId = ctx.groupIdx;
++        int lane   = ctx.localIdx;
++
++        int numTilesN = dimN / WMMA_N;
++        int tileRow   = (warpId / numTilesN) * WMMA_M;
++        int tileCol   = (warpId % numTilesN) * WMMA_N;
++
++        // Packed shared tiles: 2 bytes per b16 slot, stored as int pairs
++        // A: 16×32 s8 → 16×16 b16 → 16 rows × 8 ints = 128
++        // B: 8 cols × 32 k → 8 cols × 16 b16 → 8 rows × 8 ints = 64 per panel
++        int[] aTile  = ctx.allocateIntLocalArray(WMMA_M * WMMA_K / 2);
++        int[] bTile0 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
++        int[] bTile1 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
++
++        int[] fragC0 = ctx.mmaFragmentInt(0);
++        int[] fragC1 = ctx.mmaFragmentInt(0);
++
++        for (int kBase = 0; kBase < dimK; kBase += WMMA_K) {
++
++            // Cooperative load A: pack 2 adjacent bytes as b16 into one int pair
++            for (int idx = lane; idx < (WMMA_M * WMMA_K) / 4; idx += WARP_SIZE) {
++                int elemBase = idx * 4;
++                int r  = elemBase / WMMA_K;
++                int kk = elemBase % WMMA_K;
++                int base = (tileRow + r) * dimK + kBase + kk;
++                int packed = (a.get(base)     & 0xFF)
++                        | ((a.get(base + 1) & 0xFF) << 8)
++                        | ((a.get(base + 2) & 0xFF) << 16)
++                        | ((a.get(base + 3) & 0xFF) << 24);
++                aTile[r * (WMMA_K / 4) + kk / 4] = packed;
++            }
++
++            // Cooperative load B panels: col-major, pack 4 adjacent k-values per int32.
++            // bTile0: left 8-col panel (tileCol..tileCol+7)
++            // bTile1: right 8-col panel (tileCol+8..tileCol+15)
++            for (int idx = lane; idx < (8 * WMMA_K) / 4; idx += WARP_SIZE) {
++                int elemBase = idx * 4;
++                int col = elemBase / WMMA_K;
++                int kk  = elemBase % WMMA_K;
++                int p0 = (kBase + kk)     * dimN + tileCol + col;
++                int p1 = (kBase + kk + 1) * dimN + tileCol + col;
++                int p2 = (kBase + kk + 2) * dimN + tileCol + col;
++                int p3 = (kBase + kk + 3) * dimN + tileCol + col;
++                int packed = (b.get(p0) & 0xFF)
++                        | ((b.get(p1) & 0xFF) << 8)
++                        | ((b.get(p2) & 0xFF) << 16)
++                        | ((b.get(p3) & 0xFF) << 24);
++                bTile0[col * (WMMA_K / 4) + kk / 4] = packed;
++            }
++            for (int idx = lane; idx < (8 * WMMA_K) / 4; idx += WARP_SIZE) {
++                int elemBase = idx * 4;
++                int col = elemBase / WMMA_K;
++                int kk  = elemBase % WMMA_K;
++                int p0 = (kBase + kk)     * dimN + tileCol + 8 + col;
++                int p1 = (kBase + kk + 1) * dimN + tileCol + 8 + col;
++                int p2 = (kBase + kk + 2) * dimN + tileCol + 8 + col;
++                int p3 = (kBase + kk + 3) * dimN + tileCol + 8 + col;
++                int packed = (b.get(p0) & 0xFF)
++                        | ((b.get(p1) & 0xFF) << 8)
++                        | ((b.get(p2) & 0xFF) << 16)
++                        | ((b.get(p3) & 0xFF) << 24);
++                bTile1[col * (WMMA_K / 4) + kk / 4] = packed;
++            }
++
++            ctx.localBarrier();
++
++            // Load A fragment (4 × b32, each packing 4 × s8)
++            byte[] fragA = ctx.mmaLoadAInt8(aTile, WMMA_K);
++
++            // Left panel
++            byte[] fragB0 = ctx.mmaLoadBInt8(bTile0, WMMA_K);
++            fragC0 = ctx.mmaInt8(fragA, fragB0, fragC0, MMAShape.M16N8K32);
++
++            // Right panel
++            byte[] fragB1 = ctx.mmaLoadBInt8(bTile1, WMMA_K);
++            fragC1 = ctx.mmaInt8(fragA, fragB1, fragC1, MMAShape.M16N8K32);
++
++            ctx.localBarrier();
++        }
++
++        // Store results
++        ctx.mmaStoreInt(fragC0, c, tileRow, tileCol,     dimN);
++        ctx.mmaStoreInt(fragC1, c, tileRow, tileCol + 8, dimN);
++
++    }
++//    public static void gemmMMAInt8(KernelContext ctx,
++//                                   ByteArray a, ByteArray b, IntArray c,
++//                                   int dimM, int dimN, int dimK) {
++//
++//        // Force TornadoVM sketch analysis to recognize 'c' as written
++//        if (ctx.globalIdx < 0) c.set(0, 0);
++//
++//        int warpId = ctx.groupIdx;
++//        int lane   = ctx.localIdx;
++//
++//        int numTilesN = dimN / WMMA_N;
++//        int tileRow   = (warpId / numTilesN) * WMMA_M;
++//        int tileCol   = (warpId % numTilesN) * WMMA_N;
++//
++//        // aTile  row-major  [WMMA_M x WMMA_K] = [16 x 32] = 512 elements
++//        // bTile0 col-major  [8 x WMMA_K]      = [8 x 32]  = 256 elements (left panel)
++//        // bTile1 col-major  [8 x WMMA_K]      = [8 x 32]  = 256 elements (right panel)
++//        int[] aTile  = ctx.allocateIntLocalArray(WMMA_M * WMMA_K);
++//        int[] bTile0 = ctx.allocateIntLocalArray(8 * WMMA_K);
++//        int[] bTile1 = ctx.allocateIntLocalArray(8 * WMMA_K);
++//
++//        // Accumulators — zero filled, one per 16x8 output panel.
++//        int[] fragC0 = ctx.mmaFragmentInt(0);
++//        int[] fragC1 = ctx.mmaFragmentInt(0);
++//
++//        for (int kBase = 0; kBase < dimK; kBase += WMMA_K) {
++//
++//            // Cooperative load of aTile: 32 lanes × 16 elements = 512 = 16×32
++//            for (int idx = lane; idx < WMMA_M * WMMA_K; idx += WARP_SIZE) {
++//                int r  = idx / WMMA_K;
++//                int kk = idx % WMMA_K;
++//                aTile[r * WMMA_K + kk] = a.get((tileRow + r) * dimK + kBase + kk);
++//            }
++//
++//            // Cooperative load of bTile0 and bTile1: col-major layout.
++//            // bTile[col * WMMA_K + k] = B[kBase+k][tileCol+col]
++//            for (int idx = lane; idx < 8 * WMMA_K; idx += WARP_SIZE) {
++//                int col = idx / WMMA_K;
++//                int kk  = idx % WMMA_K;
++//                bTile0[col * WMMA_K + kk] = b.get((kBase + kk) * dimN + tileCol     + col);
++//                bTile1[col * WMMA_K + kk] = b.get((kBase + kk) * dimN + tileCol + 8 + col);
++//            }
++//
++//            ctx.localBarrier();
++//
++//            // Load A fragment (4 × b32, each packing 4 × s8)
++//            byte[] fragA = ctx.mmaLoadAInt8(aTile, WMMA_K);
++//
++//            // Left panel
++//            byte[] fragB0 = ctx.mmaLoadBInt8(bTile0, WMMA_K);
++//            fragC0 = ctx.mmaInt8(fragA, fragB0, fragC0, MMAShape.M16N8K32);
++//
++//            // Right panel
++//            byte[] fragB1 = ctx.mmaLoadBInt8(bTile1, WMMA_K);
++//            fragC1 = ctx.mmaInt8(fragA, fragB1, fragC1, MMAShape.M16N8K32);
++//
++//            ctx.localBarrier();
++//        }
++//
++//        // Store results
++//        ctx.mmaStoreInt(fragC0, c, tileRow, tileCol,     dimN);
++//        ctx.mmaStoreInt(fragC1, c, tileRow, tileCol + 8, dimN);
++//    }
++
++    // -----------------------------------------------------------------------
++    // CPU reference
++    // -----------------------------------------------------------------------
++
++    private static void gemmReferenceInt8(
++            ByteArray a, ByteArray b, IntArray ref,
++            int dimM, int dimN, int dimK) {
++        for (int i = 0; i < dimM; i++) {
++            for (int j = 0; j < dimN; j++) {
++                int sum = 0;
++                for (int k = 0; k < dimK; k++) {
++                    sum += a.get(i * dimK + k) * b.get(k * dimN + j);
++                }
++                ref.set(i * dimN + j, sum);
++            }
++        }
++    }
++
++    // -----------------------------------------------------------------------
++    // Tests
++    // -----------------------------------------------------------------------
++
++    /**
++     * Minimum case: M=16, N=16, K=32.
++     * One warp, two mma.sync calls (left + right panel), one K iteration.
++     */
++    @Test
++    public void testGemmInt8Minimal() throws TornadoExecutionPlanException {
++        runGemmTest(16, 16, 32);
++    }
++
++    /**
++     * K=64: two K-iterations.
++     */
++    @Test
++    public void testGemmInt8DeepK() throws TornadoExecutionPlanException {
++        runGemmTest(16, 16, 64);
++    }
++
++    /**
++     * Four output tiles (2×2 grid of warps).
++     */
++    @Test
++    public void testGemmInt8MultiTile() throws TornadoExecutionPlanException {
++        runGemmTest(32, 32, 64);
++    }
++
++    /**
++     * Wide N: one row of tiles, four warp columns.
++     */
++    @Test
++    public void testGemmInt8WideN() throws TornadoExecutionPlanException {
++        runGemmTest(16, 64, 64);
++    }
++
++    /**
++     * Larger M: multiple seqLen rows.
++     */
++    @Test
++    public void testGemmInt8PrefillSlice() throws TornadoExecutionPlanException {
++        runGemmTest(64, 64, 64);
++    }
++
++    /**
++     * Identity test: A=identity, B=sequential → C should equal B.
++     * Catches layout/permutation bugs.
++     */
++    @Test
++    public void testGemmInt8Identity() throws TornadoExecutionPlanException {
++        int M = 16, N = 16, K = 32;
++
++        ByteArray a = new ByteArray(M * K);
++        for (int i = 0; i < Math.min(M, K); i++)
++            a.set(i * K + i, (byte) 1);  // identity (only first 16 rows have a 1)
++
++        ByteArray b = new ByteArray(K * N);
++        for (int i = 0; i < K * N; i++)
++            b.set(i, (byte) ((i % 5) - 2));  // small values: -2, -1, 0, 1, 2
++
++        IntArray c   = new IntArray(M * N);
++        IntArray ref = new IntArray(M * N);
++        gemmReferenceInt8(a, b, ref, M, N, K);
++
++        runGemmTestWithData(a, b, c, ref, M, N, K);
++    }
++
++    /**
++     * All-ones test: every element should equal K.
++     */
++    @Test
++    public void testGemmInt8AllOnes() throws TornadoExecutionPlanException {
++        int M = 16, N = 16, K = 32;
++
++        ByteArray a = new ByteArray(M * K);
++        ByteArray b = new ByteArray(K * N);
++        for (int i = 0; i < M * K; i++) a.set(i, (byte) 1);
++        for (int i = 0; i < K * N; i++) b.set(i, (byte) 1);
++
++        IntArray c   = new IntArray(M * N);
++        IntArray ref = new IntArray(M * N);
++        gemmReferenceInt8(a, b, ref, M, N, K);
++
++        runGemmTestWithData(a, b, c, ref, M, N, K);
++    }
++
++    // -----------------------------------------------------------------------
++    // Runner
++    // -----------------------------------------------------------------------
++
++    private void runGemmTest(int dimM, int dimN, int dimK) throws TornadoExecutionPlanException {
++        ByteArray a = randomInt8Array(dimM * dimK);
++        ByteArray b = randomInt8Array(dimK * dimN);
++        IntArray c = new IntArray(dimM * dimN);
++
++        IntArray ref = new IntArray(dimM * dimN);
++        gemmReferenceInt8(a, b, ref, dimM, dimN, dimK);
++
++        runGemmTestWithData(a, b, c, ref, dimM, dimN, dimK);
++    }
++
++    private void runGemmTestWithData(ByteArray a, ByteArray b, IntArray c, IntArray ref,
++                                     int dimM, int dimN, int dimK)
++            throws TornadoExecutionPlanException {
++
++        int numWarps   = (dimM / WMMA_M) * (dimN / WMMA_N);
++        int globalSize = numWarps * WARP_SIZE;
++        int localSize  = WARP_SIZE;
++
++        WorkerGrid1D workerGrid = new WorkerGrid1D(globalSize);
++        workerGrid.setLocalWork(localSize, 1, 1);
++
++        GridScheduler gridScheduler = new GridScheduler("mma_int8_test.gemm", workerGrid);
++
++        KernelContext ctx = new KernelContext();
++
++        TaskGraph tg = new TaskGraph("mma_int8_test")
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, a, b)
++                .task("gemm", TestMatrixMultiplicationMMAInt8::gemmMMAInt8,
++                        ctx, a, b, c, dimM, dimN, dimK)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
++
++        ImmutableTaskGraph itg = tg.snapshot();
++        try (TornadoExecutionPlan plan = new TornadoExecutionPlan(itg)) {
++            plan.withGridScheduler(gridScheduler)
++                    .execute();
++        }
++
++        // Print first 4 rows for diagnostic
++        System.out.println("=== First 4 rows: expected | actual ===");
++        for (int i = 0; i < Math.min(4, dimM); i++) {
++            StringBuilder exp = new StringBuilder("ref[" + i + "]: ");
++            StringBuilder act = new StringBuilder("act[" + i + "]: ");
++            for (int j = 0; j < dimN; j++) {
++                int idx = i * dimN + j;
++                exp.append(String.format("%7d", ref.get(idx)));
++                act.append(String.format("%7d", c.get(idx)));
++            }
++            System.out.println(exp);
++            System.out.println(act);
++            System.out.println();
++        }
++
++        // Assert correctness — int8 MMA is exact (no floating-point rounding)
++        for (int i = 0; i < dimM; i++) {
++            for (int j = 0; j < dimN; j++) {
++                int idx = i * dimN + j;
++                assertEquals(String.format("C[%d][%d]", i, j),
++                        ref.get(idx), c.get(idx));
++            }
++        }
++    }
++
++    /**
++     * Creates an IntArray with random values in [-3, 3].
++     * Small range avoids int8 overflow in dot products while still
++     * exercising sign handling.
++     */
++    private static ByteArray randomInt8Array(int size) {
++        Random rng = new Random(42);  // fixed seed for reproducibility
++        ByteArray arr = new ByteArray(size);
++        for (int i = 0; i < size; i++) {
++            arr.set(i, (byte) (rng.nextInt(7) - 3));  // -3 to 3
++        }
++        return arr;
++    }
++}

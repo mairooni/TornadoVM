@@ -1,0 +1,996 @@
+diff --git a/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMA.java b/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMA.java
+index 13eae6c1b..3d8b84bc6 100644
+--- a/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMA.java
++++ b/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMA.java
+@@ -34,7 +34,7 @@ public class MatrixMultiplicationMMA {
+     private static final int WN = BN / WARPS_N;
+     private static final int B_SUBTILE_BYTES = 256;
+ 
+-    // KERNEL 1: baseline
++    // KERNEL 1: baseline (B is [K, N] row-major)
+     public static void gemmBaselineFp16(KernelContext ctx,
+                                         HalfFloatArray A, HalfFloatArray B, FloatArray C,
+                                         int M, int N, int K) {
+@@ -60,7 +60,7 @@ public class MatrixMultiplicationMMA {
+         C.set(globalRow * N + globalCol, sum);
+     }
+ 
+-    // KERNEL 2: multi-warp MMA non-swizzled
++    // KERNEL 2: multi-warp MMA non-swizzled (B is [K, N] row-major)
+     public static void gemmMMA(KernelContext ctx,
+                                HalfFloatArray A, HalfFloatArray B, FloatArray C,
+                                int M, int N, int K) {
+@@ -162,7 +162,117 @@ public class MatrixMultiplicationMMA {
+         ctx.mmaStore(c17, C, rBase + 16, cBase + 56, N);
+     }
+ 
+-    // KERNEL 3: multi-warp MMA swizzled
++    // KERNEL 2b: multi-warp MMA non-swizzled, B in [N, K] row-major
++    // (matches GPULlama3 W1/W3 layout: weights stored as [output_dim, input_dim])
++    public static void gemmMMA_NK(KernelContext ctx,
++                                  HalfFloatArray A, HalfFloatArray B, FloatArray C,
++                                  int M, int N, int K) {
++        int tid = ctx.localIdx;
++        int warpId = tid / WARP_SIZE;
++        int warpM = warpId / WARPS_N;
++        int warpN = warpId % WARPS_N;
++        int blockRow = BM * ctx.groupIdx;
++        int blockCol = BN * ctx.groupIdy;
++
++        int[] aTile = ctx.allocateIntLocalArray(BM * BK / 2);
++        int[] bTile = ctx.allocateIntLocalArray(BK * BN / 2);
++
++        float[] c00 = ctx.mmaFragment(0.0f); float[] c01 = ctx.mmaFragment(0.0f);
++        float[] c02 = ctx.mmaFragment(0.0f); float[] c03 = ctx.mmaFragment(0.0f);
++        float[] c04 = ctx.mmaFragment(0.0f); float[] c05 = ctx.mmaFragment(0.0f);
++        float[] c06 = ctx.mmaFragment(0.0f); float[] c07 = ctx.mmaFragment(0.0f);
++        float[] c10 = ctx.mmaFragment(0.0f); float[] c11 = ctx.mmaFragment(0.0f);
++        float[] c12 = ctx.mmaFragment(0.0f); float[] c13 = ctx.mmaFragment(0.0f);
++        float[] c14 = ctx.mmaFragment(0.0f); float[] c15 = ctx.mmaFragment(0.0f);
++        float[] c16 = ctx.mmaFragment(0.0f); float[] c17 = ctx.mmaFragment(0.0f);
++
++        int numKSteps = K / BK;
++        for (int kStep = 0; kStep < numKSteps; kStep++) {
++            int kBase = kStep * BK;
++            // A load: A is [M, K] row-major (unchanged from gemmMMA)
++            for (int idx = tid; idx < BM * BK / 2; idx += THREADS_PER_BLOCK) {
++                int m_row = idx / (BK / 2);
++                int k_pair = idx % (BK / 2);
++                int k_base = k_pair * 2;
++                int gA = (blockRow + m_row) * K + (kBase + k_base);
++                int lo = A.get(gA).getHalfFloatValue() & 0xFFFF;
++                int hi = A.get(gA + 1).getHalfFloatValue() & 0xFFFF;
++                aTile[m_row * (BK / 2) + k_pair] = lo | (hi << 16);
++            }
++            // B load: B is [N, K] row-major.
++            // The shared-memory layout in bTile is unchanged; we read from
++            // a different global layout and pack into the same shared positions
++            // so that mmaLoadB, mma fragments, and stores all operate identically.
++            for (int idx = tid; idx < BK * BN / 2; idx += THREADS_PER_BLOCK) {
++                int subTileId = idx / 64;
++                int intInSub = idx % 64;
++                int k_row = intInSub / 4;
++                int j_pair = intInSub % 4;
++                int j_base = j_pair * 2;
++                int col_in_block = subTileId * 8 + j_base;
++                // B[col, k] is at col * K + k in [N, K] row-major.
++                int gB0 = (blockCol + col_in_block)     * K + (kBase + k_row);
++                int gB1 = (blockCol + col_in_block + 1) * K + (kBase + k_row);
++                int lo = B.get(gB0).getHalfFloatValue() & 0xFFFF;
++                int hi = B.get(gB1).getHalfFloatValue() & 0xFFFF;
++                bTile[idx] = lo | (hi << 16);
++            }
++            ctx.localBarrier();
++
++            int aOff0 = warpM * 1024;
++            int aOff1 = warpM * 1024 + 512;
++            HalfFloat[] a0 = ctx.mmaLoadA(aTile, BK, aOff0);
++            HalfFloat[] a1 = ctx.mmaLoadA(aTile, BK, aOff1);
++            int bBase = warpN * 8;
++            HalfFloat[] b0 = ctx.mmaLoadB(bTile, BK, (bBase + 0) * B_SUBTILE_BYTES);
++            HalfFloat[] b1 = ctx.mmaLoadB(bTile, BK, (bBase + 1) * B_SUBTILE_BYTES);
++            HalfFloat[] b2 = ctx.mmaLoadB(bTile, BK, (bBase + 2) * B_SUBTILE_BYTES);
++            HalfFloat[] b3 = ctx.mmaLoadB(bTile, BK, (bBase + 3) * B_SUBTILE_BYTES);
++            HalfFloat[] b4 = ctx.mmaLoadB(bTile, BK, (bBase + 4) * B_SUBTILE_BYTES);
++            HalfFloat[] b5 = ctx.mmaLoadB(bTile, BK, (bBase + 5) * B_SUBTILE_BYTES);
++            HalfFloat[] b6 = ctx.mmaLoadB(bTile, BK, (bBase + 6) * B_SUBTILE_BYTES);
++            HalfFloat[] b7 = ctx.mmaLoadB(bTile, BK, (bBase + 7) * B_SUBTILE_BYTES);
++
++            c00 = ctx.mma(a0, b0, c00, MMAShape.M16N8K16);
++            c01 = ctx.mma(a0, b1, c01, MMAShape.M16N8K16);
++            c02 = ctx.mma(a0, b2, c02, MMAShape.M16N8K16);
++            c03 = ctx.mma(a0, b3, c03, MMAShape.M16N8K16);
++            c04 = ctx.mma(a0, b4, c04, MMAShape.M16N8K16);
++            c05 = ctx.mma(a0, b5, c05, MMAShape.M16N8K16);
++            c06 = ctx.mma(a0, b6, c06, MMAShape.M16N8K16);
++            c07 = ctx.mma(a0, b7, c07, MMAShape.M16N8K16);
++            c10 = ctx.mma(a1, b0, c10, MMAShape.M16N8K16);
++            c11 = ctx.mma(a1, b1, c11, MMAShape.M16N8K16);
++            c12 = ctx.mma(a1, b2, c12, MMAShape.M16N8K16);
++            c13 = ctx.mma(a1, b3, c13, MMAShape.M16N8K16);
++            c14 = ctx.mma(a1, b4, c14, MMAShape.M16N8K16);
++            c15 = ctx.mma(a1, b5, c15, MMAShape.M16N8K16);
++            c16 = ctx.mma(a1, b6, c16, MMAShape.M16N8K16);
++            c17 = ctx.mma(a1, b7, c17, MMAShape.M16N8K16);
++            ctx.localBarrier();
++        }
++
++        int rBase = blockRow + warpM * WM;
++        int cBase = blockCol + warpN * WN;
++        ctx.mmaStore(c00, C, rBase + 0,  cBase + 0,  N);
++        ctx.mmaStore(c01, C, rBase + 0,  cBase + 8,  N);
++        ctx.mmaStore(c02, C, rBase + 0,  cBase + 16, N);
++        ctx.mmaStore(c03, C, rBase + 0,  cBase + 24, N);
++        ctx.mmaStore(c04, C, rBase + 0,  cBase + 32, N);
++        ctx.mmaStore(c05, C, rBase + 0,  cBase + 40, N);
++        ctx.mmaStore(c06, C, rBase + 0,  cBase + 48, N);
++        ctx.mmaStore(c07, C, rBase + 0,  cBase + 56, N);
++        ctx.mmaStore(c10, C, rBase + 16, cBase + 0,  N);
++        ctx.mmaStore(c11, C, rBase + 16, cBase + 8,  N);
++        ctx.mmaStore(c12, C, rBase + 16, cBase + 16, N);
++        ctx.mmaStore(c13, C, rBase + 16, cBase + 24, N);
++        ctx.mmaStore(c14, C, rBase + 16, cBase + 32, N);
++        ctx.mmaStore(c15, C, rBase + 16, cBase + 40, N);
++        ctx.mmaStore(c16, C, rBase + 16, cBase + 48, N);
++        ctx.mmaStore(c17, C, rBase + 16, cBase + 56, N);
++    }
++
++    // KERNEL 3: multi-warp MMA swizzled (B is [K, N] row-major)
+     public static void gemmMMASwizzled(KernelContext ctx,
+                                        HalfFloatArray A, HalfFloatArray B, FloatArray C,
+                                        int M, int N, int K) {
+@@ -198,15 +308,12 @@ public class MatrixMultiplicationMMA {
+                 aTile[m_row * (BK / 2) + k_pair] = lo | (hi << 16);
+             }
+             for (int idx = tid; idx < BK * BN; idx += THREADS_PER_BLOCK) {
+-                int subTileId = idx / 128;        // 0..15
+-                int inSub     = idx % 128;        // 0..127
+-                int k_row     = inSub / 8;        // 0..15 (LOCAL row within sub-tile)
+-                int j         = inSub % 8;        // 0..7
++                int subTileId = idx / 128;
++                int inSub     = idx % 128;
++                int k_row     = inSub / 8;
++                int j         = inSub % 8;
+                 int col_in_block = subTileId * 8 + j;
+                 HalfFloat val = B.get((kBase + k_row) * N + (blockCol + col_in_block));
+-                // Swizzle computed on LOCAL (k_row, j); placed into sub-tile subTileId
+-                // via byte offset subTileId * B_SUBTILE_BYTES. Symmetric with the
+-                // mmaLoadBSwizzled(bTile, BK, subTile * B_SUBTILE_BYTES) reads below.
+                 ctx.swizzleStoreFp16Stride32(bTile, k_row, j, 8, val, subTileId * B_SUBTILE_BYTES);
+             }
+             ctx.localBarrier();
+@@ -264,6 +371,7 @@ public class MatrixMultiplicationMMA {
+         ctx.mmaStore(c17, C, rBase + 16, cBase + 56, N);
+     }
+ 
++    /** Reference: C = A * B where A is [M, K] row-major and B is [K, N] row-major. */
+     private static void gemmReference(HalfFloatArray A, HalfFloatArray B, float[] ref,
+                                       int M, int N, int K) {
+         for (int i = 0; i < M; i++) {
+@@ -277,6 +385,20 @@ public class MatrixMultiplicationMMA {
+         }
+     }
+ 
++    /** Reference: C = A * B where A is [M, K] row-major and B is [N, K] row-major. */
++    private static void gemmReferenceNK(HalfFloatArray A, HalfFloatArray B_NK, float[] ref,
++                                        int M, int N, int K) {
++        for (int i = 0; i < M; i++) {
++            for (int j = 0; j < N; j++) {
++                float sum = 0.0f;
++                for (int k = 0; k < K; k++) {
++                    sum += A.get(i * K + k).getFloat32() * B_NK.get(j * K + k).getFloat32();
++                }
++                ref[i * N + j] = sum;
++            }
++        }
++    }
++
+     private static HalfFloatArray randomFp16(int size, float lo, float hi) {
+         HalfFloatArray arr = new HalfFloatArray(size);
+         float range = hi - lo;
+@@ -286,6 +408,17 @@ public class MatrixMultiplicationMMA {
+         return arr;
+     }
+ 
++    /** Builds B_NK ([N, K] row-major) from B_KN ([K, N] row-major) so both kernels see the same logical matrix. */
++    private static HalfFloatArray transposeKNtoNK(HalfFloatArray B_KN, int N, int K) {
++        HalfFloatArray B_NK = new HalfFloatArray(N * K);
++        for (int k = 0; k < K; k++) {
++            for (int n = 0; n < N; n++) {
++                B_NK.set(n * K + k, B_KN.get(k * N + n));
++            }
++        }
++        return B_NK;
++    }
++
+     private static boolean validate(String name, FloatArray got, float[] ref, int M, int N) {
+         float maxRel = 0.0f;
+         int bad = 0;
+@@ -317,76 +450,109 @@ public class MatrixMultiplicationMMA {
+     }
+ 
+     public static void main(String[] args) {
+-        int size = 2048;
+-        if (args.length >= 1) {
+-            try { size = Integer.parseInt(args[0]); }
+-            catch (NumberFormatException e) { System.err.println("Bad size, using 2048"); }
++        // Default to FFN gate-up shape on Llama-3.2-1B.
++        // Override with: <M> <N> <K>  e.g. 2048 2048 2048 for the original square benchmark.
++        int M = 128, N = 8192, K = 2048;
++        if (args.length >= 3) {
++            try {
++                M = Integer.parseInt(args[0]);
++                N = Integer.parseInt(args[1]);
++                K = Integer.parseInt(args[2]);
++            } catch (NumberFormatException e) {
++                System.err.println("Bad args, using defaults M=128 N=8192 K=2048");
++            }
++        } else if (args.length >= 1) {
++            try {
++                int s = Integer.parseInt(args[0]);
++                M = N = K = s;
++            } catch (NumberFormatException e) {
++                System.err.println("Bad arg, using defaults M=128 N=8192 K=2048");
++            }
+         }
+-        final int M = size, N = size, K = size;
++        final int Mf = M, Nf = N, Kf = K;
+ 
+         System.out.println("Multi-warp MMA GEMM Benchmark");
+         System.out.println("=============================");
+-        System.out.printf("Size: %d x %d x %d   Warmup: %d   Iters: %d%n",
+-                M, N, K, WARM_UP_ITERATIONS, BENCHMARK_ITERATIONS);
++        System.out.printf("Shape: M=%d N=%d K=%d   Warmup: %d   Iters: %d%n",
++                Mf, Nf, Kf, WARM_UP_ITERATIONS, BENCHMARK_ITERATIONS);
+ 
+-        HalfFloatArray A = randomFp16(M * K, -1.0f, 1.0f);
+-        HalfFloatArray B = randomFp16(K * N, -1.0f, 1.0f);
++        HalfFloatArray A     = randomFp16(Mf * Kf, -1.0f, 1.0f);
++        HalfFloatArray B_KN  = randomFp16(Kf * Nf, -1.0f, 1.0f);
++        HalfFloatArray B_NK  = transposeKNtoNK(B_KN, Nf, Kf);  // same logical matrix, [N, K] layout
+ 
+-        FloatArray cBaseline = new FloatArray(M * N);
+-        FloatArray cMMA = new FloatArray(M * N);
+-        FloatArray cSwizzled = new FloatArray(M * N);
++        FloatArray cBaseline = new FloatArray(Mf * Nf);
++        FloatArray cMMA      = new FloatArray(Mf * Nf);
++        FloatArray cMMA_NK   = new FloatArray(Mf * Nf);
++        FloatArray cSwizzled = new FloatArray(Mf * Nf);
+ 
+-        float[] ref = new float[M * N];
++        float[] ref = new float[Mf * Nf];
+         System.out.println("Computing CPU reference...");
+-        gemmReference(A, B, ref, M, N, K);
++        gemmReference(A, B_KN, ref, Mf, Nf, Kf);
++
++        // Sanity: NK reference must match KN reference (same logical matrix).
++        // Done implicitly by validating gemmMMA_NK against the same `ref`.
+ 
+-        WorkerGrid2D wgBaseline = new WorkerGrid2D(M, N);
++        WorkerGrid2D wgBaseline = new WorkerGrid2D(Mf, Nf);
+         wgBaseline.setLocalWork(TS, TS, 1);
+         GridScheduler gsBaseline = new GridScheduler("s_base.gemm", wgBaseline);
+         TaskGraph tgBaseline = new TaskGraph("s_base")
+-                .transferToDevice(DataTransferMode.FIRST_EXECUTION, A, B)
++                .transferToDevice(DataTransferMode.FIRST_EXECUTION, A, B_KN)
+                 .task("gemm", MatrixMultiplicationMMA::gemmBaselineFp16,
+-                        new KernelContext(), A, B, cBaseline, M, N, K)
++                        new KernelContext(), A, B_KN, cBaseline, Mf, Nf, Kf)
+                 .transferToHost(DataTransferMode.EVERY_EXECUTION, cBaseline);
+         ImmutableTaskGraph itgBaseline = tgBaseline.snapshot();
+ 
+-        WorkerGrid2D wgMMA = new WorkerGrid2D((M / BM) * THREADS_PER_BLOCK, (N / BN));
++        WorkerGrid2D wgMMA = new WorkerGrid2D((Mf / BM) * THREADS_PER_BLOCK, (Nf / BN));
+         wgMMA.setLocalWork(THREADS_PER_BLOCK, 1, 1);
+         GridScheduler gsMMA = new GridScheduler("s_mma.gemm", wgMMA);
+         TaskGraph tgMMA = new TaskGraph("s_mma")
+-                .transferToDevice(DataTransferMode.FIRST_EXECUTION, A, B)
++                .transferToDevice(DataTransferMode.FIRST_EXECUTION, A, B_KN)
+                 .task("gemm", MatrixMultiplicationMMA::gemmMMA,
+-                        new KernelContext(), A, B, cMMA, M, N, K)
++                        new KernelContext(), A, B_KN, cMMA, Mf, Nf, Kf)
+                 .transferToHost(DataTransferMode.EVERY_EXECUTION, cMMA);
+         ImmutableTaskGraph itgMMA = tgMMA.snapshot();
+ 
+-        WorkerGrid2D wgSwz = new WorkerGrid2D((M / BM) * THREADS_PER_BLOCK, (N / BN));
++        WorkerGrid2D wgMMA_NK = new WorkerGrid2D((Mf / BM) * THREADS_PER_BLOCK, (Nf / BN));
++        wgMMA_NK.setLocalWork(THREADS_PER_BLOCK, 1, 1);
++        GridScheduler gsMMA_NK = new GridScheduler("s_mma_nk.gemm", wgMMA_NK);
++        TaskGraph tgMMA_NK = new TaskGraph("s_mma_nk")
++                .transferToDevice(DataTransferMode.FIRST_EXECUTION, A, B_NK)
++                .task("gemm", MatrixMultiplicationMMA::gemmMMA_NK,
++                        new KernelContext(), A, B_NK, cMMA_NK, Mf, Nf, Kf)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, cMMA_NK);
++        ImmutableTaskGraph itgMMA_NK = tgMMA_NK.snapshot();
++
++        WorkerGrid2D wgSwz = new WorkerGrid2D((Mf / BM) * THREADS_PER_BLOCK, (Nf / BN));
+         wgSwz.setLocalWork(THREADS_PER_BLOCK, 1, 1);
+         GridScheduler gsSwz = new GridScheduler("s_swz.gemm", wgSwz);
+         TaskGraph tgSwz = new TaskGraph("s_swz")
+-                .transferToDevice(DataTransferMode.FIRST_EXECUTION, A, B)
++                .transferToDevice(DataTransferMode.FIRST_EXECUTION, A, B_KN)
+                 .task("gemm", MatrixMultiplicationMMA::gemmMMASwizzled,
+-                        new KernelContext(), A, B, cSwizzled, M, N, K)
++                        new KernelContext(), A, B_KN, cSwizzled, Mf, Nf, Kf)
+                 .transferToHost(DataTransferMode.EVERY_EXECUTION, cSwizzled);
+         ImmutableTaskGraph itgSwz = tgSwz.snapshot();
+ 
+         TornadoExecutionPlan planBaseline = new TornadoExecutionPlan(itgBaseline);
+-        TornadoExecutionPlan planMMA = new TornadoExecutionPlan(itgMMA);
+-        TornadoExecutionPlan planSwz = new TornadoExecutionPlan(itgSwz);
++        TornadoExecutionPlan planMMA      = new TornadoExecutionPlan(itgMMA);
++        TornadoExecutionPlan planMMA_NK   = new TornadoExecutionPlan(itgMMA_NK);
++        TornadoExecutionPlan planSwz      = new TornadoExecutionPlan(itgSwz);
+ 
+         System.out.println("Warming up...");
+         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
+             planBaseline.withGridScheduler(gsBaseline).execute();
+             planMMA.withGridScheduler(gsMMA).execute();
++            planMMA_NK.withGridScheduler(gsMMA_NK).execute();
+             planSwz.withGridScheduler(gsSwz).execute();
+         }
+ 
+         System.out.println("Validating...");
+-        validate("baseline", cBaseline, ref, M, N);
+-        validate("mma", cMMA, ref, M, N);
+-        validate("mma+swizzle", cSwizzled, ref, M, N);
++        validate("baseline",      cBaseline, ref, Mf, Nf);
++        validate("mma (B=KN)",    cMMA,      ref, Mf, Nf);
++        validate("mma (B=NK)",    cMMA_NK,   ref, Mf, Nf);
++        validate("mma+swizzle",   cSwizzled, ref, Mf, Nf);
+ 
+-        ArrayList<Long> tB = new ArrayList<>(), tM = new ArrayList<>(), tS = new ArrayList<>();
++        ArrayList<Long> tB = new ArrayList<>(), tM = new ArrayList<>(),
++                tNK = new ArrayList<>(), tS = new ArrayList<>();
+         System.out.println("Benchmarking...");
+         for (int i = 0; i < BENCHMARK_ITERATIONS; i++) {
+             long s0 = System.nanoTime();
+@@ -396,22 +562,28 @@ public class MatrixMultiplicationMMA {
+             planMMA.withGridScheduler(gsMMA).execute();
+             tM.add(System.nanoTime() - s1);
+             long s2 = System.nanoTime();
++            planMMA_NK.withGridScheduler(gsMMA_NK).execute();
++            tNK.add(System.nanoTime() - s2);
++            long s3 = System.nanoTime();
+             planSwz.withGridScheduler(gsSwz).execute();
+-            tS.add(System.nanoTime() - s2);
++            tS.add(System.nanoTime() - s3);
+         }
+ 
+         System.out.println("\nPerformance Results:");
+         System.out.println("====================");
+-        report("Baseline fp16 (tiled, no MMA)", tB, M, N, K);
+-        report("MMA fp16 (non-swizzled)", tM, M, N, K);
+-        report("MMA fp16 (swizzled)", tS, M, N, K);
+-
+-        double avgB = tB.stream().mapToLong(Long::longValue).average().orElse(0);
+-        double avgM = tM.stream().mapToLong(Long::longValue).average().orElse(0);
+-        double avgS = tS.stream().mapToLong(Long::longValue).average().orElse(0);
++        report("Baseline fp16 (tiled, no MMA)",     tB,  Mf, Nf, Kf);
++        report("MMA fp16 (B=KN row-major)",        tM,  Mf, Nf, Kf);
++        report("MMA fp16 (B=NK row-major)",        tNK, Mf, Nf, Kf);
++        report("MMA fp16 (swizzled, B=KN)",        tS,  Mf, Nf, Kf);
++
++        double avgB  = tB.stream().mapToLong(Long::longValue).average().orElse(0);
++        double avgM  = tM.stream().mapToLong(Long::longValue).average().orElse(0);
++        double avgNK = tNK.stream().mapToLong(Long::longValue).average().orElse(0);
++        double avgS  = tS.stream().mapToLong(Long::longValue).average().orElse(0);
+         System.out.println("\nSpeedups:");
+-        System.out.printf("  MMA vs baseline:          %.2fx%n", avgB / avgM);
+-        System.out.printf("  MMA+swizzle vs baseline:  %.2fx%n", avgB / avgS);
+-        System.out.printf("  MMA+swizzle vs MMA:       %.2fx%n", avgM / avgS);
++        System.out.printf("  MMA(KN) vs baseline:          %.2fx%n", avgB / avgM);
++        System.out.printf("  MMA(NK) vs baseline:          %.2fx%n", avgB / avgNK);
++        System.out.printf("  MMA(NK) vs MMA(KN):           %.2fx  (cost of NK layout)%n", avgM / avgNK);
++        System.out.printf("  MMA+swizzle vs baseline:      %.2fx%n", avgB / avgS);
+     }
+-}
++}
+\ No newline at end of file
+diff --git a/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMAPrebuilt.java b/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMAPrebuilt.java
+index 8153294c1..b95af869a 100644
+--- a/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMAPrebuilt.java
++++ b/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMAPrebuilt.java
+@@ -1,4 +1,278 @@
++/*
++ * Copyright (c) 2026, APT Group, Department of Computer Science,
++ * The University of Manchester.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ */
+ package uk.ac.manchester.tornado.examples.compute;
+ 
++/*
++ * Prebuilt-PTX harness for comparing multi-warp MMA GEMM variants.
++ *
++ * Loads hand-prepared .ptx files (one per kernel variant) via TornadoVM's
++ * prebuilt API and benchmarks each against the same data and CPU reference.
++ *
++ * Variants are expected to:
++ *   - Take a SIGNATURE of (kernel_context, A, B, C)   [4 params]
++ *   - Have a STABLE entry-point name (see KERNEL_NAMES below).
++ *   - Bake M=N=K=2048 into the body as constants.
++ *   - Match the launch config used by MatrixMultiplicationMMASweep's gemmMMA:
++ *     WorkerGrid2D((M/BM)*THREADS, N/BN), local (THREADS, 1, 1).
++ *
++ * Setup procedure:
++ *   1. Run MatrixMultiplicationMMASweep with -Dtornado.printKernel=true (or -pk via
++ *      llama-tornado), capture the generated PTX for gemmMMA (WARPS_M=4 WARPS_N=2 for
++ *      the 8-warp / 4667 GFLOP/s config). Match harness config to PTX config.
++ *   2. Strip the header lines (.version, .target, .address_size).
++ *   3. Drop context_unused, M, N, K from the entry signature (they are unused in body).
++ *      Rename the entry point to a stable name (e.g. "gemmMMA_sync"). The body
++ *      stays unchanged.
++ *   4. Save as $TORNADOVM_HOME/examples/generated/mma_sync.ptx
++ *   5. Hand-edit copies as mma_async_stage1.ptx, mma_async_stage2.ptx etc.
++ *
++ * Run:
++ *   tornado -m tornado.examples/uk.ac.manchester.tornado.examples.compute.MatrixMultiplicationMMAPrebuilt
++ */
++
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.LongSummaryStatistics;
++import java.util.Random;
++
++import uk.ac.manchester.tornado.api.AccessorParameters;
++import uk.ac.manchester.tornado.api.GridScheduler;
++import uk.ac.manchester.tornado.api.ImmutableTaskGraph;
++import uk.ac.manchester.tornado.api.TaskGraph;
++import uk.ac.manchester.tornado.api.TornadoBackend;
++import uk.ac.manchester.tornado.api.TornadoDeviceMap;
++import uk.ac.manchester.tornado.api.TornadoExecutionPlan;
++import uk.ac.manchester.tornado.api.TornadoRuntime;
++import uk.ac.manchester.tornado.api.WorkerGrid;
++import uk.ac.manchester.tornado.api.WorkerGrid2D;
++import uk.ac.manchester.tornado.api.common.Access;
++import uk.ac.manchester.tornado.api.common.TornadoDevice;
++import uk.ac.manchester.tornado.api.enums.DataTransferMode;
++import uk.ac.manchester.tornado.api.enums.TornadoVMBackendType;
++import uk.ac.manchester.tornado.api.exceptions.TornadoExecutionPlanException;
++import uk.ac.manchester.tornado.api.runtime.TornadoRuntimeProvider;
++import uk.ac.manchester.tornado.api.types.HalfFloat;
++import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
++import uk.ac.manchester.tornado.api.types.arrays.HalfFloatArray;
++
+ public class MatrixMultiplicationMMAPrebuilt {
+-}
++
++    // -------- Problem size (must match what's baked into the PTX files) --------
++    private static final int SIZE = 2048;
++    private static final int M = SIZE, N = SIZE, K = SIZE;
++
++    // -------- Launch config (must match the PTX files' assumptions) ------------
++    // For the 8-warp config (WARPS_M=4 WARPS_N=2, BM=BN=128, 256 threads/block):
++    private static final int BM = 128;
++    private static final int BN = 128;
++    private static final int THREADS_PER_BLOCK = 256;
++
++    // -------- Variants to test -------------------------------------------------
++    // Each entry: { ptxFileName, entryPointName, displayLabel }
++    // Add new variants as cp.async stages are implemented.
++    private static final String[][] VARIANTS = {
++            { "mma_sync.ptx",         "gemmmma_sync",         "sync (baseline)"     },
++             { "mma_async_stage1.ptx", "gemmmma_async", "async no-pipeline"  },
++             { "mma_async_stage2.ptx", "gemmmma_async2", "async 2-stage"      },
++    };
++
++    // -------- Benchmark knobs --------------------------------------------------
++    private static final int WARM_UP_ITERATIONS = 20;
++    private static final int BENCHMARK_ITERATIONS = 30;
++    private static final float REL_TOLERANCE = 2e-2f;
++    private static final long SEED = 42L;
++
++    // ===========================================================================
++
++    private static String kernelPath(String fileName) {
++//        String home = System.getenv("TORNADOVM_HOME");
++//        if (home == null) throw new RuntimeException("TORNADOVM_HOME not set");
++//        return home + "/examples/generated/" + fileName;
++        return "/home/mary/Projects/TornadoVM/" + fileName;
++    }
++
++    private static HalfFloatArray randomFp16(int size, float lo, float hi, Random rng) {
++        HalfFloatArray arr = new HalfFloatArray(size);
++        float range = hi - lo;
++        for (int i = 0; i < size; i++) arr.set(i, new HalfFloat(lo + rng.nextFloat() * range));
++        return arr;
++    }
++
++    private static void gemmReference(HalfFloatArray A, HalfFloatArray B, float[] ref) {
++        for (int i = 0; i < M; i++) {
++            for (int j = 0; j < N; j++) {
++                float sum = 0.0f;
++                for (int k = 0; k < K; k++) {
++                    sum += A.get(i * K + k).getFloat32() * B.get(k * N + j).getFloat32();
++                }
++                ref[i * N + j] = sum;
++            }
++        }
++    }
++
++    private static void clearC(FloatArray C) {
++        for (int i = 0; i < M * N; i++) C.set(i, 0.0f);
++    }
++
++    private static boolean validate(String label, FloatArray got, float[] ref) {
++        float maxRel = 0.0f;
++        int bad = 0;
++        for (int i = 0; i < M * N; i++) {
++            float r = ref[i], g = got.get(i);
++            float rel = Math.abs(r - g) / Math.max(Math.abs(r), 1.0f);
++            maxRel = Math.max(maxRel, rel);
++            if (rel > REL_TOLERANCE) bad++;
++        }
++        boolean ok = bad == 0;
++        System.out.printf("  [%-20s] %s (max rel err %.4f, %d/%d out of tol)%n",
++                label, ok ? "PASSED" : "FAILED", maxRel, bad, M * N);
++        return ok;
++    }
++
++    private static double gflops(long avgNanos) {
++        return (2.0 * M * N * K * 1e-9) / (avgNanos * 1e-9);
++    }
++
++    private static void report(String label, ArrayList<Long> t) {
++        LongSummaryStatistics s = t.stream().mapToLong(Long::longValue).summaryStatistics();
++        System.out.printf("  %-22s avg %.3f ms  min %.3f ms  max %.3f ms  %.1f GFLOP/s%n",
++                label,
++                s.getAverage() / 1e6,
++                s.getMin() / 1e6,
++                s.getMax() / 1e6,
++                gflops((long) s.getAverage()));
++    }
++
++    private static TornadoDevice pickPtxDevice() {
++        TornadoDeviceMap map = TornadoExecutionPlan.getTornadoDeviceMap();
++        for (TornadoBackend b : map.getBackendsWithPredicate(
++                bk -> bk.getBackendType() == TornadoVMBackendType.PTX)) {
++            return b.getDevice(0);
++        }
++        throw new RuntimeException("No PTX backend found. Build TornadoVM with PTX enabled.");
++    }
++
++    // ===========================================================================
++
++    public static void main(String[] args) {
++        TornadoDevice device = pickPtxDevice();
++        System.out.println("MMA Prebuilt-PTX Benchmark");
++        System.out.println("==========================");
++        System.out.printf("Device: %s%n", device.getDeviceName());
++        System.out.printf("Size: %d^3  Block: %dx%d  Threads/block: %d%n",
++                SIZE, BM, BN, THREADS_PER_BLOCK);
++        System.out.printf("Variants: %d%n", VARIANTS.length);
++        System.out.println();
++
++        // --- Data setup (deterministic across variants) ---
++        Random rng = new Random(SEED);
++        HalfFloatArray A = randomFp16(M * K, -1.0f, 1.0f, rng);
++        HalfFloatArray B = randomFp16(K * N, -1.0f, 1.0f, rng);
++        FloatArray C = new FloatArray(M * N);
++        float[] ref = new float[M * N];
++
++        System.out.println("Computing CPU reference (one-time)...");
++        long t0 = System.nanoTime();
++        gemmReference(A, B, ref);
++        System.out.printf("  CPU reference: %.2f s%n%n", (System.nanoTime() - t0) / 1e9);
++
++        // --- Worker grid (same for all variants) ---
++        // Global: (M/BM) * THREADS_PER_BLOCK in X, (N/BN) in Y.
++        // Local:  (THREADS_PER_BLOCK, 1, 1).
++        WorkerGrid2D wg = new WorkerGrid2D((M / BM) * THREADS_PER_BLOCK, N / BN);
++        wg.setLocalWork(THREADS_PER_BLOCK, 1, 1);
++
++        // --- Per-variant runs ---
++        var allTimings = new java.util.LinkedHashMap<String, ArrayList<Long>>();
++
++        for (String[] v : VARIANTS) {
++            String fileName  = v[0];
++            String entryName = v[1];
++            String label     = v[2];
++            String path      = kernelPath(fileName);
++            // Use short, predictable graph/task names. TornadoVM constructs the lookup
++            // string as: {graphName}_{taskName}_{entryName}_{argTypeSuffix}
++            // -- so keep these stable across variants and just vary entryName.
++            String graphId   = "s0";
++            String taskId    = "t0";
++
++            System.out.printf("--- Variant: %s  (file: %s, entry: %s) ---%n",
++                    label, fileName, entryName);
++
++            // Reset C to ensure no data leaks from previous variant.
++            clearC(C);
++
++            // Build accessors. For the PTX backend, the kernel_context is INJECTED by
++            // the runtime as the implicit first PTX parameter -- it does NOT appear in
++            // AccessorParameters and does NOT appear in the constructed lookup string.
++            // (See testPrebuilt01: PTX signature has 4 params, accessors has 3 slots.)
++            // The .ptx file must still declare kernel_context as its first parameter.
++            AccessorParameters accessors = new AccessorParameters(3);
++            accessors.set(0, A, Access.READ_ONLY);
++            accessors.set(1, B, Access.READ_ONLY);
++            accessors.set(2, C, Access.WRITE_ONLY);
++
++            // Task graph for this variant.
++            TaskGraph tg = new TaskGraph(graphId)
++                    .transferToDevice(DataTransferMode.FIRST_EXECUTION, A, B)
++                    .prebuiltTask(taskId, entryName, path, accessors)
++                    .transferToHost(DataTransferMode.EVERY_EXECUTION, C);
++
++            GridScheduler scheduler = new GridScheduler(graphId + "." + taskId, wg);
++
++            ImmutableTaskGraph itg = tg.snapshot();
++
++            try (TornadoExecutionPlan plan = new TornadoExecutionPlan(itg)) {
++                // Warmup
++                System.out.printf("  Warmup (%d iters)...%n", WARM_UP_ITERATIONS);
++                for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
++                    plan.withGridScheduler(scheduler).withDevice(device).execute();
++                }
++
++                // Validate (against the same CPU ref every variant)
++                if (!validate(label, C, ref)) {
++                    System.out.printf("  *** %s FAILED VALIDATION -- timing below is meaningless%n%n", label);
++                    // Still time it so we can see if it's compiling/running at all.
++                }
++
++                // Benchmark
++                ArrayList<Long> t = new ArrayList<>(BENCHMARK_ITERATIONS);
++                for (int i = 0; i < BENCHMARK_ITERATIONS; i++) {
++                    long start = System.nanoTime();
++                    plan.withGridScheduler(scheduler).withDevice(device).execute();
++                    t.add(System.nanoTime() - start);
++                }
++
++                report(label, t);
++                allTimings.put(label, t);
++            } catch (TornadoExecutionPlanException e) {
++                System.out.printf("  *** %s FAILED TO EXECUTE: %s%n%n", label, e.getMessage());
++                e.printStackTrace();
++            }
++
++            System.out.println();
++        }
++
++        // --- Comparison table ---
++        if (allTimings.size() > 1) {
++            System.out.println("Comparison (vs first variant):");
++            String baseLabel = allTimings.keySet().iterator().next();
++            double baseAvg = allTimings.get(baseLabel).stream().mapToLong(Long::longValue).average().orElse(0);
++            for (var e : allTimings.entrySet()) {
++                double avg = e.getValue().stream().mapToLong(Long::longValue).average().orElse(0);
++                System.out.printf("  %-22s %.2fx vs %s%n",
++                        e.getKey(), baseAvg / avg, baseLabel);
++            }
++        }
++
++        System.out.println("\nDone.");
++    }
++}
+\ No newline at end of file
+diff --git a/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMASweep.java b/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMASweep.java
+index 2bbfbf0f8..c994e3bee 100644
+--- a/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMASweep.java
++++ b/tornado-examples/src/main/java/uk/ac/manchester/tornado/examples/compute/MatrixMultiplicationMMASweep.java
+@@ -1,4 +1,317 @@
+ package uk.ac.manchester.tornado.examples.compute;
+ 
++/*
++ * CONFIG SWEEP for the multi-warp MMA GEMM.
++ *
++ * Holds the per-warp tile fixed at WM=32 x WN=64 (=> 16 accumulators, the exact
++ * validated kernel body) and varies only the warp grid (WARPS_M x WARPS_N), which
++ * changes block size, thread count and occupancy.
++ *
++ * Shared memory is compile-time sized per config (fair occupancy), so each config
++ * is a separate build+run. Change ONLY the two constants below, rebuild
++ * tornado-examples, and run. Record GFLOP/s into the table.
++ *
++ *   WARPS_M WARPS_N  warps  threads  BM   BN
++ *     2       1        2      64     64   64
++ *     2       2        4     128     64  128
++ *     4       1        4     128    128   64
++ *     4       2        8     256    128  128   <- current baseline
++ *     4       4       16     512    128  256
++ *     8       2       16     512    256  128
++ *     8       4       32    1024    256  256
++ *
++ * What to read from the results:
++ *   - GFLOP/s RISES with more warps/threads  -> occupancy/parallelism bound:
++ *       more warps help; pick the best, THEN consider cp.async.
++ *   - GFLOP/s PLATEAUS or FALLS at higher warp counts -> latency or register
++ *       bound: more warps don't help; cp.async (overlap global loads with
++ *       compute) is the right next lever.
++ */
++
++import java.util.ArrayList;
++import java.util.LongSummaryStatistics;
++import java.util.Random;
++
++import uk.ac.manchester.tornado.api.GridScheduler;
++import uk.ac.manchester.tornado.api.ImmutableTaskGraph;
++import uk.ac.manchester.tornado.api.KernelContext;
++import uk.ac.manchester.tornado.api.TaskGraph;
++import uk.ac.manchester.tornado.api.TornadoExecutionPlan;
++import uk.ac.manchester.tornado.api.WorkerGrid2D;
++import uk.ac.manchester.tornado.api.enums.DataTransferMode;
++import uk.ac.manchester.tornado.api.enums.MMAShape;
++import uk.ac.manchester.tornado.api.types.HalfFloat;
++import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
++import uk.ac.manchester.tornado.api.types.arrays.HalfFloatArray;
++
+ public class MatrixMultiplicationMMASweep {
++
++    private static final int WARM_UP_ITERATIONS = 20;
++    private static final int BENCHMARK_ITERATIONS = 30;
++    private static final float REL_TOLERANCE = 2e-2f;
++    private static final Random RNG = new Random(42);
++
++    private static final int TS = 16;
++    private static final int WARP_SIZE = 32;
++
++    // ==== THE TWO KNOBS TO SWEEP ====
++    private static final int WARPS_M = 4;//8;//4;   // change me
++    private static final int WARPS_N = 2; //2;   // change me
++    // ================================
++
++    // Per-warp tile FIXED (=> 16 accumulators, validated body). Do not change.
++    private static final int WM = 32;
++    private static final int WN = 64;
++    private static final int BK = 16;
++
++    // Derived block tile + launch config.
++    private static final int BM = WARPS_M * WM;
++    private static final int BN = WARPS_N * WN;
++    private static final int WARPS_PER_BLOCK = WARPS_M * WARPS_N;
++    private static final int THREADS_PER_BLOCK = WARPS_PER_BLOCK * WARP_SIZE;
++
++    // Offset constants (WM=32 fixed): A row = 32 bytes; warp A band = WM*32; mma-row = 16*32.
++    private static final int A_ROW_BYTES = 32;
++    private static final int A_WARP_BYTES = WM * A_ROW_BYTES;   // 1024
++    private static final int A_MMAROW_BYTES = 16 * A_ROW_BYTES; // 512
++    private static final int B_SUBTILE_BYTES = 256;
++    private static final int MMA_COLS = WN / 8;                 // 8
++
++    // ---- baseline (reference, config-independent) ----
++    public static void gemmBaselineFp16(KernelContext ctx,
++                                        HalfFloatArray A, HalfFloatArray B, FloatArray C,
++                                        int M, int N, int K) {
++        int row = ctx.localIdx;
++        int col = ctx.localIdy;
++        int globalRow = TS * ctx.groupIdx + row;
++        int globalCol = TS * ctx.groupIdy + col;
++        HalfFloat[] aSub = ctx.allocateHalfFloatLocalArray(TS * TS);
++        HalfFloat[] bSub = ctx.allocateHalfFloatLocalArray(TS * TS);
++        float sum = 0.0f;
++        int numTiles = K / TS;
++        for (int t = 0; t < numTiles; t++) {
++            int tiledRow = TS * t + row;
++            int tiledCol = TS * t + col;
++            aSub[col * TS + row] = A.get(globalRow * K + tiledCol);
++            bSub[col * TS + row] = B.get(tiledRow * N + globalCol);
++            ctx.localBarrier();
++            for (int k = 0; k < TS; k++) {
++                sum += aSub[k * TS + row].getFloat32() * bSub[col * TS + k].getFloat32();
++            }
++            ctx.localBarrier();
++        }
++        C.set(globalRow * N + globalCol, sum);
++    }
++
++    // ---- multi-warp MMA (swept via WARPS_M/WARPS_N; body identical to validated kernel) ----
++    public static void gemmMMA(KernelContext ctx,
++                               HalfFloatArray A, HalfFloatArray B, FloatArray C,
++                               int M, int N, int K) {
++        int tid = ctx.localIdx;
++        int warpId = tid / WARP_SIZE;
++        int warpM = warpId / WARPS_N;
++        int warpN = warpId % WARPS_N;
++        int blockRow = BM * ctx.groupIdx;
++        int blockCol = BN * ctx.groupIdy;
++
++        int[] aTile = ctx.allocateIntLocalArray(BM * BK / 2);
++        int[] bTile = ctx.allocateIntLocalArray(BK * BN / 2);
++
++        float[] c00 = ctx.mmaFragment(0.0f); float[] c01 = ctx.mmaFragment(0.0f);
++        float[] c02 = ctx.mmaFragment(0.0f); float[] c03 = ctx.mmaFragment(0.0f);
++        float[] c04 = ctx.mmaFragment(0.0f); float[] c05 = ctx.mmaFragment(0.0f);
++        float[] c06 = ctx.mmaFragment(0.0f); float[] c07 = ctx.mmaFragment(0.0f);
++        float[] c10 = ctx.mmaFragment(0.0f); float[] c11 = ctx.mmaFragment(0.0f);
++        float[] c12 = ctx.mmaFragment(0.0f); float[] c13 = ctx.mmaFragment(0.0f);
++        float[] c14 = ctx.mmaFragment(0.0f); float[] c15 = ctx.mmaFragment(0.0f);
++        float[] c16 = ctx.mmaFragment(0.0f); float[] c17 = ctx.mmaFragment(0.0f);
++
++        int numKSteps = K / BK;
++        for (int kStep = 0; kStep < numKSteps; kStep++) {
++            int kBase = kStep * BK;
++            for (int idx = tid; idx < BM * BK / 2; idx += THREADS_PER_BLOCK) {
++                int m_row = idx / (BK / 2);
++                int k_pair = idx % (BK / 2);
++                int k_base = k_pair * 2;
++                int gA = (blockRow + m_row) * K + (kBase + k_base);
++                int lo = A.get(gA).getHalfFloatValue() & 0xFFFF;
++                int hi = A.get(gA + 1).getHalfFloatValue() & 0xFFFF;
++                aTile[m_row * (BK / 2) + k_pair] = lo | (hi << 16);
++            }
++            for (int idx = tid; idx < BK * BN / 2; idx += THREADS_PER_BLOCK) {
++                int subTileId = idx / 64;
++                int intInSub = idx % 64;
++                int k_row = intInSub / 4;
++                int j_pair = intInSub % 4;
++                int j_base = j_pair * 2;
++                int col_in_block = subTileId * 8 + j_base;
++                int gB = (kBase + k_row) * N + (blockCol + col_in_block);
++                int lo = B.get(gB).getHalfFloatValue() & 0xFFFF;
++                int hi = B.get(gB + 1).getHalfFloatValue() & 0xFFFF;
++                bTile[idx] = lo | (hi << 16);
++            }
++            ctx.localBarrier();
++
++            int aOff0 = warpM * A_WARP_BYTES;
++            int aOff1 = warpM * A_WARP_BYTES + A_MMAROW_BYTES;
++            HalfFloat[] a0 = ctx.mmaLoadA(aTile, BK, aOff0);
++            HalfFloat[] a1 = ctx.mmaLoadA(aTile, BK, aOff1);
++            int bBase = warpN * MMA_COLS;
++            HalfFloat[] b0 = ctx.mmaLoadB(bTile, BK, (bBase + 0) * B_SUBTILE_BYTES);
++            HalfFloat[] b1 = ctx.mmaLoadB(bTile, BK, (bBase + 1) * B_SUBTILE_BYTES);
++            HalfFloat[] b2 = ctx.mmaLoadB(bTile, BK, (bBase + 2) * B_SUBTILE_BYTES);
++            HalfFloat[] b3 = ctx.mmaLoadB(bTile, BK, (bBase + 3) * B_SUBTILE_BYTES);
++            HalfFloat[] b4 = ctx.mmaLoadB(bTile, BK, (bBase + 4) * B_SUBTILE_BYTES);
++            HalfFloat[] b5 = ctx.mmaLoadB(bTile, BK, (bBase + 5) * B_SUBTILE_BYTES);
++            HalfFloat[] b6 = ctx.mmaLoadB(bTile, BK, (bBase + 6) * B_SUBTILE_BYTES);
++            HalfFloat[] b7 = ctx.mmaLoadB(bTile, BK, (bBase + 7) * B_SUBTILE_BYTES);
++
++            c00 = ctx.mma(a0, b0, c00, MMAShape.M16N8K16);
++            c01 = ctx.mma(a0, b1, c01, MMAShape.M16N8K16);
++            c02 = ctx.mma(a0, b2, c02, MMAShape.M16N8K16);
++            c03 = ctx.mma(a0, b3, c03, MMAShape.M16N8K16);
++            c04 = ctx.mma(a0, b4, c04, MMAShape.M16N8K16);
++            c05 = ctx.mma(a0, b5, c05, MMAShape.M16N8K16);
++            c06 = ctx.mma(a0, b6, c06, MMAShape.M16N8K16);
++            c07 = ctx.mma(a0, b7, c07, MMAShape.M16N8K16);
++            c10 = ctx.mma(a1, b0, c10, MMAShape.M16N8K16);
++            c11 = ctx.mma(a1, b1, c11, MMAShape.M16N8K16);
++            c12 = ctx.mma(a1, b2, c12, MMAShape.M16N8K16);
++            c13 = ctx.mma(a1, b3, c13, MMAShape.M16N8K16);
++            c14 = ctx.mma(a1, b4, c14, MMAShape.M16N8K16);
++            c15 = ctx.mma(a1, b5, c15, MMAShape.M16N8K16);
++            c16 = ctx.mma(a1, b6, c16, MMAShape.M16N8K16);
++            c17 = ctx.mma(a1, b7, c17, MMAShape.M16N8K16);
++            ctx.localBarrier();
++        }
++
++        int rBase = blockRow + warpM * WM;
++        int cBase = blockCol + warpN * WN;
++        ctx.mmaStore(c00, C, rBase + 0,  cBase + 0,  N);
++        ctx.mmaStore(c01, C, rBase + 0,  cBase + 8,  N);
++        ctx.mmaStore(c02, C, rBase + 0,  cBase + 16, N);
++        ctx.mmaStore(c03, C, rBase + 0,  cBase + 24, N);
++        ctx.mmaStore(c04, C, rBase + 0,  cBase + 32, N);
++        ctx.mmaStore(c05, C, rBase + 0,  cBase + 40, N);
++        ctx.mmaStore(c06, C, rBase + 0,  cBase + 48, N);
++        ctx.mmaStore(c07, C, rBase + 0,  cBase + 56, N);
++        ctx.mmaStore(c10, C, rBase + 16, cBase + 0,  N);
++        ctx.mmaStore(c11, C, rBase + 16, cBase + 8,  N);
++        ctx.mmaStore(c12, C, rBase + 16, cBase + 16, N);
++        ctx.mmaStore(c13, C, rBase + 16, cBase + 24, N);
++        ctx.mmaStore(c14, C, rBase + 16, cBase + 32, N);
++        ctx.mmaStore(c15, C, rBase + 16, cBase + 40, N);
++        ctx.mmaStore(c16, C, rBase + 16, cBase + 48, N);
++        ctx.mmaStore(c17, C, rBase + 16, cBase + 56, N);
++    }
++
++    private static void gemmReference(HalfFloatArray A, HalfFloatArray B, float[] ref,
++                                      int M, int N, int K) {
++        for (int i = 0; i < M; i++) {
++            for (int j = 0; j < N; j++) {
++                float sum = 0.0f;
++                for (int k = 0; k < K; k++) {
++                    sum += A.get(i * K + k).getFloat32() * B.get(k * N + j).getFloat32();
++                }
++                ref[i * N + j] = sum;
++            }
++        }
++    }
++
++    private static HalfFloatArray randomFp16(int size, float lo, float hi) {
++        HalfFloatArray arr = new HalfFloatArray(size);
++        float range = hi - lo;
++        for (int i = 0; i < size; i++) arr.set(i, new HalfFloat(lo + RNG.nextFloat() * range));
++        return arr;
++    }
++
++    private static boolean validate(String name, FloatArray got, float[] ref, int M, int N) {
++        float maxRel = 0.0f; int bad = 0;
++        for (int i = 0; i < M * N; i++) {
++            float r = ref[i], g = got.get(i);
++            float rel = Math.abs(r - g) / Math.max(Math.abs(r), 1.0f);
++            maxRel = Math.max(maxRel, rel);
++            if (rel > REL_TOLERANCE) bad++;
++        }
++        boolean ok = bad == 0;
++        System.out.printf("  [%s] %s (max rel err %.4f, %d/%d out of tol)%n",
++                name, ok ? "PASSED" : "FAILED", maxRel, bad, M * N);
++        return ok;
++    }
++
++    private static double gflops(long avgNanos, int M, int N, int K) {
++        return (2.0 * M * N * K * 1e-9) / (avgNanos * 1e-9);
++    }
++
++    private static void report(String name, ArrayList<Long> t, int M, int N, int K) {
++        LongSummaryStatistics s = t.stream().mapToLong(Long::longValue).summaryStatistics();
++        System.out.printf("%s: avg %.3f ms  min %.3f ms  %.1f GFLOP/s%n",
++                name, s.getAverage() / 1e6, s.getMin() / 1e6, gflops((long) s.getAverage(), M, N, K));
++    }
++
++    public static void main(String[] args) {
++        int size = 2048;
++        if (args.length >= 1) { try { size = Integer.parseInt(args[0]); } catch (NumberFormatException e) {} }
++        final int M = size, N = size, K = size;
++
++        System.out.println("MMA GEMM Config Sweep");
++        System.out.println("=====================");
++        System.out.printf("Config: WARPS_M=%d WARPS_N=%d  => %d warps, %d threads/block, block %dx%d%n",
++                WARPS_M, WARPS_N, WARPS_PER_BLOCK, THREADS_PER_BLOCK, BM, BN);
++        System.out.printf("Size: %d^3   Shared: A=%d B=%d ints (%d KB)%n",
++                size, BM * BK / 2, BK * BN / 2, (BM * BK / 2 + BK * BN / 2) * 4 / 1024);
++
++        HalfFloatArray A = randomFp16(M * K, -1.0f, 1.0f);
++        HalfFloatArray B = randomFp16(K * N, -1.0f, 1.0f);
++        FloatArray cBaseline = new FloatArray(M * N);
++        FloatArray cMMA = new FloatArray(M * N);
++        float[] ref = new float[M * N];
++        System.out.println("CPU reference...");
++        gemmReference(A, B, ref, M, N, K);
++
++        WorkerGrid2D wgB = new WorkerGrid2D(M, N);
++        wgB.setLocalWork(TS, TS, 1);
++        GridScheduler gsB = new GridScheduler("sb.gemm", wgB);
++        ImmutableTaskGraph itgB = new TaskGraph("sb")
++                .transferToDevice(DataTransferMode.FIRST_EXECUTION, A, B)
++                .task("gemm", MatrixMultiplicationMMASweep::gemmBaselineFp16, new KernelContext(), A, B, cBaseline, M, N, K)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, cBaseline).snapshot();
++
++        WorkerGrid2D wgM = new WorkerGrid2D((M / BM) * THREADS_PER_BLOCK, (N / BN));
++        wgM.setLocalWork(THREADS_PER_BLOCK, 1, 1);
++        GridScheduler gsM = new GridScheduler("sm.gemm", wgM);
++        ImmutableTaskGraph itgM = new TaskGraph("sm")
++                .transferToDevice(DataTransferMode.FIRST_EXECUTION, A, B)
++                .task("gemm", MatrixMultiplicationMMASweep::gemmMMA, new KernelContext(), A, B, cMMA, M, N, K)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, cMMA).snapshot();
++
++        TornadoExecutionPlan planB = new TornadoExecutionPlan(itgB);
++        TornadoExecutionPlan planM = new TornadoExecutionPlan(itgM);
++
++        System.out.println("Warmup...");
++        for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
++            planB.withGridScheduler(gsB).execute();
++            planM.withGridScheduler(gsM).execute();
++        }
++        System.out.println("Validate...");
++        validate("baseline", cBaseline, ref, M, N);
++        boolean ok = validate("mma", cMMA, ref, M, N);
++        if (!ok) { System.out.println("MMA FAILED validation -- numbers below are meaningless."); }
++
++        ArrayList<Long> tB = new ArrayList<>(), tM = new ArrayList<>();
++        System.out.println("Benchmark...");
++        for (int i = 0; i < BENCHMARK_ITERATIONS; i++) {
++            long s0 = System.nanoTime(); planB.withGridScheduler(gsB).execute(); tB.add(System.nanoTime() - s0);
++            long s1 = System.nanoTime(); planM.withGridScheduler(gsM).execute(); tM.add(System.nanoTime() - s1);
++        }
++
++        System.out.println("\nResults:");
++        report("Baseline (ref)", tB, M, N, K);
++        report("MMA", tM, M, N, K);
++        double avgB = tB.stream().mapToLong(Long::longValue).average().orElse(0);
++        double avgM = tM.stream().mapToLong(Long::longValue).average().orElse(0);
++        System.out.printf("MMA speedup vs baseline: %.2fx%n", avgB / avgM);
++        System.out.printf("%n>> RECORD: WARPS_M=%d WARPS_N=%d (%d warps) -> %.1f GFLOP/s%n",
++                WARPS_M, WARPS_N, WARPS_PER_BLOCK, gflops((long) avgM, M, N, K));
++    }
+ }

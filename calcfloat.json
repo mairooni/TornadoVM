@@ -1,0 +1,520 @@
+{
+    "s0": {
+        "TOTAL_GRAAL_COMPILE_TIME": "46511528",
+        "TOTAL_DRIVER_COMPILE_TIME": "4003483",
+        "COPY_OUT_TIME": "11488",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4960",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "120096",
+        "TOTAL_TASK_GRAPH_TIME": "128695885",
+        "TOTAL_CODE_GENERATION_TIME": "5108027",
+        "TOTAL_BYTE_CODE_GENERATION": "5365758",
+        "COPY_IN_TIME": "50816",
+        "TOTAL_KERNEL_TIME": "9152",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "TOTAL_COPY_IN_SIZE_BYTES": "1048768",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_CODE_GENERATION_TIME": "5108027",
+            "TASK_COMPILE_DRIVER_TIME": "4003483",
+            "TASK_COMPILE_GRAAL_TIME": "46511528",
+            "TASK_KERNEL_TIME": "9152"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10912",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4640",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "18944",
+        "TOTAL_TASK_GRAPH_TIME": "1148255",
+        "COPY_IN_TIME": "1024",
+        "TOTAL_KERNEL_TIME": "8032",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "8032"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10592",
+        "TOTAL_DISPATCH_KERNEL_TIME": "5120",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "17760",
+        "TOTAL_TASK_GRAPH_TIME": "838666",
+        "COPY_IN_TIME": "1024",
+        "TOTAL_KERNEL_TIME": "6304",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6304"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10560",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4608",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "14336",
+        "TOTAL_TASK_GRAPH_TIME": "600721",
+        "COPY_IN_TIME": "1024",
+        "TOTAL_KERNEL_TIME": "6144",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6144"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10688",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4576",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "12800",
+        "TOTAL_TASK_GRAPH_TIME": "572501",
+        "COPY_IN_TIME": "800",
+        "TOTAL_KERNEL_TIME": "6144",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6144"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10560",
+        "TOTAL_DISPATCH_KERNEL_TIME": "5216",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "14048",
+        "TOTAL_TASK_GRAPH_TIME": "834374",
+        "COPY_IN_TIME": "1024",
+        "TOTAL_KERNEL_TIME": "6144",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6144"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10624",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4352",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "15360",
+        "TOTAL_TASK_GRAPH_TIME": "574642",
+        "COPY_IN_TIME": "0",
+        "TOTAL_KERNEL_TIME": "6240",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6240"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10592",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4576",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "13952",
+        "TOTAL_TASK_GRAPH_TIME": "523130",
+        "COPY_IN_TIME": "0",
+        "TOTAL_KERNEL_TIME": "6144",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6144"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10944",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4544",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "13856",
+        "TOTAL_TASK_GRAPH_TIME": "531078",
+        "COPY_IN_TIME": "1024",
+        "TOTAL_KERNEL_TIME": "6144",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6144"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10624",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4416",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "13920",
+        "TOTAL_TASK_GRAPH_TIME": "521548",
+        "COPY_IN_TIME": "0",
+        "TOTAL_KERNEL_TIME": "5984",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "5984"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10592",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4768",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "12896",
+        "TOTAL_TASK_GRAPH_TIME": "490754",
+        "COPY_IN_TIME": "1024",
+        "TOTAL_KERNEL_TIME": "6144",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6144"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10592",
+        "TOTAL_DISPATCH_KERNEL_TIME": "5120",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "12832",
+        "TOTAL_TASK_GRAPH_TIME": "479702",
+        "COPY_IN_TIME": "864",
+        "TOTAL_KERNEL_TIME": "5120",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "5120"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10592",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4320",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "13408",
+        "TOTAL_TASK_GRAPH_TIME": "571778",
+        "COPY_IN_TIME": "768",
+        "TOTAL_KERNEL_TIME": "6048",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6048"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10592",
+        "TOTAL_DISPATCH_KERNEL_TIME": "5056",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "13888",
+        "TOTAL_TASK_GRAPH_TIME": "505091",
+        "COPY_IN_TIME": "864",
+        "TOTAL_KERNEL_TIME": "6144",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6144"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10560",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4864",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "13408",
+        "TOTAL_TASK_GRAPH_TIME": "466000",
+        "COPY_IN_TIME": "800",
+        "TOTAL_KERNEL_TIME": "5120",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "5120"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10560",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4352",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "12928",
+        "TOTAL_TASK_GRAPH_TIME": "478194",
+        "COPY_IN_TIME": "1024",
+        "TOTAL_KERNEL_TIME": "5856",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "5856"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10624",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4800",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "13632",
+        "TOTAL_TASK_GRAPH_TIME": "486878",
+        "COPY_IN_TIME": "1024",
+        "TOTAL_KERNEL_TIME": "6144",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6144"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10592",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4768",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "13408",
+        "TOTAL_TASK_GRAPH_TIME": "467654",
+        "COPY_IN_TIME": "0",
+        "TOTAL_KERNEL_TIME": "6144",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "6144"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10560",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4800",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "12576",
+        "TOTAL_TASK_GRAPH_TIME": "438762",
+        "COPY_IN_TIME": "1024",
+        "TOTAL_KERNEL_TIME": "5184",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "5184"
+        }
+    }
+}
+
+{
+    "s0": {
+        "COPY_OUT_TIME": "10592",
+        "TOTAL_DISPATCH_KERNEL_TIME": "4832",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "13536",
+        "TOTAL_TASK_GRAPH_TIME": "474789",
+        "COPY_IN_TIME": "0",
+        "TOTAL_KERNEL_TIME": "9216",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "14789",
+            "TASK_KERNEL_TIME": "9216"
+        }
+    }
+}
+
+{
+    "s0": {
+        "TOTAL_GRAAL_COMPILE_TIME": "49462450",
+        "TOTAL_DRIVER_COMPILE_TIME": "7379549",
+        "COPY_OUT_TIME": "11488",
+        "TOTAL_DISPATCH_KERNEL_TIME": "5824",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "129184",
+        "TOTAL_TASK_GRAPH_TIME": "141494307",
+        "TOTAL_CODE_GENERATION_TIME": "5751677",
+        "TOTAL_BYTE_CODE_GENERATION": "6008785",
+        "COPY_IN_TIME": "48960",
+        "TOTAL_KERNEL_TIME": "11264",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "131096",
+        "ALLOCATION_BYTES": "655480",
+        "TOTAL_COPY_IN_SIZE_BYTES": "1048768",
+        "s0.t0": {
+            "BACKEND": "OPENCL",
+            "METHOD": "CalculateDistanceFloat.calculateDistance",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "SYSTEM_VOLTAGE_V": "n/a",
+            "SYSTEM_POWER_CONSUMPTION_W": "n/a",
+            "POWER_USAGE_mW": "15100",
+            "TASK_CODE_GENERATION_TIME": "5751677",
+            "TASK_COMPILE_DRIVER_TIME": "7379549",
+            "TASK_COMPILE_GRAAL_TIME": "49462450",
+            "TASK_KERNEL_TIME": "11264"
+        }
+    }
+}
+

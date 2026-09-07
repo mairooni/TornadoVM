@@ -1,0 +1,10 @@
+(): Warning: Function matrixMultiplication is a kernel, so overriding noinline attribute. The function may be inlined when called.
+ptxas application ptx input, line 110; error   : Modifier '.ftz' does not apply to this type of convert operation
+ptxas application ptx input, line 116; error   : Modifier '.ftz' does not apply to this type of convert operation
+ptxas application ptx input, line 122; error   : Modifier '.ftz' does not apply to this type of convert operation
+ptxas application ptx input, line 128; error   : Modifier '.ftz' does not apply to this type of convert operation
+ptxas application ptx input, line 134; error   : Modifier '.ftz' does not apply to this type of convert operation
+ptxas application ptx input, line 140; error   : Modifier '.ftz' does not apply to this type of convert operation
+ptxas application ptx input, line 146; error   : Modifier '.ftz' does not apply to this type of convert operation
+ptxas application ptx input, line 148; error   : Modifier '.ftz' does not apply to this type of convert operation
+ptxas fatal   : Ptx assembly aborted due to errors

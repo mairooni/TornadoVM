@@ -1,0 +1,205 @@
+diff --git a/tornado-drivers/cuda/src/main/java/uk/ac/manchester/tornado/drivers/cuda/graal/phases/TornadoHalfFloatReplacement.java b/tornado-drivers/cuda/src/main/java/uk/ac/manchester/tornado/drivers/cuda/graal/phases/TornadoHalfFloatReplacement.java
+index afdb677..ff7480c 100644
+--- a/tornado-drivers/cuda/src/main/java/uk/ac/manchester/tornado/drivers/cuda/graal/phases/TornadoHalfFloatReplacement.java
++++ b/tornado-drivers/cuda/src/main/java/uk/ac/manchester/tornado/drivers/cuda/graal/phases/TornadoHalfFloatReplacement.java
+@@ -147,6 +147,16 @@ public class TornadoHalfFloatReplacement extends BasePhase<TornadoHighTierContex
+             CUDAConvertFloatToHalf convertFloatToHalf = new CUDAConvertFloatToHalf(javaReadNode);
+             graph.addWithoutUnique(convertFloatToHalf);
+             return convertFloatToHalf;
++        } else if (halfFloatValue.getStackKind() == JavaKind.Float) {
++            // General case: the HalfFloat is constructed from an arbitrary float
++            // expression (e.g. arithmetic such as scale * quant in dequantization).
++            // Without this branch the raw f32 value flows into half-typed contexts;
++            // the emitted C only stays correct because __half's implicit converting
++            // constructor happens to repair the type at NVRTC compile time. Insert
++            // the conversion explicitly so the graph is type-correct by construction.
++            CUDAConvertFloatToHalf convertFloatToHalf = new CUDAConvertFloatToHalf(halfFloatValue);
++            graph.addWithoutUnique(convertFloatToHalf);
++            return convertFloatToHalf;
+         } else {
+             return halfFloatValue;
+         }
+diff --git a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/phases/TornadoHalfFloatReplacement.java b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/phases/TornadoHalfFloatReplacement.java
+index 7be7577..d16597e 100644
+--- a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/phases/TornadoHalfFloatReplacement.java
++++ b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/phases/TornadoHalfFloatReplacement.java
+@@ -146,6 +146,16 @@ public class TornadoHalfFloatReplacement extends BasePhase<TornadoHighTierContex
+             OCLConvertFloatToHalf convertFloatToHalf = new OCLConvertFloatToHalf(javaReadNode);
+             graph.addWithoutUnique(convertFloatToHalf);
+             return convertFloatToHalf;
++        } else if (halfFloatValue.getStackKind() == JavaKind.Float) {
++            // General case: the HalfFloat is constructed from an arbitrary float
++            // expression (e.g. arithmetic such as scale * quant in dequantization).
++            // An explicit f32 -> f16 conversion must be inserted here; passing the
++            // f32 value through unconverted produces a type-mismatched half value
++            // downstream (on PTX this manifests as CUDA_ERROR_INVALID_PTX (218) at
++            // cuModuleLoadDataEx when the bit-extraction path consumes it as b16).
++            OCLConvertFloatToHalf convertFloatToHalf = new OCLConvertFloatToHalf(halfFloatValue);
++            graph.addWithoutUnique(convertFloatToHalf);
++            return convertFloatToHalf;
+         } else {
+             return halfFloatValue;
+         }
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java
+index 9cae7bf..c526490 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java
+@@ -303,6 +303,16 @@ public class TornadoHalfFloatReplacement extends BasePhase<TornadoHighTierContex
+             PTXConvertFloatToHalf convertFloatToHalf = new PTXConvertFloatToHalf(javaReadNode);
+             graph.addWithoutUnique(convertFloatToHalf);
+             return convertFloatToHalf;
++        } else if (halfFloatValue.getStackKind() == JavaKind.Float) {
++            // General case: the HalfFloat is constructed from an arbitrary float
++            // expression (e.g. arithmetic such as scale * quant in dequantization).
++            // An explicit f32 -> f16 conversion must be inserted here; passing the
++            // f32 value through unconverted produces a type-mismatched half value
++            // downstream (on PTX this manifests as CUDA_ERROR_INVALID_PTX (218) at
++            // cuModuleLoadDataEx when the bit-extraction path consumes it as b16).
++            PTXConvertFloatToHalf convertFloatToHalf = new PTXConvertFloatToHalf(halfFloatValue);
++            graph.addWithoutUnique(convertFloatToHalf);
++            return convertFloatToHalf;
+         } else {
+             return halfFloatValue;
+         }
+diff --git a/tornado-drivers/spirv/src/main/java/uk/ac/manchester/tornado/drivers/spirv/graal/phases/TornadoHalfFloatReplacement.java b/tornado-drivers/spirv/src/main/java/uk/ac/manchester/tornado/drivers/spirv/graal/phases/TornadoHalfFloatReplacement.java
+index d88b2d5..96cab9b 100644
+--- a/tornado-drivers/spirv/src/main/java/uk/ac/manchester/tornado/drivers/spirv/graal/phases/TornadoHalfFloatReplacement.java
++++ b/tornado-drivers/spirv/src/main/java/uk/ac/manchester/tornado/drivers/spirv/graal/phases/TornadoHalfFloatReplacement.java
+@@ -290,6 +290,16 @@ public class TornadoHalfFloatReplacement extends BasePhase<TornadoHighTierContex
+             SPIRVConvertFloatToHalf convertFloatToHalf = new SPIRVConvertFloatToHalf(javaReadNode);
+             graph.addWithoutUnique(convertFloatToHalf);
+             return convertFloatToHalf;
++        } else if (halfFloatValue.getStackKind() == JavaKind.Float) {
++            // General case: the HalfFloat is constructed from an arbitrary float
++            // expression (e.g. arithmetic such as scale * quant in dequantization).
++            // An explicit f32 -> f16 conversion must be inserted here; passing the
++            // f32 value through unconverted produces a type-mismatched half value
++            // downstream (on PTX this manifests as CUDA_ERROR_INVALID_PTX (218) at
++            // cuModuleLoadDataEx when the bit-extraction path consumes it as b16).
++            SPIRVConvertFloatToHalf convertFloatToHalf = new SPIRVConvertFloatToHalf(halfFloatValue);
++            graph.addWithoutUnique(convertFloatToHalf);
++            return convertFloatToHalf;
+         } else {
+             return halfFloatValue;
+         }
+diff --git a/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/foundation/TestHalfFloats.java b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/foundation/TestHalfFloats.java
+index 670a2a3..ec03ffe 100644
+--- a/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/foundation/TestHalfFloats.java
++++ b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/foundation/TestHalfFloats.java
+@@ -30,8 +30,10 @@ import uk.ac.manchester.tornado.api.enums.DataTransferMode;
+ import uk.ac.manchester.tornado.api.enums.TornadoVMBackendType;
+ import uk.ac.manchester.tornado.api.exceptions.TornadoExecutionPlanException;
+ import uk.ac.manchester.tornado.api.types.HalfFloat;
++import uk.ac.manchester.tornado.api.types.arrays.ByteArray;
+ import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
+ import uk.ac.manchester.tornado.api.types.arrays.HalfFloatArray;
++import uk.ac.manchester.tornado.api.types.arrays.IntArray;
+ import uk.ac.manchester.tornado.unittests.common.TornadoTestBase;
+ 
+ import java.util.Random;
+@@ -258,4 +260,105 @@ public class TestHalfFloats extends TornadoTestBase {
+ 
+     }
+ 
++
++    // ── Regression tests: HalfFloat constructed from an ARITHMETIC float ─────
++    // expression, consumed via getHalfFloatValue() bit extraction (not an
++    // array store). Previously, TornadoHalfFloatReplacement only inserted the
++    // f32 -> f16 conversion when the constructor input was a constant or a
++    // float JavaReadNode; arbitrary float expressions (e.g. scale * quant in
++    // dequantization) fell through unconverted, producing type-mismatched
++    // code (CUDA_ERROR_INVALID_PTX (218) on the PTX backend).
++
++    public static void halfBitsFromArithmetic(KernelContext context, FloatArray a, FloatArray b, IntArray packed) {
++        int i = context.globalIdx;
++        int lo = new HalfFloat(a.get(i) * b.get(i)).getHalfFloatValue() & 0xFFFF;
++        int hi = new HalfFloat(a.get(i) + b.get(i)).getHalfFloatValue() & 0xFFFF;
++        packed.set(i, lo | (hi << 16));
++    }
++
++    public static void packDequantizedHalfBits(KernelContext context, FloatArray scales, ByteArray quants, IntArray packed) {
++        int i = context.globalIdx;
++        float v0 = scales.get(i) * quants.get(2 * i);
++        float v1 = scales.get(i) * quants.get(2 * i + 1);
++        int lo = new HalfFloat(v0).getHalfFloatValue() & 0xFFFF;
++        int hi = new HalfFloat(v1).getHalfFloatValue() & 0xFFFF;
++        packed.set(i, lo | (hi << 16));
++    }
++
++    @Test
++    public void testHalfFloatBitsFromArithmetic() throws TornadoExecutionPlanException {
++        final int size = 1024;
++        FloatArray a = new FloatArray(size);
++        FloatArray b = new FloatArray(size);
++        IntArray packed = new IntArray(size);
++
++        Random random = new Random(7);
++        for (int i = 0; i < size; i++) {
++            // Normal FP16 range, both signs, non-trivial rounding
++            a.set(i, (random.nextFloat() * 2.0f - 1.0f) * 100.0f);
++            b.set(i, (random.nextFloat() * 2.0f - 1.0f) * 100.0f);
++        }
++
++        KernelContext context = new KernelContext();
++
++        TaskGraph tg = new TaskGraph("s0")
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, a, b)
++                .task("t0", TestHalfFloats::halfBitsFromArithmetic, context, a, b, packed)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, packed);
++
++        ImmutableTaskGraph immutableTaskGraph = tg.snapshot();
++
++        WorkerGrid workerGrid = new WorkerGrid1D(size);
++        workerGrid.setLocalWork(32, 1, 1);
++        GridScheduler scheduler = new GridScheduler("s0.t0", workerGrid);
++
++        try (TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph)) {
++            executionPlan.withGridScheduler(scheduler).execute();
++        }
++
++        for (int i = 0; i < size; i++) {
++            int expectedLo = Float.floatToFloat16(a.get(i) * b.get(i)) & 0xFFFF;
++            int expectedHi = Float.floatToFloat16(a.get(i) + b.get(i)) & 0xFFFF;
++            assertEquals(expectedLo | (expectedHi << 16), packed.get(i));
++        }
++    }
++
++    @Test
++    public void testHalfFloatBitsFromDequantization() throws TornadoExecutionPlanException {
++        final int size = 1024;
++        FloatArray scales = new FloatArray(size);
++        ByteArray quants = new ByteArray(2 * size);
++        IntArray packed = new IntArray(size);
++
++        Random random = new Random(31);
++        for (int i = 0; i < size; i++) {
++            // Q8_0-like magnitudes: scale in [0.01, 0.11), int8 quants
++            scales.set(i, 0.01f + random.nextFloat() * 0.1f);
++            quants.set(2 * i, (byte) (random.nextInt(255) - 127));
++            quants.set(2 * i + 1, (byte) (random.nextInt(255) - 127));
++        }
++
++        KernelContext context = new KernelContext();
++
++        TaskGraph tg = new TaskGraph("s0")
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, scales, quants)
++                .task("t0", TestHalfFloats::packDequantizedHalfBits, context, scales, quants, packed)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, packed);
++
++        ImmutableTaskGraph immutableTaskGraph = tg.snapshot();
++
++        WorkerGrid workerGrid = new WorkerGrid1D(size);
++        workerGrid.setLocalWork(32, 1, 1);
++        GridScheduler scheduler = new GridScheduler("s0.t0", workerGrid);
++
++        try (TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph)) {
++            executionPlan.withGridScheduler(scheduler).execute();
++        }
++
++        for (int i = 0; i < size; i++) {
++            int expectedLo = Float.floatToFloat16(scales.get(i) * quants.get(2 * i)) & 0xFFFF;
++            int expectedHi = Float.floatToFloat16(scales.get(i) * quants.get(2 * i + 1)) & 0xFFFF;
++            assertEquals(expectedLo | (expectedHi << 16), packed.get(i));
++        }
++    }
+ }

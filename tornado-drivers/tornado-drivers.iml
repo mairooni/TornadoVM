@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module version="4">
+  <component name="AdditionalModuleElements">
+    <content url="file://$MODULE_DIR$" dumb="true">
+      <sourceFolder url="file://$MODULE_DIR$/drivers-common" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/metal" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/metal-jni" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/opencl" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/opencl-jni" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/ptx" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/ptx-jni" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/spirv" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/cuda" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/cuda-jni" isTestSource="false" />
+    </content>
+  </component>
+  <component name="CheckStyle-IDEA-Module" serialisationVersion="2">
+    <option name="activeLocationsIds" />
+  </component>
+</module>

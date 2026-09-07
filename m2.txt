@@ -1,0 +1,885 @@
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java
+index d86f31273..9b78f17eb 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java
+@@ -556,6 +556,23 @@ public class KernelContext implements ExecutionContext {
+         return new HalfFloat[4];
+     }
+ 
++    /**
++     * Loads the B fragment for mma.sync from a swizzled shared-memory tile
++     * populated using {@link #swizzleStoreFp16Stride32(HalfFloat[], int, int, int, HalfFloat)}.
++     *
++     * Each lane receives its 4 owned f16 elements as per PTX ISA m16n8k16 layout.
++     * The address computation includes the matching swizzle XOR so no bank
++     * conflicts occur during the ldmatrix read.
++     *
++     * PTX equivalent: ldmatrix.sync.aligned.m8n8.x2.trans.shared.b16 with
++     * per-lane addresses XOR-permuted by the FP16 stride-32 swizzle.
++     */
++    public HalfFloat[] mmaLoadBSwizzled(HalfFloat[] bTile, int wmmaK) {
++        // CPU fallback: return a 4-element fragment.
++        // On GPU this is replaced by an MMALoadBSwizzledNode by the plugin.
++        return new HalfFloat[4];
++    }
++
+     /**
+      * Warp-collective matrix multiply-accumulate: D = A * B + C.
+      *
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/compiler/plugins/PTXGraphBuilderPlugins.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/compiler/plugins/PTXGraphBuilderPlugins.java
+index fa10015ce..892add1f3 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/compiler/plugins/PTXGraphBuilderPlugins.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/compiler/plugins/PTXGraphBuilderPlugins.java
+@@ -80,6 +80,7 @@ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMALoadAInt8Node;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMALoadANode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMALoadBInt8Node;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMALoadBNode;
++import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMALoadBSwizzledNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMAStoreNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.PTXSimdSumNode;
+ import uk.ac.manchester.tornado.drivers.ptx.graal.nodes.PTXShuffleDownNode;
+@@ -571,6 +572,18 @@ public class PTXGraphBuilderPlugins {
+             }
+         });
+ 
++        // --- mmaLoadBSwizzled(HalfFloat[] bTile, int wmmaK) -> HalfFloat[] ---
++        r.register(new InvocationPlugin("mmaLoadBSwizzled",
++                InvocationPlugin.Receiver.class, HalfFloat[].class, int.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod,
++                                 Receiver receiver, ValueNode tile, ValueNode wmmaK) {
++                receiver.get(true);
++                b.addPush(JavaKind.Object, new MMALoadBSwizzledNode(tile, wmmaK));
++                return true;
++            }
++        });
++
+         // --- mma(HalfFloat[] fragA, HalfFloat[] fragB, float[] fragC, MMAShape shape) -> float[] ---
+         r.register(new InvocationPlugin("mma",
+                 InvocationPlugin.Receiver.class,
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXLIRStmt.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXLIRStmt.java
+index dc85cf42c..9bee3c553 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXLIRStmt.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/lir/PTXLIRStmt.java
+@@ -1964,6 +1964,17 @@ public class PTXLIRStmt {
+             asm.delimiter();
+             asm.eol();
+ 
++            // *** NEW: convert byte offset back to fp16 element index ***
++            asm.emitSymbol(TAB);
++            asm.emit("shr.b32 ");
++            asm.emitValue(swzByte);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(swzByte);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emit("1");
++            asm.delimiter();
++            asm.eol();
++
+             // result = ld.shared.b16 sharedMem[swzByte]   (16-bit load = one fp16)
+             asm.emitSymbol(TAB);
+             asm.emit("ld.shared.b16 ");
+@@ -2354,6 +2365,19 @@ public class PTXLIRStmt {
+             asm.delimiter();
+             asm.eol();
+ 
++            // *** NEW: convert byte offset back to fp16 element index for st.shared.b16 [arr[idx]] ***
++// PTX treats arr[idx] as an element index (each fp16 = 2 bytes), but swzByte is a
++// byte offset. Shift right by 1 to get the element index.
++            asm.emitSymbol(TAB);
++            asm.emit("shr.b32 ");
++            asm.emitValue(swzByte);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emitValue(swzByte);
++            asm.emitSymbol(COMMA + SPACE);
++            asm.emit("1");
++            asm.delimiter();
++            asm.eol();
++
+             // sharedMem[swzByte] = value   (st.shared.b16 = store one fp16)
+             asm.emitSymbol(TAB);
+             asm.emit("st.shared.b16 ");
+@@ -2850,12 +2874,25 @@ public class PTXLIRStmt {
+                 // For .trans: each thread provides address of a column
+                 // But with x2, only groups 0 and 1 matter
+                 // colOff = (group & 1) * 16 bytes (second 8-row k-block)
++//                asm.emitSymbol(TAB);
++////                asm.emit("and.b32 __ldm_colOff, __ldm_group, 1");
++////                asm.delimiter();
++////                asm.eol();
++////                asm.emitSymbol(TAB);
++////                asm.emit("shl.b32 __ldm_colOff, __ldm_colOff, 4");
++////                asm.delimiter();
++////                asm.eol();
++                // For .trans: each thread provides address of a row in the source tile.
++// Canonical stacked layout: matrix-0 = first 8 rows (bytes 0..127),
++// matrix-1 = next 8 rows (bytes 128..255). Lanes 0..7 read matrix-0,
++// lanes 8..15 read matrix-1 with colOff = 128 to skip past matrix-0.
++// colOff = (group & 1) * 128 bytes
+                 asm.emitSymbol(TAB);
+                 asm.emit("and.b32 __ldm_colOff, __ldm_group, 1");
+                 asm.delimiter();
+                 asm.eol();
+                 asm.emitSymbol(TAB);
+-                asm.emit("shl.b32 __ldm_colOff, __ldm_colOff, 4");
++                asm.emit("shl.b32 __ldm_colOff, __ldm_colOff, 7");
+                 asm.delimiter();
+                 asm.eol();
+ 
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBNode.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBNode.java
+index 0b30ffcd6..24c4b8dbe 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBNode.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBNode.java
+@@ -53,7 +53,7 @@ public class MMALoadBNode extends FixedWithNextNode implements LIRLowerable {
+         LIRKind u64 = LIRKind.value(PTXKind.U64);
+ 
+         // B tile is 8 columns × K rows, col-major: each column = K f16 × 2 bytes = 32 bytes
+-        int rowStride = 32;
++        int rowStride = 16; //32;
+ 
+         tool.append(new PTXLIRStmt.LdmatrixStmt(
+                 PTXLIRStmt.LdmatrixStmt.Variant.X2_TRANS,
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBSwizzledNode.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBSwizzledNode.java
+index 46084086c..93026bdd5 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBSwizzledNode.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/nodes/MMALoadBSwizzledNode.java
+@@ -1,4 +1,71 @@
+-package src.main.java.uk.ac.manchester.tornado.drivers.ptx.graal.nodes;
++package uk.ac.manchester.tornado.drivers.ptx.graal.nodes;
+ 
+-public class MMALoadBSwizzledNode {
++import org.graalvm.compiler.core.common.LIRKind;
++import org.graalvm.compiler.core.common.type.StampFactory;
++import org.graalvm.compiler.graph.NodeClass;
++import org.graalvm.compiler.lir.Variable;
++import org.graalvm.compiler.lir.gen.LIRGeneratorTool;
++import org.graalvm.compiler.nodeinfo.NodeInfo;
++import org.graalvm.compiler.nodes.FixedWithNextNode;
++import org.graalvm.compiler.nodes.ValueNode;
++import org.graalvm.compiler.nodes.spi.LIRLowerable;
++import org.graalvm.compiler.nodes.spi.NodeLIRBuilderTool;
++
++import jdk.vm.ci.meta.JavaKind;
++import jdk.vm.ci.meta.Value;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXKind;
++import uk.ac.manchester.tornado.drivers.ptx.graal.lir.PTXLIRStmt;
++
++/**
++ * Graal IR node for {@code KernelContext.mmaLoadBSwizzled(HalfFloat[], int)}.
++ *
++ * <p>Variant of {@link uk.ac.manchester.tornado.drivers.ptx.graal.nodes.MMALoadBNode} that reads from a tile populated using
++ * the FP16 stride-32 swizzle layout. The address computation applies an XOR
++ * permutation matching {@code SwizzledStoreFP16Stride32Stmt}, so the resulting
++ * ldmatrix reads incur no shared-memory bank conflicts.
++ *
++ * <p>The tile must be allocated as a native fp16 array (not int-packed) and
++ * populated using the {@code swizzleStoreFp16Stride32} accessor.
++ *
++ * <p>Lowers to {@code ldmatrix.sync.aligned.m8n8.x2.trans.shared.b16} with
++ * the lane's address XOR-permuted by the stride-32 swizzle.
++ */
++@NodeInfo
++public class MMALoadBSwizzledNode extends FixedWithNextNode implements LIRLowerable {
++    public static final NodeClass<MMALoadBSwizzledNode> TYPE = NodeClass.create(MMALoadBSwizzledNode.class);
++
++    @Input private ValueNode tile;
++    @Input private ValueNode wmmaK;
++
++    public MMALoadBSwizzledNode(ValueNode tile, ValueNode wmmaK) {
++        super(TYPE, StampFactory.forKind(JavaKind.Object));
++        this.tile = tile;
++        this.wmmaK = wmmaK;
++    }
++
++    @Override
++    public void generate(NodeLIRBuilderTool gen) {
++        LIRGeneratorTool tool = gen.getLIRGeneratorTool();
++
++        Value tileVal = gen.operand(tile);
++        Variable fragB = tool.newVariable(LIRKind.value(PTXKind.MMA_FRAG_B_F16));
++
++        LIRKind u32 = LIRKind.value(PTXKind.U32);
++        LIRKind u64 = LIRKind.value(PTXKind.U64);
++
++        // Swizzled stride-32: tile is row-major with 8 rows of 32 bytes
++        // (matrix-0 k=0..7 in bytes 0..15, matrix-1 k=8..15 in bytes 16..31).
++        // The constructor's runtime check enforces rowStride == 32.
++        int rowStride = 16; //32;
++
++        tool.append(new PTXLIRStmt.LdmatrixStmt(
++                PTXLIRStmt.LdmatrixStmt.Variant.X2_TRANS_SWIZZLE_FP16_STRIDE32,
++                fragB, tileVal,
++                tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u32),
++                tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u32),
++                tool.newVariable(u32), tool.newVariable(u32), tool.newVariable(u64),
++                rowStride));
++
++        gen.setResult(this, fragB);
++    }
+ }
+diff --git a/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/TestMatrixMultiplicationMMA.java b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/TestMatrixMultiplicationMMA.java
+index bf60c19f0..277a6e3ef 100644
+--- a/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/TestMatrixMultiplicationMMA.java
++++ b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/matrices/TestMatrixMultiplicationMMA.java
+@@ -73,8 +73,10 @@ public class TestMatrixMultiplicationMMA extends TornadoTestBase {
+         // A: 16 rows × 8 packed ints = 128 (was 256 floats)
+         // B: 8 cols × 8 packed ints = 64 per panel (was 128 floats)
+         int[] aTile  = ctx.allocateIntLocalArray(WMMA_M * WMMA_K / 2);
+-        int[] bTile0 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
+-        int[] bTile1 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
++//        int[] bTile0 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
++//        int[] bTile1 = ctx.allocateIntLocalArray(8 * WMMA_K / 2);
++        int[] bTile0 = ctx.allocateIntLocalArray(WMMA_K * WMMA_N / 2);  // 16*8/2 = 64 ints
++        int[] bTile1 = ctx.allocateIntLocalArray(WMMA_K * WMMA_N / 2);
+ 
+         float[] fragC0 = ctx.mmaFragment(0.0f);
+         float[] fragC1 = ctx.mmaFragment(0.0f);
+@@ -143,35 +145,53 @@ public class TestMatrixMultiplicationMMA extends TornadoTestBase {
+ //                int hi_right = b.get(g1_right).getHalfFloatValue() & 0xFFFF;
+ //                bTile1[kk * 4 + j / 2] = lo_right | (hi_right << 16);
+ //            }
+-            for (int idx = lane; idx < 64; idx += WARP_SIZE) {
+-                int elemBase = idx * 2;
+-                int r = elemBase / 16;       // 0..7
+-                int slot = elemBase % 16;    // 0, 2, 4, ..., 14
+-
+-                int k, j;
+-                if (slot < 8) {
+-                    k = r;
+-                    j = slot;
+-                } else {
+-                    k = r + 8;
+-                    j = slot - 8;
+-                }
++            //////
++//            for (int idx = lane; idx < 64; idx += WARP_SIZE) {
++//                int elemBase = idx * 2;
++//                int r = elemBase / 16;       // 0..7
++//                int slot = elemBase % 16;    // 0, 2, 4, ..., 14
++//
++//                int k, j;
++//                if (slot < 8) {
++//                    k = r;
++//                    j = slot;
++//                } else {
++//                    k = r + 8;
++//                    j = slot - 8;
++//                }
++//
++//                // Left panel: B cols tileCol + j .. tileCol + j + 1
++//                int gL0 = (kBase + k) * dimN + tileCol + j;
++//                int gL1 = (kBase + k) * dimN + tileCol + j + 1;
++//                int loL = b.get(gL0).getHalfFloatValue() & 0xFFFF;
++//                int hiL = b.get(gL1).getHalfFloatValue() & 0xFFFF;
++//                bTile0[r * 8 + slot / 2] = loL | (hiL << 16);
++//
++//                // Right panel: B cols tileCol + 8 + j .. tileCol + 8 + j + 1
++//                int gR0 = (kBase + k) * dimN + tileCol + 8 + j;
++//                int gR1 = (kBase + k) * dimN + tileCol + 8 + j + 1;
++//                int loR = b.get(gR0).getHalfFloatValue() & 0xFFFF;
++//                int hiR = b.get(gR1).getHalfFloatValue() & 0xFFFF;
++//                bTile1[r * 8 + slot / 2] = loR | (hiR << 16);
++//            }
+ 
+-                // Left panel: B cols tileCol + j .. tileCol + j + 1
+-                int gL0 = (kBase + k) * dimN + tileCol + j;
+-                int gL1 = (kBase + k) * dimN + tileCol + j + 1;
+-                int loL = b.get(gL0).getHalfFloatValue() & 0xFFFF;
+-                int hiL = b.get(gL1).getHalfFloatValue() & 0xFFFF;
+-                bTile0[r * 8 + slot / 2] = loL | (hiL << 16);
+-
+-                // Right panel: B cols tileCol + 8 + j .. tileCol + 8 + j + 1
+-                int gR0 = (kBase + k) * dimN + tileCol + 8 + j;
+-                int gR1 = (kBase + k) * dimN + tileCol + 8 + j + 1;
+-                int loR = b.get(gR0).getHalfFloatValue() & 0xFFFF;
+-                int hiR = b.get(gR1).getHalfFloatValue() & 0xFFFF;
+-                bTile1[r * 8 + slot / 2] = loR | (hiR << 16);
++            for (int idx = lane; idx < 64; idx += WARP_SIZE) {
++                int k_row  = idx / 4;        // 0..15
++                int j_pair = idx % 4;        // 0..3 (which pair of j: 0,1 / 2,3 / 4,5 / 6,7)
++                int j_base = j_pair * 2;
++
++                int gL0 = (kBase + k_row) * dimN + tileCol + j_base;
++                int gL1 = (kBase + k_row) * dimN + tileCol + j_base + 1;
++                int lo_left = b.get(gL0).getHalfFloatValue() & 0xFFFF;
++                int hi_left = b.get(gL1).getHalfFloatValue() & 0xFFFF;
++                bTile0[k_row * 4 + j_pair] = lo_left | (hi_left << 16);
++
++                int gR0 = (kBase + k_row) * dimN + tileCol + 8 + j_base;
++                int gR1 = (kBase + k_row) * dimN + tileCol + 8 + j_base + 1;
++                int lo_right = b.get(gR0).getHalfFloatValue() & 0xFFFF;
++                int hi_right = b.get(gR1).getHalfFloatValue() & 0xFFFF;
++                bTile1[k_row * 4 + j_pair] = lo_right | (hi_right << 16);
+             }
+-
+             ctx.localBarrier();
+ 
+             HalfFloat[] fragA  = ctx.mmaLoadA(aTile, WMMA_K);
+@@ -234,6 +254,88 @@ public class TestMatrixMultiplicationMMA extends TornadoTestBase {
+ //        ctx.mmaStore(fragC1, c, tileRow, tileCol + 8, dimN);
+ //    }
+ 
++    public static void gemmMMASwizzled(KernelContext ctx,
++                                       HalfFloatArray a, HalfFloatArray b, FloatArray c,
++                                       int dimM, int dimN, int dimK) {
++
++        int warpId = ctx.groupIdx;
++        int lane   = ctx.localIdx;
++
++        int numTilesN = dimN / WMMA_N;
++        int tileRow   = (warpId / numTilesN) * WMMA_M;
++        int tileCol   = (warpId % numTilesN) * WMMA_N;
++
++        // A: same int-packed layout as gemmMMA (unchanged for this test)
++        int[] aTile = ctx.allocateIntLocalArray(WMMA_M * WMMA_K / 2);
++
++        // B: native fp16, swizzled. Two panels, each 8 rows x 16 cols of fp16 = 128 elements.
++        HalfFloat[] bTile0 = ctx.allocateHalfFloatLocalArray(8 * 16);
++        HalfFloat[] bTile1 = ctx.allocateHalfFloatLocalArray(8 * 16);
++
++        float[] fragC0 = ctx.mmaFragment(0.0f);
++        float[] fragC1 = ctx.mmaFragment(0.0f);
++
++        for (int kBase = 0; kBase < dimK; kBase += WMMA_K) {
++
++            // Cooperative load A (unchanged)
++            for (int idx = lane; idx < (WMMA_M * WMMA_K) / 2; idx += WARP_SIZE) {
++                int elemBase = idx * 2;
++                int r  = elemBase / WMMA_K;
++                int kk = elemBase % WMMA_K;
++                int globalBase = (tileRow + r) * dimK + kBase + kk;
++                int lo = a.get(globalBase).getHalfFloatValue() & 0xFFFF;
++                int hi = a.get(globalBase + 1).getHalfFloatValue() & 0xFFFF;
++                aTile[r * (WMMA_K / 2) + kk / 2] = lo | (hi << 16);
++            }
++
++            // Cooperative load B: swizzled, side-by-side row-major
++            // 8 rows x 16 cols of fp16. Matrix-0 (k=0..7) in cols 0..7, matrix-1 (k=8..15) in cols 8..15.
++            // Each lane writes one element per iteration; 128 elements / 32 lanes = 4 iterations.
++//            for (int idx = lane; idx < 128; idx += WARP_SIZE) {
++//                int r    = idx / 16;     // 0..7  (shared-memory row)
++//                int slot = idx % 16;     // 0..15 (column within the 16-wide row)
++//
++//                int k, j;
++//                if (slot < 8) {          // matrix-0: k = r, j = slot
++//                    k = r;
++//                    j = slot;
++//                } else {                  // matrix-1: k = r + 8, j = slot - 8
++//                    k = r + 8;
++//                    j = slot - 8;
++//                }
++//
++//                HalfFloat valL = b.get((kBase + k) * dimN + tileCol + j);
++//                HalfFloat valR = b.get((kBase + k) * dimN + tileCol + 8 + j);
++//
++//                ctx.swizzleStoreFp16Stride32(bTile0, r, slot, 16, valL);
++//                ctx.swizzleStoreFp16Stride32(bTile1, r, slot, 16, valR);
++//            }
++            for (int idx = lane; idx < 128; idx += WARP_SIZE) {
++                int k_row = idx / 8;     // 0..15
++                int j     = idx % 8;     // 0..7
++
++                HalfFloat valL = b.get((kBase + k_row) * dimN + tileCol + j);
++                HalfFloat valR = b.get((kBase + k_row) * dimN + tileCol + 8 + j);
++
++                ctx.swizzleStoreFp16Stride32(bTile0, k_row, j, 8, valL);
++                ctx.swizzleStoreFp16Stride32(bTile1, k_row, j, 8, valR);
++            }
++
++            ctx.localBarrier();
++
++            HalfFloat[] fragA  = ctx.mmaLoadA(aTile, WMMA_K);
++            HalfFloat[] fragB0 = ctx.mmaLoadBSwizzled(bTile0, WMMA_K);
++            fragC0 = ctx.mma(fragA, fragB0, fragC0, MMAShape.M16N8K16);
++            HalfFloat[] fragB1 = ctx.mmaLoadBSwizzled(bTile1, WMMA_K);
++            fragC1 = ctx.mma(fragA, fragB1, fragC1, MMAShape.M16N8K16);
++
++            ctx.localBarrier();
++        }
++
++        ctx.mmaStore(fragC0, c, tileRow, tileCol,     dimN);
++        ctx.mmaStore(fragC1, c, tileRow, tileCol + 8, dimN);
++    }
++
+     // -----------------------------------------------------------------------
+     // CPU reference
+     // -----------------------------------------------------------------------
+@@ -654,6 +756,478 @@ public class TestMatrixMultiplicationMMA extends TornadoTestBase {
+         System.out.println(line);
+     }
+ 
++    @Test
++    public void testGemmSwizzledIdentityB() throws TornadoExecutionPlanException {
++        int M = 16, N = 16, K = 16;
++
++        // A = identity
++        HalfFloatArray a = new HalfFloatArray(M * K);
++        for (int k = 0; k < K; k++) {
++            for (int j = 0; j < K; j++) {
++                a.set(k * K + j, new HalfFloat(k == j ? 1.0f : 0.0f));
++            }
++        }
++
++        // B[i][j] = i*16 + j (recognizable row-major index pattern)
++        HalfFloatArray b = new HalfFloatArray(K * N);
++        for (int k = 0; k < K; k++) {
++            for (int j = 0; j < N; j++) {
++               // b.set(k * N + j, new HalfFloat((float)(k * 16 + j)));
++                b.set(k * N + j, new HalfFloat((float)(100 * k + j)));
++            }
++        }
++
++        FloatArray c = new FloatArray(M * N);
++
++        // Expected: C[i][j] = sum_k A[i][k] * B[k][j] = B[i][j] = i*16 + j
++
++        int numWarps = (M / WMMA_M) * (N / WMMA_N);
++        int globalSize = numWarps * WARP_SIZE;
++        WorkerGrid1D workerGrid = new WorkerGrid1D(globalSize);
++        workerGrid.setLocalWork(WARP_SIZE, 1, 1);
++        GridScheduler gridScheduler = new GridScheduler("mma_swizzled_test.gemm", workerGrid);
++        KernelContext ctx = new KernelContext();
++
++        TaskGraph tg = new TaskGraph("mma_swizzled_test")
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, a, b)
++                .task("gemm", TestMatrixMultiplicationMMA::gemmMMASwizzled, ctx, a, b, c, M, N, K)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
++
++        try (TornadoExecutionPlan plan = new TornadoExecutionPlan(tg.snapshot())) {
++            plan.withGridScheduler(gridScheduler).execute();
++        }
++
++        // Print for diagnostic
++        System.out.println("=== Swizzled-B identity-A test: C should equal B (B[i][j] = i*16 + j) ===");
++        for (int i = 0; i < M; i++) {
++            StringBuilder line = new StringBuilder(String.format("row[%2d]: ", i));
++            for (int j = 0; j < N; j++) {
++                line.append(String.format("%6.0f", c.get(i * N + j)));
++            }
++            System.out.println(line);
++        }
++
++        // Verify
++        for (int i = 0; i < M; i++) {
++            for (int j = 0; j < N; j++) {
++                int idx = i * N + j;
++                float expected = (float)(100 * i + j);
++                //float expected = (float)(i * 16 + j);
++                assertEquals(String.format("C[%d][%d]", i, j),
++                        expected, c.get(idx), 0.01f);
++            }
++        }
++    }
++
++    public static void swizzleRoundTripKernel(KernelContext ctx,
++                                              HalfFloatArray in,
++                                              FloatArray out) {
++        int lane = ctx.localIdx;
++
++        HalfFloat[] tile = ctx.allocateHalfFloatLocalArray(8 * 16);
++
++        // Each lane writes 4 elements
++        for (int idx = lane; idx < 128; idx += WARP_SIZE) {
++            int r    = idx / 16;
++            int slot = idx % 16;
++            ctx.swizzleStoreFp16Stride32(tile, r, slot, 16, in.get(idx));
++        }
++
++        ctx.localBarrier();
++
++        // Each lane reads back its 4 elements via swizzleLoad
++        for (int idx = lane; idx < 128; idx += WARP_SIZE) {
++            int r    = idx / 16;
++            int slot = idx % 16;
++            HalfFloat read = ctx.swizzleLoadFp16Stride32(tile, r, slot, 16);
++            out.set(idx, read.getFloat32());
++        }
++    }
++
++    @Test
++    public void testSwizzleRoundTrip() throws TornadoExecutionPlanException {
++        // Pre-populate on the host with 128 fp16 values
++        HalfFloatArray in = new HalfFloatArray(128);
++        for (int idx = 0; idx < 128; idx++) {
++            in.set(idx, new HalfFloat((float) idx));
++        }
++
++        FloatArray out = new FloatArray(128);
++
++        WorkerGrid1D workerGrid = new WorkerGrid1D(WARP_SIZE);
++        workerGrid.setLocalWork(WARP_SIZE, 1, 1);
++        GridScheduler gridScheduler = new GridScheduler("swz_rt.kernel", workerGrid);
++        KernelContext ctx = new KernelContext();
++
++        TaskGraph tg = new TaskGraph("swz_rt")
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, in, out)
++                .task("kernel", TestMatrixMultiplicationMMA::swizzleRoundTripKernel, ctx, in, out)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, out);
++
++        try (TornadoExecutionPlan plan = new TornadoExecutionPlan(tg.snapshot())) {
++            plan.withGridScheduler(gridScheduler).execute();
++        }
++
++        System.out.println("=== Swizzle round-trip: each cell should equal idx (r*16 + slot) ===");
++        for (int r = 0; r < 8; r++) {
++            StringBuilder line = new StringBuilder(String.format("row[%d]: ", r));
++            for (int slot = 0; slot < 16; slot++) {
++                line.append(String.format("%5.0f", out.get(r * 16 + slot)));
++            }
++            System.out.println(line);
++        }
++
++        for (int idx = 0; idx < 128; idx++) {
++            float expected = (float) idx;
++            float actual = out.get(idx);
++            assertEquals(String.format("idx=%d", idx),
++                    expected, actual, 0.01f);
++        }
++    }
++
++    public static void ldmatrixProbeKernel(KernelContext ctx,
++                                           HalfFloatArray in,
++                                           FloatArray out) {
++        int lane = ctx.localIdx;
++
++        HalfFloat[] tile = ctx.allocateHalfFloatLocalArray(8 * 16);
++
++        // Cooperative load: store input[r*16 + slot] at logical (r, slot)
++        for (int idx = lane; idx < 128; idx += WARP_SIZE) {
++            int r    = idx / 16;
++            int slot = idx % 16;
++            ctx.swizzleStoreFp16Stride32(tile, r, slot, 16, in.get(idx));
++        }
++
++        ctx.localBarrier();
++
++        // Read via mmaLoadBSwizzled. Each lane gets 4 HalfFloat values.
++        HalfFloat[] fragB = ctx.mmaLoadBSwizzled(tile, 16);
++
++        // Write each lane's 4 fragment values to global memory.
++        // Layout: out[lane * 4 + i] = fragB[i] for i = 0..3
++        out.set(lane * 4 + 0, fragB[0].getFloat32());
++        out.set(lane * 4 + 1, fragB[1].getFloat32());
++        out.set(lane * 4 + 2, fragB[2].getFloat32());
++        out.set(lane * 4 + 3, fragB[3].getFloat32());
++    }
++
++    @Test
++    public void testLdmatrixSwizzledProbe() throws TornadoExecutionPlanException {
++        // Input: in[i] = i (each cell uniquely identifies its index)
++        HalfFloatArray in = new HalfFloatArray(128);
++        for (int idx = 0; idx < 128; idx++) {
++            in.set(idx, new HalfFloat((float) idx));
++        }
++
++        // Output: 32 lanes * 4 fragment values = 128 floats
++        FloatArray out = new FloatArray(32 * 4);
++
++        WorkerGrid1D workerGrid = new WorkerGrid1D(WARP_SIZE);
++        workerGrid.setLocalWork(WARP_SIZE, 1, 1);
++        GridScheduler gridScheduler = new GridScheduler("ldm_probe.kernel", workerGrid);
++        KernelContext ctx = new KernelContext();
++
++        TaskGraph tg = new TaskGraph("ldm_probe")
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, in, out)
++                .task("kernel", TestMatrixMultiplicationMMA::ldmatrixProbeKernel, ctx, in, out)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, out);
++
++        try (TornadoExecutionPlan plan = new TornadoExecutionPlan(tg.snapshot())) {
++            plan.withGridScheduler(gridScheduler).execute();
++        }
++
++        // Print: per-lane fragment values
++        System.out.println("=== ldmatrix.x2.trans.swizzled probe ===");
++        System.out.println("Format: lane | frag[0] frag[1] frag[2] frag[3]");
++        for (int lane = 0; lane < 32; lane++) {
++            System.out.printf("lane %2d | %5.0f %5.0f %5.0f %5.0f%n",
++                    lane,
++                    out.get(lane * 4 + 0),
++                    out.get(lane * 4 + 1),
++                    out.get(lane * 4 + 2),
++                    out.get(lane * 4 + 3));
++        }
++    }
++
++    public static void mmaIndexedProbeKernel(KernelContext ctx,
++                                             HalfFloatArray a,
++                                             HalfFloatArray indices,
++                                             FloatArray c,
++                                             int dimM, int dimN, int dimK) {
++        int lane = ctx.localIdx;
++        int tileRow = 0, tileCol = 0;  // single warp, single tile
++
++        int[] aTile = ctx.allocateIntLocalArray(WMMA_M * WMMA_K / 2);
++        HalfFloat[] bTile0 = ctx.allocateHalfFloatLocalArray(16 * 8);  // 128 fp16, canonical layout
++
++        float[] fragC0 = ctx.mmaFragment(0.0f);
++
++        // Cooperative load A: identity (same as in gemmMMASwizzled)
++        for (int idx = lane; idx < (WMMA_M * WMMA_K) / 2; idx += WARP_SIZE) {
++            int elemBase = idx * 2;
++            int r  = elemBase / WMMA_K;
++            int kk = elemBase % WMMA_K;
++            int globalBase = (tileRow + r) * dimK + kk;
++            int lo = a.get(globalBase).getHalfFloatValue() & 0xFFFF;
++            int hi = a.get(globalBase + 1).getHalfFloatValue() & 0xFFFF;
++            aTile[r * (WMMA_K / 2) + kk / 2] = lo | (hi << 16);
++        }
++
++        // Cooperative load B: indices[idx] at logical (r=idx/16, slot=idx%16)
++//        for (int idx = lane; idx < 128; idx += WARP_SIZE) {
++//            int r    = idx / 16;
++//            int slot = idx % 16;
++//            ctx.swizzleStoreFp16Stride32(bTile0, r, slot, 16, indices.get(idx));
++//        }
++        for (int idx = lane; idx < 128; idx += WARP_SIZE) {
++            int k_row = idx / 8;     // 0..15
++            int j     = idx % 8;     // 0..7
++            ctx.swizzleStoreFp16Stride32(bTile0, k_row, j, 8, indices.get(idx));
++        }
++
++        ctx.localBarrier();
++
++        HalfFloat[] fragA = ctx.mmaLoadA(aTile, WMMA_K);
++        HalfFloat[] fragB0 = ctx.mmaLoadBSwizzled(bTile0, WMMA_K);
++        fragC0 = ctx.mma(fragA, fragB0, fragC0, MMAShape.M16N8K16);
++
++        ctx.mmaStore(fragC0, c, tileRow, tileCol, dimN);
++    }
++
++    @Test
++    public void testMmaIndexedProbe() throws TornadoExecutionPlanException {
++        int M = 16, N = 8, K = 16;  // single mma call
++
++        // A = identity
++        HalfFloatArray a = new HalfFloatArray(M * K);
++        for (int k = 0; k < K; k++) {
++            for (int j = 0; j < K; j++) {
++                a.set(k * K + j, new HalfFloat(k == j ? 1.0f : 0.0f));
++            }
++        }
++
++        // indices: idx -> idx (0..127)
++        HalfFloatArray indices = new HalfFloatArray(128);
++        for (int i = 0; i < 128; i++) {
++            indices.set(i, new HalfFloat((float) i));
++        }
++
++        FloatArray c = new FloatArray(M * N);
++
++        WorkerGrid1D workerGrid = new WorkerGrid1D(WARP_SIZE);
++        workerGrid.setLocalWork(WARP_SIZE, 1, 1);
++        GridScheduler gridScheduler = new GridScheduler("mma_indexed.k", workerGrid);
++        KernelContext ctx = new KernelContext();
++
++        TaskGraph tg = new TaskGraph("mma_indexed")
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, a, indices)
++                .task("k", TestMatrixMultiplicationMMA::mmaIndexedProbeKernel, ctx, a, indices, c, M, N, K)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
++
++        try (TornadoExecutionPlan plan = new TornadoExecutionPlan(tg.snapshot())) {
++            plan.withGridScheduler(gridScheduler).execute();
++        }
++
++        System.out.println("=== Indexed-probe (canonical stacked layout): C[i][j] reveals which (k_row, j_in_tile) was read ===");
++        System.out.println("If correct: lane t holds idx-encoding of B[k=2(t%4)+0,1,8,9][j=t/4]");
++        System.out.println("Each value v in output decodes to (k_row=v/8, j_in_tile=v%8) — the LOGICAL position read");
++        System.out.println();
++        for (int i = 0; i < M; i++) {
++            StringBuilder line = new StringBuilder(String.format("C[%2d]: ", i));
++            for (int j = 0; j < N; j++) {
++                line.append(String.format("%5.0f", c.get(i * N + j)));
++            }
++            System.out.println(line);
++        }
++    }
++
++    public static void mmaIndexedProbeNonSwizzledKernel(KernelContext ctx,
++                                                        HalfFloatArray a,
++                                                        HalfFloatArray indices,
++                                                        FloatArray c,
++                                                        int dimM, int dimN, int dimK) {
++        int lane = ctx.localIdx;
++        int tileRow = 0, tileCol = 0;
++
++        // Same A allocation as the swizzled probe
++        int[] aTile = ctx.allocateIntLocalArray(WMMA_M * WMMA_K / 2);
++
++        // Int-packed B tile: 16 rows × 8 cols of fp16, packed 2 fp16 per int.
++        // 16 * 8 / 2 = 64 ints total.
++        int[] bTile0 = ctx.allocateIntLocalArray(WMMA_K * 8 / 2);
++
++        float[] fragC0 = ctx.mmaFragment(0.0f);
++
++        // Cooperative load A: identity (same as in swizzled probe)
++        for (int idx = lane; idx < (WMMA_M * WMMA_K) / 2; idx += WARP_SIZE) {
++            int elemBase = idx * 2;
++            int r  = elemBase / WMMA_K;
++            int kk = elemBase % WMMA_K;
++            int globalBase = (tileRow + r) * dimK + kk;
++            int lo = a.get(globalBase).getHalfFloatValue() & 0xFFFF;
++            int hi = a.get(globalBase + 1).getHalfFloatValue() & 0xFFFF;
++            aTile[r * (WMMA_K / 2) + kk / 2] = lo | (hi << 16);
++        }
++
++        // Cooperative load B: int-packed canonical layout.
++        // Logical position (k_row, j) of bTile0 should hold value (k_row * 8 + j),
++        // matching the swizzled version's encoding exactly.
++        // Each int packs 2 adjacent j values: (k_row, 2*j_pair) and (k_row, 2*j_pair+1).
++        for (int idx = lane; idx < 64; idx += WARP_SIZE) {
++            int k_row  = idx / 4;        // 0..15
++            int j_pair = idx % 4;        // 0..3
++            int j_base = j_pair * 2;     // 0, 2, 4, 6
++
++            // Read the pre-encoded values from indices[]:
++            //   indices[k_row * 8 + j_base]     = encoded(k_row, j_base)
++            //   indices[k_row * 8 + j_base + 1] = encoded(k_row, j_base + 1)
++            int lo = indices.get(k_row * 8 + j_base).getHalfFloatValue() & 0xFFFF;
++            int hi = indices.get(k_row * 8 + j_base + 1).getHalfFloatValue() & 0xFFFF;
++            bTile0[k_row * 4 + j_pair] = lo | (hi << 16);
++        }
++
++        ctx.localBarrier();
++
++        HalfFloat[] fragA  = ctx.mmaLoadA(aTile, WMMA_K);
++        HalfFloat[] fragB0 = ctx.mmaLoadB(bTile0, WMMA_K);     // <-- non-swizzled
++        fragC0 = ctx.mma(fragA, fragB0, fragC0, MMAShape.M16N8K16);
++
++        ctx.mmaStore(fragC0, c, tileRow, tileCol, dimN);
++    }
++
++    @Test
++    public void testMmaIndexedProbeNonSwizzled() throws TornadoExecutionPlanException {
++        int M = 16, N = 8, K = 16;
++
++        // A = identity (16×16)
++        HalfFloatArray a = new HalfFloatArray(M * K);
++        for (int k = 0; k < K; k++) {
++            for (int j = 0; j < K; j++) {
++                a.set(k * K + j, new HalfFloat(k == j ? 1.0f : 0.0f));
++            }
++        }
++
++        // indices[i] = i for i in 0..127
++        // So value at logical (k_row, j) = k_row * 8 + j = the same idx encoding.
++        HalfFloatArray indices = new HalfFloatArray(128);
++        for (int i = 0; i < 128; i++) {
++            indices.set(i, new HalfFloat((float) i));
++        }
++
++        FloatArray c = new FloatArray(M * N);
++
++        WorkerGrid1D workerGrid = new WorkerGrid1D(WARP_SIZE);
++        workerGrid.setLocalWork(WARP_SIZE, 1, 1);
++        GridScheduler gridScheduler = new GridScheduler("mma_indexed_ns.k", workerGrid);
++        KernelContext ctx = new KernelContext();
++
++        TaskGraph tg = new TaskGraph("mma_indexed_ns")
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, a, indices)
++                .task("k", TestMatrixMultiplicationMMA::mmaIndexedProbeNonSwizzledKernel,
++                        ctx, a, indices, c, M, N, K)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, c);
++
++        try (TornadoExecutionPlan plan = new TornadoExecutionPlan(tg.snapshot())) {
++            plan.withGridScheduler(gridScheduler).execute();
++        }
++
++        System.out.println("=== Indexed-probe NON-SWIZZLED (int-packed, mmaLoadB) ===");
++        System.out.println("Same data as testMmaIndexedProbe, but via mmaLoadB instead of mmaLoadBSwizzled.");
++        System.out.println("If canonical layout works: rows 0..7 should be 8*i+j (= 0,1,..7; 8,9,..15; ...; 56,..,63);");
++        System.out.println("                            rows 8..15 should be 8*i+j (= 64,...,127).");
++        System.out.println("Each non-zero value v decodes to (k_row=v/8, j=v%8) — the logical position read.");
++        System.out.println();
++        for (int i = 0; i < M; i++) {
++            StringBuilder line = new StringBuilder(String.format("C[%2d]: ", i));
++            for (int j = 0; j < N; j++) {
++                line.append(String.format("%5.0f", c.get(i * N + j)));
++            }
++            System.out.println(line);
++        }
++    }
++
++    public static void swizzleStorageProbeKernel(KernelContext ctx,
++                                                 HalfFloatArray indices,
++                                                 HalfFloatArray dumpedTile,
++                                                 int unused) {
++        int lane = ctx.localIdx;
++
++        // 256-byte fp16 tile = 128 fp16 elements
++        HalfFloat[] bTile0 = ctx.allocateHalfFloatLocalArray(128);
++
++        // Step 1: Cooperative store, value = idx (a known sequence) at logical (k_row, j).
++        // For idx in 0..127, k_row = idx/8 ∈ 0..15, j = idx%8 ∈ 0..7.
++        // swizzleStore puts indices.get(idx) at logical position (k_row, j) with stride=8.
++        for (int idx = lane; idx < 128; idx += WARP_SIZE) {
++            int k_row = idx / 8;
++            int j     = idx % 8;
++            ctx.swizzleStoreFp16Stride32(bTile0, k_row, j, 8, indices.get(idx));
++        }
++
++        ctx.localBarrier();
++
++        // Step 2: Lane 0 dumps the raw fp16 array contents to global memory.
++        // dumpedTile.set(i, bTile0[i]) for i in 0..127.
++        // This tells us what's at each fp16 element of bTile0.
++        if (lane == 0) {
++            for (int i = 0; i < 128; i++) {
++                dumpedTile.set(i, bTile0[i]);
++            }
++        }
++    }
++
++    @Test
++    public void testSwizzleStorageProbe() throws TornadoExecutionPlanException {
++        // indices[i] = i for i in 0..127. Stored as fp16.
++        HalfFloatArray indices = new HalfFloatArray(128);
++        for (int i = 0; i < 128; i++) {
++            indices.set(i, new HalfFloat((float) i));
++        }
++
++        HalfFloatArray dumpedTile = new HalfFloatArray(128);
++        // Initialize with a sentinel value so we can spot un-written positions
++        for (int i = 0; i < 128; i++) {
++            dumpedTile.set(i, new HalfFloat(-1.0f));
++        }
++
++        WorkerGrid1D workerGrid = new WorkerGrid1D(WARP_SIZE);
++        workerGrid.setLocalWork(WARP_SIZE, 1, 1);
++        GridScheduler gridScheduler = new GridScheduler("swz_probe.k", workerGrid);
++        KernelContext ctx = new KernelContext();
++
++        TaskGraph tg = new TaskGraph("swz_probe")
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, indices, dumpedTile)
++                .task("k", TestMatrixMultiplicationMMA::swizzleStorageProbeKernel,
++                        ctx, indices, dumpedTile, 0)
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, dumpedTile);
++
++        try (TornadoExecutionPlan plan = new TornadoExecutionPlan(tg.snapshot())) {
++            plan.withGridScheduler(gridScheduler).execute();
++        }
++
++        System.out.println("=== Raw fp16 element-index dump of bTile0 after swizzleStore ===");
++        System.out.println("Cooperative load stored idx (= k_row*8 + j) at logical (k_row, j).");
++        System.out.println("This dump reads bTile0[i] for i in 0..127 directly (not via swizzleLoad).");
++        System.out.println();
++        System.out.println("HYPOTHESIS A (bracket = element index): value V lands at element 2V (= byte 4V)");
++        System.out.println("  → fp16 elements 0, 2, 4, ..., 126 hold values 0, 1, 2, ..., 63");
++        System.out.println("  → fp16 elements 1, 3, 5, ..., 127 hold -1 (uninitialized)");
++        System.out.println("  → values 64..127 are OOB (don't appear)");
++        System.out.println();
++        System.out.println("HYPOTHESIS B (bracket = byte offset): value V lands at byte 2V (= element V)");
++        System.out.println("  → fp16 elements 0..127 hold values 0..127 (with some swizzle reordering for upper half)");
++        System.out.println();
++        System.out.println("Actual dump:");
++        for (int i = 0; i < 128; i += 8) {
++            StringBuilder line = new StringBuilder(String.format("bTile0[%3d..%3d]: ", i, i+7));
++            for (int j = 0; j < 8; j++) {
++                line.append(String.format("%6.0f", dumpedTile.get(i + j).getFloat32()));
++            }
++            System.out.println(line);
++        }
++    }
++
+     private static HalfFloatArray randomFP16(int size) {
+         HalfFloatArray arr = new HalfFloatArray(size);
+         for (int i = 0; i < size; i++) {

@@ -1,0 +1,3453 @@
+rm -f tornado_unittests.log
+tornado --devices
+
+Number of Tornado drivers: 1
+Driver: [36mOpenCL[0m
+  Total number of OpenCL devices  : 3
+  Tornado device=0:0  (DEFAULT)
+	[36mOPENCL[0m --  [NVIDIA CUDA] -- NVIDIA GeForce RTX 4070 Laptop GPU
+		Global Memory Size: 7.7 GB
+		Local Memory Size: 48.0 KB
+		Workgroup Dimensions: 3
+		Total Number of Block Threads: [1024]
+		Max WorkGroup Configuration: [1024, 1024, 64]
+		Device OpenCL C version: OpenCL C 1.2
+
+  Tornado device=0:1
+	[36mOPENCL[0m --  [Intel(R) OpenCL Graphics] -- Intel(R) Iris(R) Xe Graphics
+		Global Memory Size: 28.7 GB
+		Local Memory Size: 64.0 KB
+		Workgroup Dimensions: 3
+		Total Number of Block Threads: [512]
+		Max WorkGroup Configuration: [512, 512, 512]
+		Device OpenCL C version: OpenCL C 1.2
+
+  Tornado device=0:2
+	[36mOPENCL[0m --  [Intel(R) OpenCL] -- 13th Gen Intel(R) Core(TM) i9-13900H
+		Global Memory Size: 31.0 GB
+		Local Memory Size: 32.0 KB
+		Workgroup Dimensions: 3
+		Total Number of Block Threads: [8192]
+		Max WorkGroup Configuration: [8192, 8192, 8192]
+		Device OpenCL C version: OpenCL C 3.0
+
+
+tornado-test --ea --verbose --quickPass
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.foundation.TestIntegers"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable  
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void init(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b)
+{
+  ulong ul_9, ul_8, ul_1, ul_0; 
+  int i_4, i_3, i_2, i_10, i_5; 
+  long l_7, l_6; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  ul_1  =  (ulong) b;
+  i_2  =  get_global_size(0);
+  i_3  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_4  =  i_3;
+  for(;i_4 < 131072;)
+  {
+    // BLOCK 2
+    i_5  =  i_4 + 6;
+    l_6  =  (long) i_5;
+    l_7  =  l_6 << 2;
+    ul_8  =  ul_0 + l_7;
+    *((__global int *) ul_8)  =  100;
+    ul_9  =  ul_1 + l_7;
+    *((__global int *) ul_9)  =  500;
+    i_10  =  i_2 + i_4;
+    i_4  =  i_10;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+Task info: s0.t0
+	Backend           : OPENCL
+	Device            : NVIDIA GeForce RTX 4070 Laptop GPU CL_DEVICE_TYPE_GPU (available)
+	Dims              : 1
+	Global work offset: [0]
+	Global work size  : [131072]
+	Local  work size  : [1024, 1, 1]
+	Number of workgroups  : [128]
+
+Test: class uk.ac.manchester.tornado.unittests.foundation.TestIntegers
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest02[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest03[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest04[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest05[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest06[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest07[0m                     ................ [32m [PASS] [0m
+Test ran: 7, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.foundation.TestFloats"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.foundation.TestFloats
+	Running test: [34mtestFloatsCopy[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloatAdd[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloatSub[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloatMul[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloatDiv[0m         ................ [32m [PASS] [0m
+Test ran: 5, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.foundation.TestDoubles"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.foundation.TestDoubles
+	Running test: [34mtestDoublesCopy[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestDoublesAdd[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestDoublesSub[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestDoublesMul[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestDoublesDiv[0m             ................ [32m [PASS] [0m
+Test ran: 5, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.foundation.MultipleRuns"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.foundation.MultipleRuns
+	Running test: [34mmultipleRuns[0m               ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.foundation.TestLinearAlgebra"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.foundation.TestLinearAlgebra
+	Running test: [34mvectorAdd[0m                  ................ [32m [PASS] [0m
+	Running test: [34mvectorMul[0m                  ................ [32m [PASS] [0m
+	Running test: [34mvectorSub[0m                  ................ [32m [PASS] [0m
+	Running test: [34mvectorDiv[0m                  ................ [32m [PASS] [0m
+	Running test: [34msquare[0m                     ................ [32m [PASS] [0m
+	Running test: [34msaxpy[0m                      ................ [32m [PASS] [0m
+Test ran: 6, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.foundation.TestLong"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.foundation.TestLong
+	Running test: [34mtestLongsCopy[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestLongsAdd[0m               ................ [32m [PASS] [0m
+Test ran: 2, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.foundation.TestShorts"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.foundation.TestShorts
+	Running test: [34mtestShortAdd[0m               ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.foundation.TestIf"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.foundation.TestIf
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest02[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest03[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest04[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest05[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest06[0m                     ................ [31m [FAILED] [0m
+		\_[REASON] null
+Test ran: 6, Failed: 1, Unsupported: 0
+
+
+[1;31mTest: uk.ac.manchester.tornado.unittests.foundation.TestIf#test06 in whiteList.[0;0m
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.TestHello"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+tornado[  0,  0,  0]> hello
+tornado[  1,  0,  0]> hello
+tornado[  2,  0,  0]> hello
+tornado[  3,  0,  0]> hello
+tornado[  4,  0,  0]> hello
+tornado[  5,  0,  0]> hello
+tornado[  6,  0,  0]> hello
+tornado[  7,  0,  0]> hello
+tornado[  0,  0,  0]> First value 1, second value 2
+tornado[  0,  0,  0]> value a[0] = 1
+tornado[  1,  0,  0]> value a[1] = 2
+tornado[  2,  0,  0]> value a[2] = 3
+tornado[  3,  0,  0]> value a[3] = 4
+tornado[  4,  0,  0]> value a[4] = 5
+tornado[  5,  0,  0]> value a[5] = 6
+tornado[  6,  0,  0]> value a[6] = 7
+tornado[  7,  0,  0]> value a[7] = 8
+tornado[  8,  0,  0]> value a[8] = 9
+tornado[  9,  0,  0]> value a[9] = 10
+tornado[ 10,  0,  0]> value a[10] = 11
+tornado[ 11,  0,  0]> value a[11] = 12
+tornado[ 12,  0,  0]> value a[12] = 13
+tornado[ 13,  0,  0]> value a[13] = 14
+tornado[ 14,  0,  0]> value a[14] = 15
+tornado[ 15,  0,  0]> value a[15] = 16
+Test: class uk.ac.manchester.tornado.unittests.TestHello
+	Running test: [34mtestHello[0m                  ................ [32m [PASS] [0m
+	Running test: [34mtestPrintIntArray[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestPrintIntArray2[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAddition[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleCompute[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleCompute2[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleInOut[0m            ................ [32m [PASS] [0m
+Test ran: 7, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.arrays.TestArrays"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.arrays.TestArrays
+	Running test: [34mtestVectorAdditionIntegerKernelContext[0m ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAdditionHalfFloat[0m ................ [32m [PASS] [0m
+	Running test: [34mtestHalfFloatInitialization[0m ................ [32m [PASS] [0m
+	Running test: [34mtestWarmUp[0m                 ................ [32m [PASS] [0m
+	Running test: [34mtestInitByteArray[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestInitNotParallel[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestInitParallel[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestAdd[0m                    ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAdditionDouble[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAdditionFloat[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAdditionInteger[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAdditionLong[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAdditionShort[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestVectorChars[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestVectorBytes[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestVectorSubtractionHalfFloat[0m ................ [32m [PASS] [0m
+	Running test: [34mtestVectorMultiplicationHalfFloat[0m ................ [32m [PASS] [0m
+	Running test: [34mtestVectorDivisionHalfFloat[0m ................ [32m [PASS] [0m
+	Running test: [34mtestVectorCharsMessage[0m     ................ [32m [PASS] [0m
+Test ran: 19, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.arrays.TestArrayCopies"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.arrays.TestArrayCopies
+	Running test: [34mtestPrivateArrayCopyIntNoCondition[0m ................ [32m [PASS] [0m
+	Running test: [34mtestPrivateArrayCopyInt[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestPrivateArrayCopyFloat[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestPrivateArrayCopyDouble[0m ................ [32m [PASS] [0m
+	Running test: [34mtestPrivateArrayCopyLong[0m   ................ [32m [PASS] [0m
+Test ran: 5, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.vectortypes.TestFloats"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.vectortypes.TestFloats
+	Running test: [34mtestInternalSetMethod04[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleDotProductFloat16[0m ................ [32m [PASS] [0m
+	Running test: [34mvectorPhiTest[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleDotProductFloat2[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleDotProductFloat3[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleDotProductFloat4[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleDotProductFloat8[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleVectorAddition[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestFloat1[0m                 ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+	Running test: [34mtestFloat2[0m                 ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+	Running test: [34mtestVectorFloat2[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat3[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat3toString[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat4[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat16[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat8[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat8_Storage[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestDotProduct[0m             ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorFloat2[0m        ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorFloat4[0m        ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorFloat8[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat4_Unary[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod01[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod02[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod03[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestAllocationIssue[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat4Float4[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat2Int2[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat4Int4[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat8Int8[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFloat16Int16[0m     ................ [32m [PASS] [0m
+Test ran: 31, Failed: 0, Unsupported: 2
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.vectortypes.TestHalfFloats"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.vectortypes.TestHalfFloats
+	Running test: [34mtestSimpleDotProductVectorHalf[0m ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mvectorPhiTest[0m              ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestSimpleDotProductHalf2[0m  ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestSimpleDotProductHalf3[0m  ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestSimpleDotProductHalf4[0m  ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestSimpleDotProductHalf8[0m  ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestSimpleDotProductHalf16[0m ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestSimpleVectorAddition[0m   ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestVectorHalf2[0m            ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestVectorHalf3[0m            ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestVectorFloat3toString[0m   ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestVectorHalf4[0m            ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestVectorHalf16[0m           ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestVectorHalf8[0m            ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestVectorHalf8_Storage[0m    ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestDotProduct[0m             ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorHalf2[0m         ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mprivateVectorHalf4[0m         ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mprivateVectorHalf8[0m         ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestVectorHalf4_Unary[0m      ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestInternalSetMethod01[0m    ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestInternalSetMethod02[0m    ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestInternalSetMethod03[0m    ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestInternalSetMethod04[0m    ................ [33m [FP16 UNSUPPORTED FOR CURRENT DEVICE] [0m
+	Running test: [34mtestAllocationIssue[0m        ................ [32m [PASS] [0m
+Test ran: 25, Failed: 0, Unsupported: 23
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.vectortypes.TestDoubles"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.vectortypes.TestDoubles
+	Running test: [34mtestDoubleAdd2[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestDoubleAdd3[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestDoubleAdd4[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestDoubleAdd8[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestDoubleAdd[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestDotProductDouble[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestVectorDouble2[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorDouble3[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorDouble4[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorDouble8[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorDouble16[0m         ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorDouble2[0m       ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorDouble4[0m       ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorDouble8[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod01[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod02[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod03[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod04[0m    ................ [32m [PASS] [0m
+Test ran: 18, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.vectortypes.TestInts"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.vectortypes.TestInts
+	Running test: [34mtestAddInt2[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestAddInt3[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestAddInt8[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestAddInt4[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestAddInt[0m                 ................ [32m [PASS] [0m
+	Running test: [34mtestDotProductDouble[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAddInt2[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorSubInt2[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorDivInt2[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAddInt3[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorSubInt3[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorDivInt3[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAddInt4[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorSubInt4[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorDivInt4[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAddInt8[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorAddInt16[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestVectorSubInt8[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVectorDivInt8[0m          ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorInt2[0m          ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorInt4[0m          ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorInt8[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod01[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod02[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod03[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod04[0m    ................ [32m [PASS] [0m
+Test ran: 26, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.vectortypes.TestVectorAllocation"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.vectortypes.TestVectorAllocation
+	Running test: [34mtestAllocation1[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestAllocation2[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestAllocation3[0m            ................ [32m [PASS] [0m
+Test ran: 3, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.prebuilt.PrebuiltTests"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.prebuilt.PrebuiltTests
+	Running test: [34mtestPrebuilt04SPIRVThroughOpenCLRuntime[0m ................ [32m [PASS] [0m
+	Running test: [34mtestPrebuilt01MultiIterations[0m ................ [32m [PASS] [0m
+	Running test: [34mtestPrebuilt01[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestPrebuilt02SPIRV[0m        ................ [35m [OPENCL CONFIGURATION UNSUPPORTED] [0m
+	Running test: [34mtestPrebuilt03SPIRV[0m        ................ [35m [OPENCL CONFIGURATION UNSUPPORTED] [0m
+	Running test: [34mtestPrebuiltMutiBackend[0m    ................ [35m [[UNSUPPORTED] MULTI-DEVICE CONFIGURATION REQUIRED] [0m
+Test ran: 6, Failed: 0, Unsupported: 3
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.virtualization.TestsVirtualLayer"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.virtualization.TestsVirtualLayer
+	Running test: [34mtestDevices[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestDriverAndDevices[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestArrayMigration[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestTaskMigration[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestVirtualLayer03[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestDynamicDeviceSwitch[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestSchedulerDevices[0m       ................ [32m [PASS] [0m
+Test ran: 7, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.tasks.TestSingleTaskSingleDevice"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.tasks.TestSingleTaskSingleDevice
+	Running test: [34mtestSimpleTask[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleTaskOnDevice0[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleTaskOnDevice1[0m    ................ [32m [PASS] [0m
+Test ran: 3, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.tasks.TestMultipleTasksSingleDevice"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.tasks.TestMultipleTasksSingleDevice
+	Running test: [34mtestTwoTasks[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestThreeTasks[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestFourTasks[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestFiveTasks[0m              ................ [32m [PASS] [0m
+Test ran: 4, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.temporary.values.TestTemporaryValues"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.temporary.values.TestTemporaryValues
+	Running test: [34mtestTemporaryValues01[0m      ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.images.TestImages"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.images.TestImages
+	Running test: [34mtestImageFloat01[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat02[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat03[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat04[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat05[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat06[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat07[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat08[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat09[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat10[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat11[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat12[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat13[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat14[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat15[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat16[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat17[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestImageFloat18[0m           ................ [32m [PASS] [0m
+Test ran: 18, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.images.TestResizeImage"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.images.TestResizeImage
+	Running test: [34mtestResizeImage[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestResizeImageStreams[0m     ................ [32m [PASS] [0m
+Test ran: 2, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.branching.TestConditionals"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.branching.TestConditionals
+	Running test: [34mtestComplexTernaryCondition2[0m ................ [32m [PASS] [0m
+	Running test: [34mtestComplexTernaryCondition[0m ................ [32m [PASS] [0m
+	Running test: [34mtestIfStatement[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestIfElseStatement[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestNestedIfElseStatement[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestSwitch[0m                 ................ [32m [PASS] [0m
+	Running test: [34mtestSwitchDefault[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestSwitch2[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestSwitch3[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestSwitch4[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestSwitch5[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestTernaryCondition[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestSwitch6[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestSwitch7[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestSwitch8[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestIntegerTestMove[0m        ................ [32m [PASS] [0m
+Test ran: 16, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.branching.TestLoopConditions"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.branching.TestLoopConditions
+	Running test: [34mtestConditionBeforeSingleLoopComputation[0m ................ [32m [PASS] [0m
+	Running test: [34mtestConditionBeforeSingleLoopReturn[0m ................ [32m [PASS] [0m
+	Running test: [34mtestConditionInSingleLoopReturn[0m ................ [32m [PASS] [0m
+	Running test: [34mtestConditionInSingleLoopComputation[0m ................ [32m [PASS] [0m
+	Running test: [34mtestConditionBeforeOuterForLoopReturn[0m ................ [32m [PASS] [0m
+	Running test: [34mtestConditionBeforeOuterForLoopComputation[0m ................ [32m [PASS] [0m
+	Running test: [34mtestConditionBeforeInnerForLoopReturn[0m ................ [32m [PASS] [0m
+	Running test: [34mtestConditionBeforeInnerForLoopComputation[0m ................ [32m [PASS] [0m
+	Running test: [34mtestConditionInInnerForLoopReturn[0m ................ [32m [PASS] [0m
+	Running test: [34mtestConditionInInnerForLoopComputation[0m ................ [32m [PASS] [0m
+	Running test: [34mtestConditionAfterInnerForLoopComputation[0m ................ [32m [PASS] [0m
+	Running test: [34mtestConditionAfterOuterForLoopComputation[0m ................ [32m [PASS] [0m
+Test ran: 12, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.loops.TestLoops"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.loops.TestLoops
+	Running test: [34mtestSingleThreadLoopCondition[0m ................ [32m [PASS] [0m
+	Running test: [34mtestNestedForLoopOneDArray2[0m ................ [32m [PASS] [0m
+	Running test: [34mtestLoopControlFlowContinue[0m ................ [32m [PASS] [0m
+	Running test: [34mtestForConstant01[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestForConstant02[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestForConstant03[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestForConstant04[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestForConstant05[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestForConstant06[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestForLoopOneD[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestStepLoop[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestStepLoop2[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestStepLoop3[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestStepLoop4[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestStepLoop5[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestStepLoop7[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestStepLoop10[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestIfInsideForLoop[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestIfInsideForLoop2[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestIfElseElseInLoop[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestNestedForLoopOneDArray[0m ................ [32m [PASS] [0m
+	Running test: [34mtestLoopControlFlowBreak[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestLoopControlFlowBreak2[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestInnerWhileLoop[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestInnerForEach[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestReverseOrderLoops[0m      ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+	Running test: [34mtestMultipleThreadLoopCondition[0m ................ [32m [PASS] [0m
+Test ran: 27, Failed: 0, Unsupported: 1
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.loops.TestParallelDimensions"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.loops.TestParallelDimensions
+	Running test: [34mtest1DParallel[0m             ................ [32m [PASS] [0m
+	Running test: [34mtest2DParallel[0m             ................ [32m [PASS] [0m
+	Running test: [34mtest3DParallel[0m             ................ [32m [PASS] [0m
+	Running test: [34mtest3DParallelMap[0m          ................ [32m [PASS] [0m
+Test ran: 4, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.reductions.TestReductionsIntegers"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.reductions.TestReductionsIntegers
+	Running test: [34mtestMultiplicationReduction[0m ................ [32m [PASS] [0m
+	Running test: [34mtestReductionSimple[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestReductionIntsLarge[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestReductionAnnotation[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestReductionConstant[0m      ................ [32m [PASS] [0m
+	Running test: [34mtestMaxReduction[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestMinReduction[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestSequentialReduction[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestReduction01[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestMapReduce[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestMapReduce3[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestSumInts2[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestSumInts3[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMaxReduction2[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestMinReduction2[0m          ................ [32m [PASS] [0m
+Test ran: 15, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.reductions.TestReductionsFloats"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.reductions.TestReductionsFloats
+	Running test: [34mtestSumFloats[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestSumFloatsConstant[0m      ................ [32m [PASS] [0m
+	Running test: [34mtestSumFloatsLarge[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestSumFloats2[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestSumFloats3[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestComputeAverage[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestMultFloats[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestComputePi[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestMaxReduction[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestMaxReduction2[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestMinReduction[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestMinReduction2[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestIntegrate[0m              ................ [32m [PASS] [0m
+Test ran: 13, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.reductions.TestReductionsDoubles"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.reductions.TestReductionsDoubles
+	Running test: [34mtestSumDoubles[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestSumWithFunctionCall[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestSumDoublesLarge[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestSumDoubles2[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestSumDoubles3[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestSumDoubles4[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestMultDoubles[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestMaxReduction[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestMinReduction[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestRemoveOutliers[0m         ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+	Running test: [34mtestMultipleReductions[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestMultipleReductions2[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestMultipleReductions3[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestMultipleReductions4[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestMultipleReductions5[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestMaxReduction2[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestMinReduction2[0m          ................ [32m [PASS] [0m
+Test ran: 17, Failed: 0, Unsupported: 1
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.reductions.TestReductionsLong"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.reductions.TestReductionsLong
+	Running test: [34mtestMultiplicationReduction[0m ................ [32m [PASS] [0m
+	Running test: [34mtestReductionSum[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestMaxReduction[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestMinReduction[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestMaxReduction2[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestMinReduction2[0m          ................ [32m [PASS] [0m
+Test ran: 6, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.reductions.InstanceReduction"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.reductions.InstanceReduction
+	Running test: [34mtestReductionInstanceClass[0m ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.reductions.MultipleReductions"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.reductions.MultipleReductions
+	Running test: [34mtest[0m                       ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.reductions.TestReductionsAutomatic"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.reductions.TestReductionsAutomatic
+	Running test: [34mtestIrregularSize01[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestIrregularSize02[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestIrregularSize03[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestIrregularSize04[0m        ................ [32m [PASS] [0m
+Test ran: 4, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.instances.TestInstances"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.instances.TestInstances
+	Running test: [34mtestInit[0m                   ................ [32m [PASS] [0m
+	Running test: [34mtestThis[0m                   ................ [32m [PASS] [0m
+Test ran: 2, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.matrices.TestMatrixTypes"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.matrices.TestMatrixTypes
+	Running test: [34mtestMatrixRowInt01[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestMatrixRowInt02[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestMatrixRowFloat01[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestMatrixRowFloat02[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestMatrixRowFloat4[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestMatrixRowDouble01[0m      ................ [32m [PASS] [0m
+	Running test: [34mtestMatrixRowDouble02[0m      ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix00[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix01[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix02[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix03[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix04[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix05[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix06[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix07[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix08[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix09[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix10[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix11[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix12[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix13[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix14[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix15[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix16[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix17[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix18[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix19[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix20[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix21[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix22[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix23[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix24[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix25[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix26[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMatrix27[0m               ................ [32m [PASS] [0m
+Test ran: 35, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.api.TestAPI"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+syncObjectInner: object accessREAD_WRITE
+syncObjectInner: object accessREAD_WRITE
+syncObjectInner partialCopy: object accessREAD_WRITE
+syncObjectInner partialCopy: object accessREAD_WRITE
+Test: class uk.ac.manchester.tornado.unittests.api.TestAPI
+	Running test: [34mtestBuildWithSegmentsDouble[0m ................ [32m [PASS] [0m
+	Running test: [34mtestBuildWithSegmentsHalfFloat[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSegmentsByte[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestSegmentsChar[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestSegmentsShort[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestSegmentsIntegers[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestSegmentsLong[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestSegmentsFloats[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestSegmentsDouble[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestSegmentsHalfFloats[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestLazyCopyOut[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestLazyCopyOut2[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestLazyPartialCopyOut[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestWarmUp[0m                 ................ [32m [PASS] [0m
+	Running test: [34mtestBuildWithSegmentsFloat[0m ................ [32m [PASS] [0m
+	Running test: [34mtestBuildWithSegmentsInt[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestBuildWithSegmentsLong[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestBuildWithSegmentsShort[0m ................ [32m [PASS] [0m
+	Running test: [34mtestBuildWithSegmentsByte[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestBuildWithSegmentsChar[0m  ................ [32m [PASS] [0m
+Test ran: 20, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.api.TestInitDataTypes"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.api.TestInitDataTypes
+	Running test: [34mtestInitByteArray[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestInitCharArray[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestInitFloatArray[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestInitDoubleArray[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestInitShortArray[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestInitIntArray[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestInitLongArray[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestInitHalfFloatArray[0m     ................ [32m [PASS] [0m
+Test ran: 8, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.memory.TestMemoryLimit"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.memory.TestMemoryLimit
+	Running test: [34mtestWithMemoryLimitOver[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestWithMemoryLimitUnder[0m   ................ [32m [PASS] [0m
+	Running test: [34menableAndDisable[0m           ................ [32m [PASS] [0m
+Test ran: 3, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.api.TestIO"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8096",
+        "TOTAL_KERNEL_TIME": "28672",
+        "COPY_OUT_TIME": "6976",
+        "TOTAL_TASK_GRAPH_TIME": "180797448",
+        "TOTAL_DRIVER_COMPILE_TIME": "118185094",
+        "TOTAL_CODE_GENERATION_TIME": "7770694",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "424832",
+        "TOTAL_BYTE_CODE_GENERATION": "3252172",
+        "COPY_IN_TIME": "15168",
+        "TOTAL_GRAAL_COMPILE_TIME": "48642814",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "131120",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15394",
+            "TASK_COMPILE_GRAAL_TIME": "48642814",
+            "TASK_CODE_GENERATION_TIME": "7770694",
+            "TASK_COMPILE_DRIVER_TIME": "118185094",
+            "TASK_KERNEL_TIME": "28672"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7968",
+        "TOTAL_KERNEL_TIME": "28672",
+        "COPY_OUT_TIME": "6560",
+        "TOTAL_TASK_GRAPH_TIME": "1796725",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "198752",
+        "COPY_IN_TIME": "8000",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "28672"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "12288",
+        "TOTAL_KERNEL_TIME": "31744",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "2560514",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "268416",
+        "COPY_IN_TIME": "8224",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "31744"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9920",
+        "TOTAL_KERNEL_TIME": "23520",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "1664152",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "229216",
+        "COPY_IN_TIME": "8032",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "23520"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7584",
+        "TOTAL_KERNEL_TIME": "20480",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "1443346",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "205344",
+        "COPY_IN_TIME": "7936",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "20480"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9024",
+        "TOTAL_KERNEL_TIME": "20480",
+        "COPY_OUT_TIME": "5824",
+        "TOTAL_TASK_GRAPH_TIME": "2802224",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "203808",
+        "COPY_IN_TIME": "8064",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "20480"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9824",
+        "TOTAL_KERNEL_TIME": "65472",
+        "COPY_OUT_TIME": "6400",
+        "TOTAL_TASK_GRAPH_TIME": "3005791",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "310848",
+        "COPY_IN_TIME": "8096",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "65472"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8160",
+        "TOTAL_KERNEL_TIME": "28672",
+        "COPY_OUT_TIME": "6368",
+        "TOTAL_TASK_GRAPH_TIME": "1887065",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "221120",
+        "COPY_IN_TIME": "8224",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "28672"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8320",
+        "TOTAL_KERNEL_TIME": "28672",
+        "COPY_OUT_TIME": "5824",
+        "TOTAL_TASK_GRAPH_TIME": "1818654",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "229408",
+        "COPY_IN_TIME": "8160",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "28672"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9184",
+        "TOTAL_KERNEL_TIME": "29696",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "3559915",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "232736",
+        "COPY_IN_TIME": "9088",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "29696"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9248",
+        "TOTAL_KERNEL_TIME": "34816",
+        "COPY_OUT_TIME": "6368",
+        "TOTAL_TASK_GRAPH_TIME": "2044433",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "273472",
+        "COPY_IN_TIME": "8544",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "34816"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "11296",
+        "TOTAL_KERNEL_TIME": "44064",
+        "COPY_OUT_TIME": "6368",
+        "TOTAL_TASK_GRAPH_TIME": "2125583",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "262272",
+        "COPY_IN_TIME": "8160",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "44064"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "16064",
+        "TOTAL_KERNEL_TIME": "33792",
+        "COPY_OUT_TIME": "5824",
+        "TOTAL_TASK_GRAPH_TIME": "3559298",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "156384",
+        "COPY_IN_TIME": "8320",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "33792"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "10880",
+        "TOTAL_KERNEL_TIME": "29696",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "3142183",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "221376",
+        "COPY_IN_TIME": "9024",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "29696"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9120",
+        "TOTAL_KERNEL_TIME": "28672",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1784806",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "185376",
+        "COPY_IN_TIME": "9248",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "28672"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9568",
+        "TOTAL_KERNEL_TIME": "27648",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1737820",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "160640",
+        "COPY_IN_TIME": "8160",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "27648"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9920",
+        "TOTAL_KERNEL_TIME": "28672",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1751911",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "209728",
+        "COPY_IN_TIME": "8512",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "28672"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "10624",
+        "TOTAL_KERNEL_TIME": "36864",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "2130773",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "257120",
+        "COPY_IN_TIME": "8256",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "36864"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9696",
+        "TOTAL_KERNEL_TIME": "30720",
+        "COPY_OUT_TIME": "6016",
+        "TOTAL_TASK_GRAPH_TIME": "2122677",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "207488",
+        "COPY_IN_TIME": "8288",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "30720"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8448",
+        "TOTAL_KERNEL_TIME": "24576",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1573580",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "117280",
+        "COPY_IN_TIME": "8000",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "24576"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7936",
+        "TOTAL_KERNEL_TIME": "25600",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1574554",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "166560",
+        "COPY_IN_TIME": "8096",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "25600"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8448",
+        "TOTAL_KERNEL_TIME": "28672",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "1463755",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "164512",
+        "COPY_IN_TIME": "8000",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "28672"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "12128",
+        "TOTAL_KERNEL_TIME": "34816",
+        "COPY_OUT_TIME": "5824",
+        "TOTAL_TASK_GRAPH_TIME": "1824711",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "236288",
+        "COPY_IN_TIME": "8192",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "34816"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8480",
+        "TOTAL_KERNEL_TIME": "24576",
+        "COPY_OUT_TIME": "5824",
+        "TOTAL_TASK_GRAPH_TIME": "1477588",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "191744",
+        "COPY_IN_TIME": "8064",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "24576"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9088",
+        "TOTAL_KERNEL_TIME": "25728",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "2173949",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "196512",
+        "COPY_IN_TIME": "7936",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "25728"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7584",
+        "TOTAL_KERNEL_TIME": "26656",
+        "COPY_OUT_TIME": "6400",
+        "TOTAL_TASK_GRAPH_TIME": "1705832",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "281728",
+        "COPY_IN_TIME": "27456",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "26656"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "17760",
+        "TOTAL_KERNEL_TIME": "37888",
+        "COPY_OUT_TIME": "6368",
+        "TOTAL_TASK_GRAPH_TIME": "2793578",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "284320",
+        "COPY_IN_TIME": "7936",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "37888"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "10496",
+        "TOTAL_KERNEL_TIME": "26624",
+        "COPY_OUT_TIME": "5824",
+        "TOTAL_TASK_GRAPH_TIME": "1820292",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "212896",
+        "COPY_IN_TIME": "8000",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "26624"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9888",
+        "TOTAL_KERNEL_TIME": "27648",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1919614",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "214944",
+        "COPY_IN_TIME": "7968",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "27648"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "10880",
+        "TOTAL_KERNEL_TIME": "25600",
+        "COPY_OUT_TIME": "5824",
+        "TOTAL_TASK_GRAPH_TIME": "1807772",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "225568",
+        "COPY_IN_TIME": "7872",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "25600"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "13056",
+        "TOTAL_KERNEL_TIME": "71680",
+        "COPY_OUT_TIME": "6432",
+        "TOTAL_TASK_GRAPH_TIME": "3812530",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "1266880",
+        "COPY_IN_TIME": "7904",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "71680"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9472",
+        "TOTAL_KERNEL_TIME": "29824",
+        "COPY_OUT_TIME": "6400",
+        "TOTAL_TASK_GRAPH_TIME": "2185745",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "339968",
+        "COPY_IN_TIME": "9216",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "29824"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7200",
+        "TOTAL_KERNEL_TIME": "25600",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1294788",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "136832",
+        "COPY_IN_TIME": "8032",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "25600"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7648",
+        "TOTAL_KERNEL_TIME": "25568",
+        "COPY_OUT_TIME": "5984",
+        "TOTAL_TASK_GRAPH_TIME": "1257369",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "178080",
+        "COPY_IN_TIME": "8064",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "25568"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7264",
+        "TOTAL_KERNEL_TIME": "19456",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1415816",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "185760",
+        "COPY_IN_TIME": "8032",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "19456"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9280",
+        "TOTAL_KERNEL_TIME": "23680",
+        "COPY_OUT_TIME": "6400",
+        "TOTAL_TASK_GRAPH_TIME": "3023673",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "1057728",
+        "COPY_IN_TIME": "8000",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "23680"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9472",
+        "TOTAL_KERNEL_TIME": "27648",
+        "COPY_OUT_TIME": "6400",
+        "TOTAL_TASK_GRAPH_TIME": "1520826",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "271616",
+        "COPY_IN_TIME": "7968",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15484",
+            "TASK_KERNEL_TIME": "27648"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8192",
+        "TOTAL_KERNEL_TIME": "22528",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1406754",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "183360",
+        "COPY_IN_TIME": "8032",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "22528"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7936",
+        "TOTAL_KERNEL_TIME": "19456",
+        "COPY_OUT_TIME": "5824",
+        "TOTAL_TASK_GRAPH_TIME": "1188444",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "163424",
+        "COPY_IN_TIME": "7872",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "19456"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7872",
+        "TOTAL_KERNEL_TIME": "17408",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1104337",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "118240",
+        "COPY_IN_TIME": "8000",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "17408"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "15072",
+        "TOTAL_KERNEL_TIME": "39936",
+        "COPY_OUT_TIME": "6432",
+        "TOTAL_TASK_GRAPH_TIME": "58351632",
+        "TOTAL_DRIVER_COMPILE_TIME": "6056196",
+        "TOTAL_CODE_GENERATION_TIME": "7358132",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "409600",
+        "COPY_IN_TIME": "15360",
+        "TOTAL_GRAAL_COMPILE_TIME": "47419157",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "131120",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_COMPILE_GRAAL_TIME": "47419157",
+            "TASK_CODE_GENERATION_TIME": "7358132",
+            "TASK_COMPILE_DRIVER_TIME": "6056196",
+            "TASK_KERNEL_TIME": "39936"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "10464",
+        "TOTAL_KERNEL_TIME": "30720",
+        "COPY_OUT_TIME": "6432",
+        "TOTAL_TASK_GRAPH_TIME": "2289003",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "156960",
+        "COPY_IN_TIME": "8032",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "30720"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "11488",
+        "TOTAL_KERNEL_TIME": "29696",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "2528267",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "262496",
+        "COPY_IN_TIME": "7968",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "29696"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "12896",
+        "TOTAL_KERNEL_TIME": "31744",
+        "COPY_OUT_TIME": "5824",
+        "TOTAL_TASK_GRAPH_TIME": "1806468",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "171360",
+        "COPY_IN_TIME": "7968",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "31744"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "14016",
+        "TOTAL_KERNEL_TIME": "34816",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "3472193",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "197888",
+        "COPY_IN_TIME": "8256",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "34816"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "13248",
+        "TOTAL_KERNEL_TIME": "35840",
+        "COPY_OUT_TIME": "6400",
+        "TOTAL_TASK_GRAPH_TIME": "2603326",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "252384",
+        "COPY_IN_TIME": "8096",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "35840"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "12768",
+        "TOTAL_KERNEL_TIME": "43008",
+        "COPY_OUT_TIME": "6400",
+        "TOTAL_TASK_GRAPH_TIME": "1807260",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "158688",
+        "COPY_IN_TIME": "8160",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "43008"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8160",
+        "TOTAL_KERNEL_TIME": "22528",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1556792",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "138816",
+        "COPY_IN_TIME": "8288",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "22528"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7232",
+        "TOTAL_KERNEL_TIME": "25472",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "1295870",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "116576",
+        "COPY_IN_TIME": "8032",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "25472"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8000",
+        "TOTAL_KERNEL_TIME": "22528",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1513741",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "133664",
+        "COPY_IN_TIME": "8032",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "22528"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8608",
+        "TOTAL_KERNEL_TIME": "25600",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "1584765",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "133312",
+        "COPY_IN_TIME": "8864",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "25600"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8064",
+        "TOTAL_KERNEL_TIME": "24576",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1755983",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "118880",
+        "COPY_IN_TIME": "8224",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "24576"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "10240",
+        "TOTAL_KERNEL_TIME": "27648",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "2466900",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "141088",
+        "COPY_IN_TIME": "8256",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15543",
+            "TASK_KERNEL_TIME": "27648"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8736",
+        "TOTAL_KERNEL_TIME": "25632",
+        "COPY_OUT_TIME": "6848",
+        "TOTAL_TASK_GRAPH_TIME": "1721094",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "220832",
+        "COPY_IN_TIME": "9216",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "25632"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7968",
+        "TOTAL_KERNEL_TIME": "47072",
+        "COPY_OUT_TIME": "6368",
+        "TOTAL_TASK_GRAPH_TIME": "1300802",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "207264",
+        "COPY_IN_TIME": "9184",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "47072"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "11968",
+        "TOTAL_KERNEL_TIME": "30880",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "1389673",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "127904",
+        "COPY_IN_TIME": "8256",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "30880"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7584",
+        "TOTAL_KERNEL_TIME": "20480",
+        "COPY_OUT_TIME": "5824",
+        "TOTAL_TASK_GRAPH_TIME": "1024695",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "103392",
+        "COPY_IN_TIME": "8928",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "20480"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7680",
+        "TOTAL_KERNEL_TIME": "19456",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1043354",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "109248",
+        "COPY_IN_TIME": "8224",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "19456"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8192",
+        "TOTAL_KERNEL_TIME": "23552",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1039839",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "110592",
+        "COPY_IN_TIME": "8096",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "23552"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7488",
+        "TOTAL_KERNEL_TIME": "20480",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "1223358",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "218272",
+        "COPY_IN_TIME": "8128",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "20480"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8032",
+        "TOTAL_KERNEL_TIME": "20480",
+        "COPY_OUT_TIME": "6080",
+        "TOTAL_TASK_GRAPH_TIME": "1135153",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "123456",
+        "COPY_IN_TIME": "8160",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "20480"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9952",
+        "TOTAL_KERNEL_TIME": "24576",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "2266938",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "222880",
+        "COPY_IN_TIME": "8000",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "24576"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9440",
+        "TOTAL_KERNEL_TIME": "29696",
+        "COPY_OUT_TIME": "6368",
+        "TOTAL_TASK_GRAPH_TIME": "2180386",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "349344",
+        "COPY_IN_TIME": "28416",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "29696"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "55424",
+        "TOTAL_KERNEL_TIME": "31744",
+        "COPY_OUT_TIME": "6400",
+        "TOTAL_TASK_GRAPH_TIME": "1934843",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "309824",
+        "COPY_IN_TIME": "8192",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "31744"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8640",
+        "TOTAL_KERNEL_TIME": "45056",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1449968",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "105824",
+        "COPY_IN_TIME": "8192",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "45056"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7360",
+        "TOTAL_KERNEL_TIME": "20512",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "991614",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "169024",
+        "COPY_IN_TIME": "8000",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "20512"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7968",
+        "TOTAL_KERNEL_TIME": "16416",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "888923",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "89376",
+        "COPY_IN_TIME": "8032",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "16416"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9088",
+        "TOTAL_KERNEL_TIME": "20480",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "1694022",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "170848",
+        "COPY_IN_TIME": "9024",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "20480"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9888",
+        "TOTAL_KERNEL_TIME": "23552",
+        "COPY_OUT_TIME": "30784",
+        "TOTAL_TASK_GRAPH_TIME": "1249573",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "128064",
+        "COPY_IN_TIME": "8128",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "23552"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "115968",
+        "TOTAL_KERNEL_TIME": "4096",
+        "COPY_OUT_TIME": "6432",
+        "TOTAL_TASK_GRAPH_TIME": "1356598",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "184736",
+        "COPY_IN_TIME": "8448",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "4096"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8096",
+        "TOTAL_KERNEL_TIME": "17408",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "995846",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "97760",
+        "COPY_IN_TIME": "8032",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "17408"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7936",
+        "TOTAL_KERNEL_TIME": "20608",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1049489",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "117408",
+        "COPY_IN_TIME": "8192",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "20608"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8352",
+        "TOTAL_KERNEL_TIME": "18432",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "962086",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "102304",
+        "COPY_IN_TIME": "8064",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "18432"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "9408",
+        "TOTAL_KERNEL_TIME": "17408",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1365662",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "159552",
+        "COPY_IN_TIME": "7936",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "17408"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7520",
+        "TOTAL_KERNEL_TIME": "17408",
+        "COPY_OUT_TIME": "5824",
+        "TOTAL_TASK_GRAPH_TIME": "1129570",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "145824",
+        "COPY_IN_TIME": "8096",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "17408"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "10656",
+        "TOTAL_KERNEL_TIME": "25664",
+        "COPY_OUT_TIME": "5888",
+        "TOTAL_TASK_GRAPH_TIME": "1462519",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "196448",
+        "COPY_IN_TIME": "8000",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "25664"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "12000",
+        "TOTAL_KERNEL_TIME": "27520",
+        "COPY_OUT_TIME": "6432",
+        "TOTAL_TASK_GRAPH_TIME": "1667930",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "249344",
+        "COPY_IN_TIME": "8000",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "27520"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7296",
+        "TOTAL_KERNEL_TIME": "29696",
+        "COPY_OUT_TIME": "6368",
+        "TOTAL_TASK_GRAPH_TIME": "1313677",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "253984",
+        "COPY_IN_TIME": "8096",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "29696"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "7680",
+        "TOTAL_KERNEL_TIME": "19456",
+        "COPY_OUT_TIME": "6400",
+        "TOTAL_TASK_GRAPH_TIME": "1157114",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "250016",
+        "COPY_IN_TIME": "7936",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "19456"
+        }
+    }
+}
+
+{
+    "foo": {
+        "TOTAL_DISPATCH_KERNEL_TIME": "8480",
+        "TOTAL_KERNEL_TIME": "22528",
+        "COPY_OUT_TIME": "5856",
+        "TOTAL_TASK_GRAPH_TIME": "1095163",
+        "TOTAL_DISPATCH_DATA_TRANSFERS_TIME": "188832",
+        "COPY_IN_TIME": "8896",
+        "ALLOCATION_BYTES": "196680",
+        "TOTAL_COPY_OUT_SIZE_BYTES": "65560",
+        "TOTAL_COPY_IN_SIZE_BYTES": "65560",
+        "foo.bar": {
+            "BACKEND": "OPENCL",
+            "METHOD": "TestArrays.vectorAddFloat",
+            "DEVICE_ID": "0:0",
+            "DEVICE": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "TOTAL_COPY_IN_SIZE_BYTES": "24",
+            "POWER_USAGE_mW": "15561",
+            "TASK_KERNEL_TIME": "22528"
+        }
+    }
+}
+
+Test: class uk.ac.manchester.tornado.unittests.api.TestIO
+	Running test: [34mtestForceCopyIn[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestStreamIn[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestLockObjectsInMemory[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestCopyInWithDevice[0m       ................ [32m [PASS] [0m
+Test ran: 4, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.executor.TestExecutor"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Root
+Task info: s0.t0
+	Backend           : OPENCL
+	Device            : NVIDIA GeForce RTX 4070 Laptop GPU CL_DEVICE_TYPE_GPU (available)
+	Dims              : 1
+	Global work offset: [0, 0, 0]
+	Global work size  : [16, 1, 1]
+	Local  work size  : null
+	Number of workgroups  : null
+
+Root
+ -> withWarmUp 
+ -> withDevice(OPENCL:NVIDIA GeForce RTX 4070 Laptop GPU)
+ -> withGridScheduler(<s0.t0::GlobalWorkGroup=[16, 1, 1]::LocalWorkGroup=null>)
+ -> withThreadInfo 
+ -> withProfiler(SILENT) 
+Root
+ -> withWarmUp 
+ -> withDevice(OPENCL:NVIDIA GeForce RTX 4070 Laptop GPU)
+ -> withGridScheduler(<s0.t0::GlobalWorkGroup=[16, 1, 1]::LocalWorkGroup=null>)
+ -> withThreadInfo 
+ -> withProfiler(SILENT) 
+After the execution
+Root
+Test: class uk.ac.manchester.tornado.unittests.executor.TestExecutor
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest02[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest03[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest04[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest05[0m                     ................ [32m [PASS] [0m
+Test ran: 5, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.grid.TestGrid"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+[TornadoVM] Warning: The loop bounds will be configured by the GridScheduler. Check the grid by using the flag --threadInfo.
+[TornadoVM OCL] Warning: TornadoVM changed the user-defined local size to null. Now, the OpenCL driver will select the best configuration.
+Test: class uk.ac.manchester.tornado.unittests.grid.TestGrid
+	Running test: [34mtestDynamicGrid01[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestDynamicGrid02[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestDynamicGrid03[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestDynamicGrid04[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestOutOfRangeDimensions[0m   ................ [32m [PASS] [0m
+Test ran: 5, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.grid.TestGridScheduler"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.grid.TestGridScheduler
+	Running test: [34mtestMultipleTasksSeparateTaskGraphs[0m ................ [32m [PASS] [0m
+	Running test: [34mtestMultipleTasksWithinTaskGraph[0m ................ [32m [PASS] [0m
+Test ran: 2, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.kernelcontext.api.Grids"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.kernelcontext.api.Grids
+	Running test: [34mtestWithIncorrectGraphAndTaskName[0m ................ [32m [PASS] [0m
+	Running test: [34mtestWithCorrectNames[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestWithIncorrectGraphName[0m ................ [32m [PASS] [0m
+Test ran: 3, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.kernelcontext.api.TestCombinedTaskGraph"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.kernelcontext.api.TestCombinedTaskGraph
+	Running test: [34mcombinedAPI01[0m              ................ [32m [PASS] [0m
+	Running test: [34mcombinedAPI02[0m              ................ [32m [PASS] [0m
+	Running test: [34mcombinedAPI03[0m              ................ [32m [PASS] [0m
+	Running test: [34mcombinedAPI04[0m              ................ [32m [PASS] [0m
+	Running test: [34mcombinedAPI05[0m              ................ [32m [PASS] [0m
+Test ran: 5, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.kernelcontext.api.TestVectorAdditionKernelContext"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.kernelcontext.api.TestVectorAdditionKernelContext
+	Running test: [34mvectorAddKernelContext01[0m   ................ [32m [PASS] [0m
+	Running test: [34mvectorAddKernelContext02[0m   ................ [32m [PASS] [0m
+	Running test: [34mvectorAddKernelContext03[0m   ................ [32m [PASS] [0m
+	Running test: [34mvectorAddKernelContext04[0m   ................ [32m [PASS] [0m
+	Running test: [34mvectorAddKernelContext05[0m   ................ [32m [PASS] [0m
+Test ran: 5, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.kernelcontext.api.KernelContextWorkGroupTests"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.kernelcontext.api.KernelContextWorkGroupTests
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest02[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest03[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest04[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest05[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest06[0m                     ................ [32m [PASS] [0m
+Test ran: 6, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.kernelcontext.matrices.TestMatrixMultiplicationKernelContext"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.kernelcontext.matrices.TestMatrixMultiplicationKernelContext
+	Running test: [34mmxm1DKernelContext[0m         ................ [32m [PASS] [0m
+	Running test: [34mmxm2DKernelContext01[0m       ................ [31m [FAILED] [0m
+		\_[REASON] expected:<5.0013924> but was:<3.8073773>
+	Running test: [34mmxm2DKernelContext02[0m       ................ [31m [FAILED] [0m
+		\_[REASON] expected:<4.903286> but was:<4.625787>
+Test ran: 3, Failed: 2, Unsupported: 0
+
+
+[1;31mTest: uk.ac.manchester.tornado.unittests.kernelcontext.matrices.TestMatrixMultiplicationKernelContext#mxm2DKernelContext01 in whiteList.[0;0m
+[1;31mTest: uk.ac.manchester.tornado.unittests.kernelcontext.matrices.TestMatrixMultiplicationKernelContext#mxm2DKernelContext02 in whiteList.[0;0m
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestReductionsIntegersKernelContext"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestReductionsIntegersKernelContext
+	Running test: [34mtestIntReductionsMaxGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mbasic[0m                      ................ [32m [PASS] [0m
+	Running test: [34mbasic02[0m                    ................ [32m [PASS] [0m
+	Running test: [34mbasic03[0m                    ................ [32m [PASS] [0m
+	Running test: [34mbasic04[0m                    ................ [32m [PASS] [0m
+	Running test: [34mbasic05[0m                    ................ [32m [PASS] [0m
+	Running test: [34mtestIntReductionsAddGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestIntReductionsAddLocalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestIntReductionsMaxLocalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestIntReductionsMinGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestIntReductionsMinLocalMemory[0m ................ [32m [PASS] [0m
+Test ran: 11, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestReductionsFloatsKernelContext"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestReductionsFloatsKernelContext
+	Running test: [34mtestFloatReductionsAddGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestFloatReductionsAddLocalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestFloatReductionsMaxGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestFloatReductionsMaxLocalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestFloatReductionsMinGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestFloatReductionsMinLocalMemory[0m ................ [32m [PASS] [0m
+Test ran: 6, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestReductionsDoublesKernelContext"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestReductionsDoublesKernelContext
+	Running test: [34mtestDoubleReductionsMaxGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestDoubleReductionsAddGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestDoubleReductionsAddLocalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestDoubleReductionsMaxLocalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestDoubleReductionsMinGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestDoubleReductionsMinLocalMemory[0m ................ [32m [PASS] [0m
+Test ran: 6, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestReductionsLongKernelContext"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestReductionsLongKernelContext
+	Running test: [34mtestLongReductionsAddGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestLongReductionsAddLocalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestLongReductionsMaxGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestLongReductionsMaxLocalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestLongReductionsMinGlobalMemory[0m ................ [32m [PASS] [0m
+	Running test: [34mtestLongReductionsMinLocalMemory[0m ................ [32m [PASS] [0m
+Test ran: 6, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.math.TestMath"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.math.TestMath
+	Running test: [34mtestMathSignumFloat[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestNegate[0m                 ................ [32m [PASS] [0m
+	Running test: [34mtestFMA[0m                    ................ [32m [PASS] [0m
+	Running test: [34mtestFMA2[0m                   ................ [32m [PASS] [0m
+	Running test: [34mtestMathCos[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestMathAtan[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMathTan[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestMathTanh[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMathLog[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestMathSqrt[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMathExp[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestMathExpFloat[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestMathExpDouble[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestMathPowDouble[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestMathPow[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestMathAbs[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestMathMin[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestMathMax[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestRem[0m                    ................ [32m [PASS] [0m
+	Running test: [34mtestMathATan2[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestMathAcos[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMathASin[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMathSignumFloatNaN[0m     ................ [35m [OPENCL CONFIGURATION UNSUPPORTED] [0m
+	Running test: [34mtestMathSignumDouble[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestMathSignumDoubleNaN[0m    ................ [35m [OPENCL CONFIGURATION UNSUPPORTED] [0m
+	Running test: [34mtestMathCeil[0m               ................ [32m [PASS] [0m
+Test ran: 26, Failed: 0, Unsupported: 2
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.batches.TestBatches"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessWRITE_ONLY
+syncObjectInnerLazy: object accessREAD_WRITE
+syncObjectInnerLazy: object accessREAD_WRITE
+syncObjectInnerLazy: object accessREAD_WRITE
+syncObjectInnerLazy: object accessREAD_WRITE
+syncObjectInnerLazy: object accessREAD_WRITE
+syncObjectInnerLazy: object accessREAD_WRITE
+syncObjectInnerLazy: object accessREAD_WRITE
+syncObjectInnerLazy: object accessREAD_WRITE
+syncObjectInnerLazy: object accessREAD_WRITE
+Test: class uk.ac.manchester.tornado.unittests.batches.TestBatches
+	Running test: [34mtestSameInputSizeAndTypeRestriction[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSameInputSizeAndTypeRestrictionJavaArrays[0m ................ [32m [PASS] [0m
+	Running test: [34mtest100MBSmall[0m             ................ [32m [PASS] [0m
+	Running test: [34mtest100MBSmallLazy[0m         ................ [32m [PASS] [0m
+	Running test: [34mtest100MB[0m                  ................ [32m [PASS] [0m
+	Running test: [34mtest100MBLazy[0m              ................ [32m [PASS] [0m
+	Running test: [34mtest300MB[0m                  ................ [32m [PASS] [0m
+	Running test: [34mtest300MBLazy[0m              ................ [32m [PASS] [0m
+	Running test: [34mtest512MB[0m                  ................ [32m [PASS] [0m
+	Running test: [34mtest512MBLazy[0m              ................ [32m [PASS] [0m
+	Running test: [34mtest50MB[0m                   ................ [32m [PASS] [0m
+	Running test: [34mtest50MBInteger[0m            ................ [32m [PASS] [0m
+	Running test: [34mtest50MBShort[0m              ................ [32m [PASS] [0m
+	Running test: [34mtest50MBDouble[0m             ................ [32m [PASS] [0m
+	Running test: [34mtest50MBLong[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestSameInputTypeRestriction[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSameInputTypeRestrictionJavaArrays[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSameInputSize[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestSameInputSizeJavaArrays[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSameInputSizeJavaToTornado[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSameInputSizeTornadoToJava[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSameInputSizeAndTypeJavaToTornado[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSameInputSizeAndTypeTornadoToJava[0m ................ [32m [PASS] [0m
+	Running test: [34mtestBatchNotEven[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestBatchNotEven2[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestBatchNotEven2Lazy[0m      ................ [32m [PASS] [0m
+	Running test: [34mtestBatchThreadIndex[0m       ................ [32m [PASS] [0m
+Test ran: 27, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.lambdas.TestLambdas"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.lambdas.TestLambdas
+	Running test: [34mtestLambda01[0m               ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.functional.TestLambdas"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.functional.TestLambdas
+	Running test: [34mtestVectorFunctionLambda[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFunctionLambda02[0m ................ [32m [PASS] [0m
+	Running test: [34mtestVectorFunctionLambda03[0m ................ [32m [PASS] [0m
+	Running test: [34mtestParameterUnboxing[0m      ................ [32m [PASS] [0m
+Test ran: 4, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.flatmap.TestFlatMap"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.flatmap.TestFlatMap
+	Running test: [34mtestFlatMap[0m                ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.logic.TestLogic"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.logic.TestLogic
+	Running test: [34mtestLogic01[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestLogic02[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestLogic03[0m                ................ [32m [PASS] [0m
+Test ran: 3, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.fields.TestFields"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+syncObjectInner partialCopy: object accessWRITE_ONLY
+syncObjectInner partialCopy: object accessWRITE_ONLY
+syncObjectInner: object accessWRITE_ONLY
+Test: class uk.ac.manchester.tornado.unittests.fields.TestFields
+	Running test: [34mtestFieldsPartialLazyCopyout[0m ................ [32m [PASS] [0m
+	Running test: [34mtestFields01[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestFields02[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestFields03[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestFieldsPartialCopyout[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestFieldsLazyCopyout[0m      ................ [32m [PASS] [0m
+	Running test: [34mtestSetField[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestSetNestedField[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestSetNestedArray[0m         ................ [32m [PASS] [0m
+Test ran: 9, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.bitsets.BitSetTests"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.bitsets.BitSetTests
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.fails.TestFails"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.fails.TestFails
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest02[0m                     ................ [32m [PASS] [0m
+Test ran: 2, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.fails.RuntimeFail"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.fails.RuntimeFail
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.math.TestTornadoMathCollection"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.math.TestTornadoMathCollection
+	Running test: [34mtestTornadoMathSignumDoubleNaN[0m ................ [35m [OPENCL CONFIGURATION UNSUPPORTED] [0m
+	Running test: [34mtestTornadoMathSignumDouble[0m ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathSignumFloatNaN[0m ................ [35m [OPENCL CONFIGURATION UNSUPPORTED] [0m
+	Running test: [34mtestTornadoMathCos[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathCosPI[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathCosPIDouble[0m ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathSinPI[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathSinPIDouble[0m ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathSignumFloat[0m ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathSin[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathAtan[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathAtanDouble[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathTan[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathTanDouble[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathTanh[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathTanhDouble[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathMin[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathMax[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathSqrt[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathExpDouble[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathExpFloat[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathClamp[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathFract[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathLog2[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathLogDouble[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathLogFloat[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathPI[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestMathFloor[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestMathClamp[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathRadians[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestTornadoMathRadiansDouble[0m ................ [32m [PASS] [0m
+	Running test: [34mtestMathATan2[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestMathATan2Double[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestMathAcos[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestMathASin[0m               ................ [32m [PASS] [0m
+Test ran: 35, Failed: 0, Unsupported: 2
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.arrays.TestNewArrays"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.arrays.TestNewArrays
+	Running test: [34mtestInitNewArrayInsideParallel[0m ................ [32m [PASS] [0m
+	Running test: [34mtestInitNewArrayNotParallel[0m ................ [32m [PASS] [0m
+	Running test: [34mtestInitNewArrayInsideParallelWithComplexAccesses[0m ................ [32m [PASS] [0m
+	Running test: [34mtestInitLargeArray[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestInitLargeArrayBranches[0m ................ [32m [PASS] [0m
+	Running test: [34mtestInitNewArrayParallel[0m   ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+	Running test: [34mtestIniNewtArrayWithReductions[0m ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+Test ran: 7, Failed: 0, Unsupported: 2
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.dynsize.ResizeTest"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.dynsize.ResizeTest
+	Running test: [34mtestDynamicSize01[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestDynamicSize02[0m          ................ [32m [PASS] [0m
+Test ran: 2, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.loops.TestLoopTransformations"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.loops.TestLoopTransformations
+	Running test: [34mtestPartialUnrollParallelLoops[0m ................ [32m [PASS] [0m
+	Running test: [34mtestPartialUnrollDefault[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestPartialUnrollNvidia32[0m  ................ [32m [PASS] [0m
+Test ran: 3, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.numpromotion.TestNumericPromotion"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.numpromotion.TestNumericPromotion
+	Running test: [34mtestBitwiseOr[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestBitwiseAnd[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestBitwiseXor[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestBitwiseNot[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestAddition[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestSubtraction[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestMultiplication[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestDivision[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestSignedLeftShift[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestSignedRightShift[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestUnsignedRightShift[0m     ................ [32m [PASS] [0m
+Test ran: 11, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.numpromotion.Types"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.numpromotion.Types
+	Running test: [34mtestByteToByte[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestByteToByte2[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestByteToInt[0m              ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+	Running test: [34mtestByteToShort[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestByteToLong[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestIntToLong[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestShortToInt[0m             ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+	Running test: [34mtestFloatToDouble[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestIntToDouble[0m            ................ [32m [PASS] [0m
+Test ran: 9, Failed: 0, Unsupported: 2
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.numpromotion.Inlining"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.numpromotion.Inlining
+	Running test: [34mb2i[0m                        ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+	Running test: [34mrgbToGreyKernel[0m            ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+	Running test: [34mrgbToGreyKernelInt[0m         ................ [32m [PASS] [0m
+	Running test: [34mrgbToGreyKernelSmall[0m       ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+	Running test: [34mtest0[0m                      ................ [32m [PASS] [0m
+Test ran: 5, Failed: 0, Unsupported: 3
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.numpromotion.TestZeroExtend"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.numpromotion.TestZeroExtend
+	Running test: [34mtestByte[0m                   ................ [32m [PASS] [0m
+	Running test: [34mtestShort[0m                  ................ [32m [PASS] [0m
+	Running test: [34mtestInt[0m                    ................ [32m [PASS] [0m
+Test ran: 3, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.fails.CodeFail"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+[31mWARNING: Code Bailout to Java sequential. Use --debug to see the reason[0m
+Test: class uk.ac.manchester.tornado.unittests.fails.CodeFail
+	Running test: [34mcodeFail01[0m                 ................ [32m [PASS] [0m
+	Running test: [34mcodeFail02[0m                 ................ [32m [PASS] [0m
+	Running test: [34mcodeFail03[0m                 ................ [32m [PASS] [0m
+Test ran: 3, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.parameters.ParameterTests"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.parameters.ParameterTests
+	Running test: [34mtestScalarParameters01[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestScalarParameters02[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestScalarParameters03[0m     ................ [32m [PASS] [0m
+Test ran: 3, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.codegen.CodeGenTest"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.codegen.CodeGenTest
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest02[0m                     ................ [31m [FAILED] [0m
+		\_[REASON] null
+	Running test: [34mtest04[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest05[0m                     ................ [32m [PASS] [0m
+Test ran: 4, Failed: 1, Unsupported: 0
+
+
+[1;31mTest: uk.ac.manchester.tornado.unittests.codegen.CodeGenTest#test02 in whiteList.[0;0m
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.atomics.TestAtomics"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.atomics.TestAtomics
+	Running test: [34mtestAtomic03[0m               ................ [33m [NOT VALID TEST: UNSUPPORTED] [0m
+	Running test: [34mtestAtomic04[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic04Get[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic05_precompiled[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic06[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic07[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic08[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic09[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic10[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic11[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic12[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic13[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic14[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic15[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestAtomic16[0m               ................ [32m [PASS] [0m
+Test ran: 15, Failed: 0, Unsupported: 1
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.compute.ComputeTests"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+[TornadoVM] Warning: The loop bounds will be configured by the GridScheduler. Check the grid by using the flag --threadInfo.
+Test: class uk.ac.manchester.tornado.unittests.compute.ComputeTests
+	Running test: [34mtestNBody[0m                  ................ [32m [PASS] [0m
+	Running test: [34mtestNBodySmall[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestNBodyBigNoWorker[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestDFTDouble[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestDFTVectorTypes[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestDFTFloat[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestHilbert[0m                ................ [32m [PASS] [0m
+	Running test: [34mtestBlackScholes[0m           ................ [32m [PASS] [0m
+	Running test: [34mtestMontecarlo[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestMandelbrot[0m             ................ [31m [FAILED] [0m
+		\_[REASON] expected:<8> but was:<9>
+	Running test: [34mtestEuler[0m                  ................ [32m [PASS] [0m
+	Running test: [34mtestRenderTrack[0m            ................ [32m [PASS] [0m
+	Running test: [34mtestJuliaSets[0m              ................ [31m [FAILED] [0m
+		\_[REASON] expected:<3.8022814> but was:<1.4224751>
+	Running test: [34mmatrixVector[0m               ................ [32m [PASS] [0m
+	Running test: [34mmatrixVectorFloat4[0m         ................ [32m [PASS] [0m
+Test ran: 15, Failed: 2, Unsupported: 0
+
+
+[1;31mTest: uk.ac.manchester.tornado.unittests.compute.ComputeTests#testMandelbrot in whiteList.[0;0m
+[1;31mTest: uk.ac.manchester.tornado.unittests.compute.ComputeTests#testJuliaSets in whiteList.[0;0m
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.dynamic.TestDynamic"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.dynamic.TestDynamic
+	Running test: [34mtestDynamicWithProfiler[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestDynamicWithProfilerE2E[0m ................ [32m [PASS] [0m
+	Running test: [34mtestDynamicWithProfiler2[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestDynamicWithProfiler3[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestDynamicWithProfiler4[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestDynamicWinner[0m          ................ [32m [PASS] [0m
+Test ran: 6, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.vector.api.TestVectorAPI"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Species[float, 2, S_64_BIT]
+Species[float, 4, S_128_BIT]
+Species[float, 8, S_256_BIT]
+Species[float, 16, S_512_BIT]
+Test: class uk.ac.manchester.tornado.unittests.vector.api.TestVectorAPI
+	Running test: [34mtest64BitVectors[0m           ................ [32m [PASS] [0m
+	Running test: [34mtest128BitVectors[0m          ................ [32m [PASS] [0m
+	Running test: [34mtest256BitVectors[0m          ................ [32m [PASS] [0m
+	Running test: [34mtest512BitVectors[0m          ................ [32m [PASS] [0m
+Test ran: 4, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.api.TestConcat"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.api.TestConcat
+	Running test: [34mtestFloatArrayConcat[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestDoubleArrayConcat[0m      ................ [32m [PASS] [0m
+	Running test: [34mtestByteArrayConcat[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestLongArrayConcat[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestIntArrayConcat[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestShortArrayConcat[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestCharArrayConcat[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestHalfFloatArrayConcat[0m   ................ [32m [PASS] [0m
+Test ran: 8, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.api.TestSlice"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.api.TestSlice
+	Running test: [34mtestFloatArraySlice[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestDoubleArraySlice[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestByteArraySlice[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestLongArraySlice[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestIntArraySlice[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestShortArraySlice[0m        ................ [32m [PASS] [0m
+	Running test: [34mtestCharArraySlice[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestHalfFloatArraySlice[0m    ................ [32m [PASS] [0m
+Test ran: 8, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.api.TestBuildFromByteBuffers"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.api.TestBuildFromByteBuffers
+	Running test: [34mtestBuildFromFloatBuffer[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestBuildFromDoubleBuffer[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestBuildFromIntBuffer[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestBuildFromLongBuffer[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestBuildFromShortBuffer[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestBuildFromCharBuffer[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestBuildFromByteBuffer[0m    ................ [32m [PASS] [0m
+Test ran: 7, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.tasks.TestMultipleFunctions"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.tasks.TestMultipleFunctions
+	Running test: [34mtestMultipleTasksMultipleCallees[0m ................ [32m [PASS] [0m
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest02[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest03[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest04[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest05[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtestVector01[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestSingleTask[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestMultipleTasks[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestNoDoubleCompilation[0m    ................ [32m [PASS] [0m
+Test ran: 10, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.tasks.TestMultipleTasksMultipleDevices"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.tasks.TestMultipleTasksMultipleDevices
+	Running test: [34mtestTwoTasksTwoDevicesSharedReadOnlyRead[0m ................ [32m [PASS] [0m
+	Running test: [34mtestTwoTasksTwoDevices[0m     ................ [32m [PASS] [0m
+	Running test: [34mtestThreeTasksTwoDevices[0m   ................ [32m [PASS] [0m
+Test ran: 3, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.vm.concurrency.TestConcurrentBackends"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.vm.concurrency.TestConcurrentBackends
+	Running test: [34mtestThreeBackendsConcurrent[0m ................ [35m [[UNSUPPORTED] MULTI-DEVICE CONFIGURATION REQUIRED] [0m
+	Running test: [34mtestTwoBackendsSerial[0m      ................ [35m [[UNSUPPORTED] MULTI-DEVICE CONFIGURATION REQUIRED] [0m
+	Running test: [34mtestTwoBackendsConcurrent[0m  ................ [35m [[UNSUPPORTED] MULTI-DEVICE CONFIGURATION REQUIRED] [0m
+	Running test: [34mtestThreeBackendsSerial[0m    ................ [35m [[UNSUPPORTED] MULTI-DEVICE CONFIGURATION REQUIRED] [0m
+Test ran: 4, Failed: 0, Unsupported: 4
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.api.TestDevices"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.api.TestDevices
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest02[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest03[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest04[0m                     ................ [32m [PASS] [0m
+Test ran: 4, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.compiler.TestCompilerFlagsAPI"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.compiler.TestCompilerFlagsAPI
+	Running test: [34mtest[0m                       ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.api.TestMemorySegmentsAsType"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.api.TestMemorySegmentsAsType
+	Running test: [34mtestMemorySegmentAsInput[0m   ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.runtime.TestRuntimeAPI"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.runtime.TestRuntimeAPI
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.tensors.TestTensorTypes"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.tensors.TestTensorTypes
+	Running test: [34mtestHelloTensorAPI[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestTensorFloat16Add[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestTensorFloat32Add[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestTensorFloat64Add[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestTensorInt16Add[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestTensorInt32Add[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestTensorInt64Add[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestTensorByte[0m             ................ [32m [PASS] [0m
+Test ran: 8, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True "  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.memory.MemoryConsumptionTest"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.memory.MemoryConsumptionTest
+	Running test: [34mtestMemoryTransferBytes[0m    ................ [32m [PASS] [0m
+	Running test: [34mtestTotalMemoryUsage[0m       ................ [32m [PASS] [0m
+	Running test: [34mtestCurrentMemoryUsage[0m     ................ [32m [PASS] [0m
+Test ran: 3, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True  -XX:CompileCommand=dontinline,uk/ac/manchester/tornado/unittests/tasks/TestMultipleFunctions.*"  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.tasks.TestMultipleFunctions"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+CompileCommand: dontinline uk/ac/manchester/tornado/unittests/tasks/TestMultipleFunctions.* bool dontinline = true
+Test: class uk.ac.manchester.tornado.unittests.tasks.TestMultipleFunctions
+	Running test: [34mtestMultipleTasksMultipleCallees[0m ................ [32m [PASS] [0m
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest02[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest03[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest04[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest05[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtestVector01[0m               ................ [32m [PASS] [0m
+	Running test: [34mtestSingleTask[0m             ................ [32m [PASS] [0m
+	Running test: [34mtestMultipleTasks[0m          ................ [32m [PASS] [0m
+	Running test: [34mtestNoDoubleCompilation[0m    ................ [32m [PASS] [0m
+Test ran: 10, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True  -Dtornado.device.desc=/home/mary/Projects/TornadoVM/bin/sdk/examples/virtual-device-GPU.json -Dtornado.print.kernel=True -Dtornado.virtual.device=True -Dtornado.print.kernel.dir=/home/mary/Projects/TornadoVM/bin/sdk/virtualKernelOut.out"  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.virtual.TestVirtualDeviceKernel#testVirtualDeviceKernel"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.virtual.TestVirtualDeviceKernel#testVirtualDeviceKernel
+	Running test: [34mtestVirtualDeviceKernel[0m    ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True  -Dtornado.device.desc=/home/mary/Projects/TornadoVM/bin/sdk/examples/virtual-device-GPU.json -Dtornado.virtual.device=True -Dtornado.feature.extraction=True -Dtornado.features.dump.dir=/home/mary/Projects/TornadoVM/bin/sdk/virtualFeaturesOut.out"  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.virtual.TestVirtualDeviceFeatureExtraction#testVirtualDeviceFeatures"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.virtual.TestVirtualDeviceFeatureExtraction#testVirtualDeviceFeatures
+	Running test: [34mtestVirtualDeviceFeatures[0m  ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea  --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True  -Dtornado.device.memory=4GB"  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.multithreaded.TestMultiThreadedExecutionPlans"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Running thread t0Running thread t1Test: class uk.ac.manchester.tornado.unittests.multithreaded.TestMultiThreadedExecutionPlans
+	Running test: [34mtest01[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest02[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest03[0m                     ................ [32m [PASS] [0m
+	Running test: [34mtest04[0m                     ................ [32m [PASS] [0m
+Test ran: 4, Failed: 0, Unsupported: 0
+
+
+[1;36m
+[0;32m
+==================================================
+[1;34m              Unit tests report [0;32m
+==================================================
+[1;36m
+{'[PASS]': 681, '[FAILED]': 6, '[UNSUPPORTED]': 46}
+Coverage [PASS/(PASS+FAIL)]: 99.13%
+Coverage [PASS/(PASS+FAIL+UNSUPPORTED)]: 92.91%
+[1;31m
+==================================================
+FAILED TESTS
+==================================================
+[38;5;214muk.ac.manchester.tornado.unittests.foundation.TestIf#test06 - [WHITELISTED]: YES
+[38;5;214muk.ac.manchester.tornado.unittests.kernelcontext.matrices.TestMatrixMultiplicationKernelContext#mxm2DKernelContext01 - [WHITELISTED]: YES
+[38;5;214muk.ac.manchester.tornado.unittests.kernelcontext.matrices.TestMatrixMultiplicationKernelContext#mxm2DKernelContext02 - [WHITELISTED]: YES
+[38;5;214muk.ac.manchester.tornado.unittests.codegen.CodeGenTest#test02 - [WHITELISTED]: YES
+[38;5;214muk.ac.manchester.tornado.unittests.compute.ComputeTests#testMandelbrot - [WHITELISTED]: YES
+[38;5;214muk.ac.manchester.tornado.unittests.compute.ComputeTests#testJuliaSets - [WHITELISTED]: YES
+[1;31m
+==================================================
+[1;36mTotal Time(s): 491.1742503643036
+[0;0m
+tornado-test --ea -V -J"-Dtornado.device.memory=1MB" uk.ac.manchester.tornado.unittests.fails.HeapFail#test03
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado -ea --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True -Dtornado.device.memory=1MB"  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.fails.HeapFail#test03"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+Test: class uk.ac.manchester.tornado.unittests.fails.HeapFail#test03
+	Running test: [34mtest03[0m                     ................ [32m [PASS] [0m
+Test ran: 1, Failed: 0, Unsupported: 0
+
+
+Total Time (s): 2.0874128341674805
+test-native.sh
+
+Testing the Native OpenCL API
+
+Running Native: uk.ac.manchester.tornado.drivers.opencl.tests.TestOpenCLJITCompiler ................ [PASS]
+ 

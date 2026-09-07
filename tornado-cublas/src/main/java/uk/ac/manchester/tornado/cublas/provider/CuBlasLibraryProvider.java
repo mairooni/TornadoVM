@@ -67,6 +67,7 @@ public final class CuBlasLibraryProvider implements TornadoLibraryProvider {
      */
     private static final Map<String, CuBlasCall> FUNCTIONS = Map.of(//
             "cublasSgemv", CuBlasLibraryProvider::sgemv, //
+            "cublasDgemv", CuBlasLibraryProvider::dgemv, //
             "cublasSgemm", CuBlasLibraryProvider::sgemm, //
             "cublasSgemmStridedBatched", CuBlasLibraryProvider::sgemmStridedBatched, //
             "cublasGemmExFP16", (handle, inv) -> gemmEx(handle, inv, CudaDataType.CUDA_R_16F, CudaDataType.CUDA_R_16F), //
@@ -204,6 +205,21 @@ public final class CuBlasLibraryProvider implements TornadoLibraryProvider {
     // ------------------------------------------------------------------
 
     /** (trans, m, n, alpha, A, lda, x, incx, beta, y, incy). */
+    private static int dgemv(long handle, LibraryInvocation invocation) {
+        return CuBlasNativeLib.cublasDgemv(handle, //
+                (int) invocation.getArg(0), //
+                (int) invocation.getArg(1), //
+                (int) invocation.getArg(2), //
+                (double) invocation.getArg(3), //
+                invocation.getDevicePointer(4), //
+                (int) invocation.getArg(5), //
+                invocation.getDevicePointer(6), //
+                (int) invocation.getArg(7), //
+                (double) invocation.getArg(8), //
+                invocation.getDevicePointer(9), //
+                (int) invocation.getArg(10));
+    }
+
     private static int sgemv(long handle, LibraryInvocation invocation) {
         return CuBlasNativeLib.cublasSgemv(handle, //
                 (int) invocation.getArg(0), //

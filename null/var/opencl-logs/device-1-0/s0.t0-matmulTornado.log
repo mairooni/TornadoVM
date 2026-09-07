@@ -1,0 +1,6 @@
+<kernel>:60:18: error: use of undeclared identifier 'InfinityF'
+        f_34  =  InfinityF;
+                 ^
+<kernel>:65:19: error: use of undeclared identifier 'InfinityF'
+        f_34  =  -InfinityF;
+                  ^

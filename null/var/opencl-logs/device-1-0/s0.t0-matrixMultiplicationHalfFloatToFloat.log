@@ -1,0 +1,183 @@
+<kernel>:62:16: error: call to 'convert_float' is ambiguous
+      f_33  =  convert_float(half_13);
+               ^~~~~~~~~~~~~
+cl_kernel.h:14189:24: note: candidate function
+float __OVERLOADABLE__ convert_float(char);
+                       ^
+cl_kernel.h:14197:24: note: candidate function
+float __OVERLOADABLE__ convert_float(uchar);
+                       ^
+cl_kernel.h:14205:24: note: candidate function
+float __OVERLOADABLE__ convert_float(short);
+                       ^
+cl_kernel.h:14213:24: note: candidate function
+float __OVERLOADABLE__ convert_float(ushort);
+                       ^
+cl_kernel.h:14221:24: note: candidate function
+float __OVERLOADABLE__ convert_float(int);
+                       ^
+cl_kernel.h:14229:24: note: candidate function
+float __OVERLOADABLE__ convert_float(uint);
+                       ^
+cl_kernel.h:14237:24: note: candidate function
+float __OVERLOADABLE__ convert_float(long);
+                       ^
+cl_kernel.h:14245:24: note: candidate function
+float __OVERLOADABLE__ convert_float(ulong);
+                       ^
+cl_kernel.h:14253:24: note: candidate function
+float __OVERLOADABLE__ convert_float(float);
+                       ^
+cl_kernel.h:14261:24: note: candidate function
+float __OVERLOADABLE__ convert_float(double);
+                       ^
+cl_kernel.h:14190:25: note: candidate function
+float2 __OVERLOADABLE__ convert_float(char2); 
+                        ^
+cl_kernel.h:14192:25: note: candidate function
+float3 __OVERLOADABLE__ convert_float(char3); 
+                        ^
+cl_kernel.h:14194:25: note: candidate function
+float4 __OVERLOADABLE__ convert_float(char4); 
+                        ^
+cl_kernel.h:14195:25: note: candidate function
+float8 __OVERLOADABLE__ convert_float(char8); 
+                        ^
+cl_kernel.h:14196:26: note: candidate function
+float16 __OVERLOADABLE__ convert_float(char16); 
+                         ^
+cl_kernel.h:14198:25: note: candidate function
+float2 __OVERLOADABLE__ convert_float(uchar2); 
+                        ^
+cl_kernel.h:14200:25: note: candidate function
+float3 __OVERLOADABLE__ convert_float(uchar3); 
+                        ^
+cl_kernel.h:14202:25: note: candidate function
+float4 __OVERLOADABLE__ convert_float(uchar4); 
+                        ^
+cl_kernel.h:14203:25: note: candidate function
+float8 __OVERLOADABLE__ convert_float(uchar8); 
+                        ^
+cl_kernel.h:14204:26: note: candidate function
+float16 __OVERLOADABLE__ convert_float(uchar16); 
+                         ^
+cl_kernel.h:14206:25: note: candidate function
+float2 __OVERLOADABLE__ convert_float(short2); 
+                        ^
+cl_kernel.h:14208:25: note: candidate function
+float3 __OVERLOADABLE__ convert_float(short3); 
+                        ^
+cl_kernel.h:14210:25: note: candidate function
+float4 __OVERLOADABLE__ convert_float(short4); 
+                        ^
+cl_kernel.h:14211:25: note: candidate function
+float8 __OVERLOADABLE__ convert_float(short8); 
+                        ^
+cl_kernel.h:14212:26: note: candidate function
+float16 __OVERLOADABLE__ convert_float(short16); 
+                         ^
+cl_kernel.h:14214:25: note: candidate function
+float2 __OVERLOADABLE__ convert_float(ushort2); 
+                        ^
+cl_kernel.h:14216:25: note: candidate function
+float3 __OVERLOADABLE__ convert_float(ushort3); 
+                        ^
+cl_kernel.h:14218:25: note: candidate function
+float4 __OVERLOADABLE__ convert_float(ushort4); 
+                        ^
+cl_kernel.h:14219:25: note: candidate function
+float8 __OVERLOADABLE__ convert_float(ushort8); 
+                        ^
+cl_kernel.h:14220:26: note: candidate function
+float16 __OVERLOADABLE__ convert_float(ushort16); 
+                         ^
+cl_kernel.h:14222:25: note: candidate function
+float2 __OVERLOADABLE__ convert_float(int2); 
+                        ^
+cl_kernel.h:14224:25: note: candidate function
+float3 __OVERLOADABLE__ convert_float(int3); 
+                        ^
+cl_kernel.h:14226:25: note: candidate function
+float4 __OVERLOADABLE__ convert_float(int4); 
+                        ^
+cl_kernel.h:14227:25: note: candidate function
+float8 __OVERLOADABLE__ convert_float(int8); 
+                        ^
+cl_kernel.h:14228:26: note: candidate function
+float16 __OVERLOADABLE__ convert_float(int16); 
+                         ^
+cl_kernel.h:14230:25: note: candidate function
+float2 __OVERLOADABLE__ convert_float(uint2); 
+                        ^
+cl_kernel.h:14232:25: note: candidate function
+float3 __OVERLOADABLE__ convert_float(uint3); 
+                        ^
+cl_kernel.h:14234:25: note: candidate function
+float4 __OVERLOADABLE__ convert_float(uint4); 
+                        ^
+cl_kernel.h:14235:25: note: candidate function
+float8 __OVERLOADABLE__ convert_float(uint8); 
+                        ^
+cl_kernel.h:14236:26: note: candidate function
+float16 __OVERLOADABLE__ convert_float(uint16); 
+                         ^
+cl_kernel.h:14238:25: note: candidate function
+float2 __OVERLOADABLE__ convert_float(long2); 
+                        ^
+cl_kernel.h:14240:25: note: candidate function
+float3 __OVERLOADABLE__ convert_float(long3); 
+                        ^
+cl_kernel.h:14242:25: note: candidate function
+float4 __OVERLOADABLE__ convert_float(long4); 
+                        ^
+cl_kernel.h:14243:25: note: candidate function
+float8 __OVERLOADABLE__ convert_float(long8); 
+                        ^
+cl_kernel.h:14244:26: note: candidate function
+float16 __OVERLOADABLE__ convert_float(long16); 
+                         ^
+cl_kernel.h:14246:25: note: candidate function
+float2 __OVERLOADABLE__ convert_float(ulong2); 
+                        ^
+cl_kernel.h:14248:25: note: candidate function
+float3 __OVERLOADABLE__ convert_float(ulong3); 
+                        ^
+cl_kernel.h:14250:25: note: candidate function
+float4 __OVERLOADABLE__ convert_float(ulong4); 
+                        ^
+cl_kernel.h:14251:25: note: candidate function
+float8 __OVERLOADABLE__ convert_float(ulong8); 
+                        ^
+cl_kernel.h:14252:26: note: candidate function
+float16 __OVERLOADABLE__ convert_float(ulong16); 
+                         ^
+cl_kernel.h:14254:25: note: candidate function
+float2 __OVERLOADABLE__ convert_float(float2); 
+                        ^
+cl_kernel.h:14256:25: note: candidate function
+float3 __OVERLOADABLE__ convert_float(float3); 
+                        ^
+cl_kernel.h:14258:25: note: candidate function
+float4 __OVERLOADABLE__ convert_float(float4); 
+                        ^
+cl_kernel.h:14259:25: note: candidate function
+float8 __OVERLOADABLE__ convert_float(float8); 
+                        ^
+cl_kernel.h:14260:26: note: candidate function
+float16 __OVERLOADABLE__ convert_float(float16); 
+                         ^
+cl_kernel.h:14262:25: note: candidate function
+float2 __OVERLOADABLE__ convert_float(double2); 
+                        ^
+cl_kernel.h:14264:25: note: candidate function
+float3 __OVERLOADABLE__ convert_float(double3); 
+                        ^
+cl_kernel.h:14266:25: note: candidate function
+float4 __OVERLOADABLE__ convert_float(double4); 
+                        ^
+cl_kernel.h:14267:25: note: candidate function
+float8 __OVERLOADABLE__ convert_float(double8); 
+                        ^
+cl_kernel.h:14268:26: note: candidate function
+float16 __OVERLOADABLE__ convert_float(double16); 
+                         ^

@@ -1,0 +1,9 @@
+<kernel>:71:5: error: expected expression
+    else
+    ^
+<kernel>:76:16: error: expected '}'
+  }  //  kernel
+               ^
+<kernel>:5:1: note: to match this '{'
+{
+^

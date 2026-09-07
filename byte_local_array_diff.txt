@@ -1,0 +1,585 @@
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ExecutionContext.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ExecutionContext.java
+index 58591479e..d1b3b0c57 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ExecutionContext.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/ExecutionContext.java
+@@ -17,8 +17,10 @@
+  */
+ package uk.ac.manchester.tornado.api;
+ 
++import uk.ac.manchester.tornado.api.types.HalfFloat;
+ import uk.ac.manchester.tornado.api.types.arrays.DoubleArray;
+ import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
++import uk.ac.manchester.tornado.api.types.arrays.HalfFloatArray;
+ import uk.ac.manchester.tornado.api.types.arrays.IntArray;
+ import uk.ac.manchester.tornado.api.types.arrays.LongArray;
+ 
+@@ -102,6 +104,15 @@ public interface ExecutionContext {
+      */
+     byte[] allocateByteLocalArray(int size);
+ 
++    /**
++     * Array Allocation in Local Memory (OpenCL terminology).
++     *
++     * @param size
++     *     size of the byte-array.
++     * @return HalfFloat[]
++     */
++    HalfFloatArray allocateHalfFloatLocalArray(int size);
++
+     /**
+      * Method used to read a memory address by using the array and the index,
+      * then add the value of val to it, and write the result back to the same address.
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java
+index 8830379d5..b6f75ed65 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/KernelContext.java
+@@ -19,6 +19,7 @@ package uk.ac.manchester.tornado.api;
+ 
+ import uk.ac.manchester.tornado.api.types.arrays.DoubleArray;
+ import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
++import uk.ac.manchester.tornado.api.types.arrays.HalfFloatArray;
+ import uk.ac.manchester.tornado.api.types.arrays.IntArray;
+ import uk.ac.manchester.tornado.api.types.arrays.LongArray;
+ 
+@@ -163,6 +164,19 @@ public class KernelContext implements ExecutionContext {
+         return new byte[size];
+     }
+ 
++    /**
++     * It allocates a single dimensional array in local memory (known as shared
++     * memory in PTX).
++     *
++     * @param size
++     *     the size of the array
++     * @return HalfFloatArray: reference to the byte array
++     */
++    @Override
++    public HalfFloatArray allocateHalfFloatLocalArray(int size) {
++        return new HalfFloatArray(size);
++    }
++
+     /**
+      * It allocates a single dimensional array in local memory (known as shared
+      * memory in PTX).
+diff --git a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/math/TornadoMath.java b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/math/TornadoMath.java
+index f4f74bd1d..258e49dee 100644
+--- a/tornado-api/src/main/java/uk/ac/manchester/tornado/api/math/TornadoMath.java
++++ b/tornado-api/src/main/java/uk/ac/manchester/tornado/api/math/TornadoMath.java
+@@ -24,6 +24,7 @@ import static uk.ac.manchester.tornado.api.types.utils.DoubleOps.compareULP;
+ import static uk.ac.manchester.tornado.api.types.utils.FloatOps.compare;
+ import static uk.ac.manchester.tornado.api.types.vectors.Float3.dot;
+ 
++import uk.ac.manchester.tornado.api.types.HalfFloat;
+ import uk.ac.manchester.tornado.api.types.arrays.DoubleArray;
+ import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
+ import uk.ac.manchester.tornado.api.types.arrays.HalfFloatArray;
+@@ -63,6 +64,11 @@ public class TornadoMath {
+         return (a > b) ? b : a;
+     }
+ 
++    public static HalfFloat min(HalfFloat a, HalfFloat b) {
++        return (a.getHalfFloatValue() > b.getHalfFloatValue()) ? b : a;
++    }
++
++
+     public static double max(double a, double b) {
+         return Math.max(a, b);
+     }
+@@ -87,6 +93,10 @@ public class TornadoMath {
+         return (a > b) ? a : b;
+     }
+ 
++    public static HalfFloat max(HalfFloat a, HalfFloat b) {
++        return (a.getHalfFloatValue() > b.getHalfFloatValue()) ? a : b;
++    }
++
+     public static float abs(float a) {
+         return Math.abs(a);
+     }
+diff --git a/tornado-assembly/src/bin/tornado-test b/tornado-assembly/src/bin/tornado-test
+index 1e32407f1..5db1df731 100755
+--- a/tornado-assembly/src/bin/tornado-test
++++ b/tornado-assembly/src/bin/tornado-test
+@@ -178,6 +178,8 @@ __TEST_THE_WORLD__ = [
+     TestEntry("uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestReductionsFloatsKernelContext"),
+     TestEntry("uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestReductionsDoublesKernelContext"),
+     TestEntry("uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestReductionsLongKernelContext"),
++    TestEntry("uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestLocalMemoryReductionsBytes"),
++    TestEntry("uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestLocalMemoryReductionsHalfFloats"),
+     TestEntry("uk.ac.manchester.tornado.unittests.math.TestMath"),
+     TestEntry("uk.ac.manchester.tornado.unittests.batches.TestBatches"),
+     TestEntry("uk.ac.manchester.tornado.unittests.lambdas.TestLambdas"),
+diff --git a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/asm/OCLAssembler.java b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/asm/OCLAssembler.java
+index 51888a62c..3f4520cc7 100644
+--- a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/asm/OCLAssembler.java
++++ b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/asm/OCLAssembler.java
+@@ -978,6 +978,7 @@ public final class OCLAssembler extends Assembler {
+         public static final OCLBinaryTemplate NEW_LOCAL_LONG_ARRAY = new OCLBinaryTemplate("local memory array long", "__local long %s[%s]");
+         public static final OCLBinaryTemplate NEW_LOCAL_SHORT_ARRAY = new OCLBinaryTemplate("local memory array short", "__local short %s[%s]");
+         public static final OCLBinaryTemplate NEW_LOCAL_CHAR_ARRAY = new OCLBinaryTemplate("local memory array char", "__local char %s[%s]");
++        public static final OCLBinaryTemplate NEW_LOCAL_HALF_FLOAT_ARRAY = new OCLBinaryTemplate("local memory array half", "__local half %s[%s]");
+         // @formatter:on
+         private final String template;
+ 
+diff --git a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/compiler/plugins/OCLGraphBuilderPlugins.java b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/compiler/plugins/OCLGraphBuilderPlugins.java
+index 408d4bbe1..5c8b0a777 100644
+--- a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/compiler/plugins/OCLGraphBuilderPlugins.java
++++ b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/compiler/plugins/OCLGraphBuilderPlugins.java
+@@ -89,6 +89,7 @@ import uk.ac.manchester.tornado.api.exceptions.Debug;
+ import uk.ac.manchester.tornado.api.exceptions.TornadoRuntimeException;
+ import uk.ac.manchester.tornado.api.types.arrays.DoubleArray;
+ import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
++import uk.ac.manchester.tornado.api.types.arrays.HalfFloatArray;
+ import uk.ac.manchester.tornado.api.types.arrays.Int8Array;
+ import uk.ac.manchester.tornado.api.types.arrays.IntArray;
+ import uk.ac.manchester.tornado.api.types.arrays.LongArray;
+@@ -392,6 +393,20 @@ public class OCLGraphBuilderPlugins {
+         });
+     }
+ 
++    private static void registerHalfFloatLocalArray(Registration r, JavaKind returnedJavaKind) {
++        r.register(new InvocationPlugin("allocateHalfFloatLocalArray", InvocationPlugin.Receiver.class, int.class) {
++            @Override
++            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode size) {
++                // if we do not pass the resolved type, the compiler cannot deduct if the type is char or byte
++                MetaAccessProvider metaAccess = b.getMetaAccess();
++                ResolvedJavaType resolvedElementType = metaAccess.lookupJavaType(short.class);
++                LocalArrayNode localArrayNode = new LocalArrayNode(OCLArchitecture.localSpace, resolvedElementType, size, OCLKind.HALF);
++                b.push(returnedJavaKind, localArrayNode);
++                return true;
++            }
++        });
++    }
++
+     private static void localArraysPlugins(Registration r) {
+         JavaKind returnedJavaKind = JavaKind.Object;
+ 
+@@ -408,6 +423,9 @@ public class OCLGraphBuilderPlugins {
+         registerDoubleLocalArray(r, returnedJavaKind, elementType);
+ 
+         registerByteLocalArray(r, returnedJavaKind);
++
++        returnedJavaKind = JavaKind.fromJavaClass(HalfFloatArray.class);
++        registerHalfFloatLocalArray(r, returnedJavaKind);
+     }
+ 
+     private static void registerKernelContextPlugins(InvocationPlugins plugins) {
+diff --git a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/lir/OCLKind.java b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/lir/OCLKind.java
+index 26cf5d932..bbaaf23c3 100644
+--- a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/lir/OCLKind.java
++++ b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/lir/OCLKind.java
+@@ -282,7 +282,7 @@ public enum OCLKind implements PlatformKind {
+         };
+     }
+ 
+-    public static OCLAssembler.OCLBinaryTemplate resolveTemplateType(JavaKind type) {
++    public static OCLAssembler.OCLBinaryTemplate resolveTemplateType(JavaKind type, OCLKind kind) {
+         if (type == JavaKind.Int) {
+             return OCLAssembler.OCLBinaryTemplate.NEW_LOCAL_INT_ARRAY;
+         } else if (type == JavaKind.Double) {
+@@ -290,7 +290,11 @@ public enum OCLKind implements PlatformKind {
+         } else if (type == JavaKind.Float) {
+             return OCLAssembler.OCLBinaryTemplate.NEW_LOCAL_FLOAT_ARRAY;
+         } else if (type == JavaKind.Short) {
+-            return OCLAssembler.OCLBinaryTemplate.NEW_LOCAL_SHORT_ARRAY;
++            if (kind == OCLKind.HALF) {
++                return OCLAssembler.OCLBinaryTemplate.NEW_LOCAL_HALF_FLOAT_ARRAY;
++            } else {
++                return OCLAssembler.OCLBinaryTemplate.NEW_LOCAL_SHORT_ARRAY;
++            }
+         } else if (type == JavaKind.Long) {
+             return OCLAssembler.OCLBinaryTemplate.NEW_LOCAL_LONG_ARRAY;
+         } else if (type == JavaKind.Char || type == JavaKind.Byte) {
+@@ -300,8 +304,8 @@ public enum OCLKind implements PlatformKind {
+         return null;
+     }
+ 
+-    public static OCLAssembler.OCLBinaryTemplate resolveTemplateType(ResolvedJavaType type) {
+-        return resolveTemplateType(type.getJavaKind());
++    public static OCLAssembler.OCLBinaryTemplate resolveTemplateType(ResolvedJavaType type, OCLKind kind) {
++        return resolveTemplateType(type.getJavaKind(), kind);
+     }
+ 
+     public static OCLAssembler.OCLBinaryTemplate resolvePrivateTemplateType(ResolvedJavaType type) {
+diff --git a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/nodes/LocalArrayNode.java b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/nodes/LocalArrayNode.java
+index 186d2062b..40a59e567 100644
+--- a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/nodes/LocalArrayNode.java
++++ b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/nodes/LocalArrayNode.java
+@@ -61,7 +61,15 @@ public class LocalArrayNode extends FixedNode implements LIRLowerable, MarkLocal
+         this.memoryRegister = memoryRegister;
+         this.length = length;
+         this.kind = OCLKind.fromResolvedJavaType(elementType);
+-        this.arrayTemplate = OCLKind.resolveTemplateType(elementType);
++        this.arrayTemplate = OCLKind.resolveTemplateType(elementType, kind);
++    }
++
++    public LocalArrayNode(OCLArchitecture.OCLMemoryBase memoryRegister, ResolvedJavaType elementType, ValueNode length, OCLKind kind) {
++        super(TYPE, StampFactory.objectNonNull(TypeReference.createTrustedWithoutAssumptions(elementType.getArrayClass())));
++        this.memoryRegister = memoryRegister;
++        this.length = length;
++        this.kind = kind;
++        this.arrayTemplate = OCLKind.resolveTemplateType(elementType, kind);
+     }
+ 
+     public LocalArrayNode(OCLArchitecture.OCLMemoryBase memoryRegister, JavaKind elementKind, ValueNode length) {
+@@ -69,7 +77,7 @@ public class LocalArrayNode extends FixedNode implements LIRLowerable, MarkLocal
+         this.memoryRegister = memoryRegister;
+         this.length = length;
+         this.kind = OCLKind.fromResolvedJavaKind(elementKind);
+-        this.arrayTemplate = OCLKind.resolveTemplateType(elementKind);
++        this.arrayTemplate = OCLKind.resolveTemplateType(elementKind, kind);
+     }
+ 
+     public OCLArchitecture.OCLMemoryBase getMemoryRegister() {
+diff --git a/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/reductions/TestLocalMemoryReductionsHalfFloats.java b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/reductions/TestLocalMemoryReductionsHalfFloats.java
+new file mode 100644
+index 000000000..ca17b3cc6
+--- /dev/null
++++ b/tornado-unittests/src/main/java/uk/ac/manchester/tornado/unittests/kernelcontext/reductions/TestLocalMemoryReductionsHalfFloats.java
+@@ -0,0 +1,346 @@
++/*
++ * Copyright (c) 2025, APT Group, Department of Computer Science,
++ * The University of Manchester.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ *
++ */
++package uk.ac.manchester.tornado.unittests.kernelcontext.reductions;
++
++import org.junit.Test;
++import uk.ac.manchester.tornado.api.GridScheduler;
++import uk.ac.manchester.tornado.api.ImmutableTaskGraph;
++import uk.ac.manchester.tornado.api.KernelContext;
++import uk.ac.manchester.tornado.api.TaskGraph;
++import uk.ac.manchester.tornado.api.TornadoExecutionPlan;
++import uk.ac.manchester.tornado.api.WorkerGrid;
++import uk.ac.manchester.tornado.api.WorkerGrid1D;
++import uk.ac.manchester.tornado.api.enums.DataTransferMode;
++import uk.ac.manchester.tornado.api.exceptions.TornadoExecutionPlanException;
++import uk.ac.manchester.tornado.api.math.TornadoMath;
++import uk.ac.manchester.tornado.api.types.HalfFloat;
++import uk.ac.manchester.tornado.api.types.arrays.HalfFloatArray;
++import uk.ac.manchester.tornado.unittests.common.TornadoTestBase;
++
++import java.util.stream.IntStream;
++
++import static org.junit.Assert.assertEquals;
++
++/**
++ * How to test?
++ *
++ * <p>
++ * <code>
++ * tornado-test -V uk.ac.manchester.tornado.unittests.kernelcontext.reductions.TestLocalMemoryReductionsHalfFloats
++ * </code>
++ * </p>
++ */
++public class TestLocalMemoryReductionsHalfFloats extends TornadoTestBase {
++
++    public static HalfFloat computeAddSequential(HalfFloatArray input) {
++        HalfFloat acc = new HalfFloat(0);
++        for (int i = 0; i < input.getSize(); i++) {
++            acc = HalfFloat.add(acc, input.get(i));
++        }
++        return acc;
++    }
++
++    /**
++     * Parallel reduction in TornadoVM using Local Memory.
++     *
++     * @param context
++     *     {@link KernelContext}
++     * @param a
++     *     input array
++     * @param b
++     *     output array
++     */
++    private static void halfFloatReductionAddLocalMemory(KernelContext context, HalfFloatArray a, HalfFloatArray b) {
++
++        // Access to the global thread-id
++        int globalIdx = context.globalIdx;
++
++        // Access to the local thread-id (id within the work-group)
++        int localIdx = context.localIdx;
++
++        // Obtain the number of threads per work-group
++        int localGroupSize = context.localGroupSizeX;
++
++        // Obtain the group-ID
++        int groupID = context.groupIdx;
++
++        // Allocate an array in local memory (using the OpenCL terminology), or shared
++        // memory with NVIDIA PTX.
++        HalfFloatArray localA = context.allocateHalfFloatLocalArray(256);
++
++        // Copy data from global memory to local memory.
++        localA.set(localIdx, a.get(globalIdx));
++
++        // Compute the reduction in local memory
++        for (int stride = (localGroupSize / 2); stride > 0; stride /= 2) {
++            context.localBarrier();
++            if (localIdx < stride) {
++                localA.set(localIdx, HalfFloat.add(localA.get(localIdx), localA.get(localIdx + stride)));
++            }
++        }
++
++        // Copy result of the full reduction within the work-group into global memory.
++        if (localIdx == 0) {
++            b.set(groupID, localA.get(0));
++        }
++    }
++
++    /**
++     * Parallel reduction in TornadoVM using Local Memory.
++     *
++     * @param context
++     *     {@link KernelContext}
++     * @param a
++     *     input array
++     * @param b
++     *     output array
++     */
++    private static void halfFloatReductionAddLocalMemory(KernelContext context, HalfFloatArray a, HalfFloatArray b, int blockDim) {
++
++        // Access to the global thread-id
++        int globalIdx = context.globalIdx;
++
++        // Access to the local thread-id (id within the work-group)
++        int localIdx = context.localIdx;
++
++        // Obtain the number of threads per work-group
++        int localGroupSize = context.localGroupSizeX;
++
++        // Obtain the group-ID
++        int groupID = context.groupIdx;
++
++        // Allocate an array in local memory (using the OpenCL terminology), or shared
++        // memory with NVIDIA PTX.
++        HalfFloatArray localA = context.allocateHalfFloatLocalArray(blockDim);
++
++        // Copy data from global memory to local memory.
++        localA.set(localIdx, a.get(globalIdx));
++
++        // Compute the reduction in local memory
++        for (int stride = (localGroupSize / 2); stride > 0; stride /= 2) {
++            context.localBarrier();
++            if (localIdx < stride) {
++                localA.set(localIdx, HalfFloat.add(localA.get(localIdx), localA.get(localIdx + stride)));
++            }
++        }
++
++        // Copy result of the full reduction within the work-group into global memory.
++        if (localIdx == 0) {
++            b.set(groupID, localA.get(0));
++        }
++    }
++
++    public static HalfFloat computeMaxSequential(HalfFloatArray input) {
++        HalfFloat acc = new HalfFloat(0);
++        for (int i = 0; i < input.getSize(); i++) {
++            acc = TornadoMath.max(acc, input.get(i));
++        }
++        return acc;
++    }
++
++    public static void halfFloatReductionMaxLocalMemory(KernelContext context, HalfFloatArray a, HalfFloatArray b) {
++        int globalIdx = context.globalIdx;
++        int localIdx = context.localIdx;
++        int localGroupSize = context.localGroupSizeX;
++        int groupID = context.groupIdx; // Expose Group ID
++
++        HalfFloatArray localA = context.allocateHalfFloatLocalArray(256);
++        localA.set(localIdx, a.get(globalIdx));
++        for (int stride = (localGroupSize / 2); stride > 0; stride /= 2) {
++            context.localBarrier();
++            if (localIdx < stride) {
++                localA.set(localIdx, TornadoMath.max(localA.get(localIdx), localA.get(localIdx + stride)));
++            }
++        }
++        if (localIdx == 0) {
++            b.set(groupID, localA.get(0));
++        }
++    }
++
++    public static HalfFloat computeMinSequential(HalfFloatArray input) {
++        HalfFloat acc = new HalfFloat(0);
++        for (int i = 0; i < input.getSize(); i++) {
++            acc = TornadoMath.min(acc, input.get(i));
++        }
++        return acc;
++    }
++
++    public static void halfFloatReductionMinLocalMemory(KernelContext context, HalfFloatArray a, HalfFloatArray b) {
++        int globalIdx = context.globalIdx;
++        int localIdx = context.localIdx;
++        int localGroupSize = context.localGroupSizeX;
++        int groupID = context.groupIdx; // Expose Group ID
++
++        HalfFloatArray localA = context.allocateHalfFloatLocalArray(256);
++        localA.set(localIdx, a.get(globalIdx));
++        for (int stride = (localGroupSize / 2); stride > 0; stride /= 2) {
++            context.localBarrier();
++            if (localIdx < stride) {
++                localA.set(localIdx, TornadoMath.min(localA.get(localIdx), localA.get(localIdx + stride)));
++            }
++        }
++        if (localIdx == 0) {
++            b.set(groupID, localA.get(0));
++        }
++    }
++
++    @Test
++    public void testHalfFloatReductionsAddLocalMemory01() throws TornadoExecutionPlanException {
++        final int size = 1024;
++        final int localSize = 256;
++        HalfFloatArray input = new HalfFloatArray(size);
++        HalfFloatArray reduce = new HalfFloatArray(size / localSize);
++        IntStream.range(0, input.getSize()).sequential().forEach(i -> input.set(i, new HalfFloat(i)));
++        HalfFloat sequential = computeAddSequential(input);
++
++        WorkerGrid worker = new WorkerGrid1D(size);
++        GridScheduler gridScheduler = new GridScheduler("s0.t0", worker);
++        KernelContext context = new KernelContext();
++
++        TaskGraph taskGraph = new TaskGraph("s0") //
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, input, localSize) //
++                .task("t0", TestLocalMemoryReductionsHalfFloats::halfFloatReductionAddLocalMemory, context, input, reduce) //
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, reduce);
++        // Change the Grid
++        worker.setGlobalWork(size, 1, 1);
++        worker.setLocalWork(localSize, 1, 1);
++
++        ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
++        try (TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph)) {
++            executionPlan.withGridScheduler(gridScheduler) //
++                    .execute();
++        }
++
++        // Final SUM
++        HalfFloat finalSum = new HalfFloat(0);
++        for (int i = 0; i < reduce.getSize(); i++) {
++            finalSum = HalfFloat.add(finalSum, reduce.get(i));
++        }
++
++        assertEquals(sequential.getFloat32(), finalSum.getFloat32(), 0);
++    }
++
++    @Test
++    public void testHalfFloatReductionsAddLocalMemory02() throws TornadoExecutionPlanException {
++        final int size = 1024;
++        final int localSize = 256;
++        HalfFloatArray input = new HalfFloatArray(size);
++        HalfFloatArray reduce = new HalfFloatArray(size / localSize);
++        IntStream.range(0, input.getSize()).sequential().forEach(i -> input.set(i, new HalfFloat(i)));
++        HalfFloat sequential = computeAddSequential(input);
++
++        WorkerGrid worker = new WorkerGrid1D(size);
++        GridScheduler gridScheduler = new GridScheduler("s0.t0", worker);
++        KernelContext context = new KernelContext();
++
++        TaskGraph taskGraph = new TaskGraph("s0") //
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, input) //
++                .task("t0", TestLocalMemoryReductionsHalfFloats::halfFloatReductionAddLocalMemory, context, input, reduce, localSize) //
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, reduce);
++        // Change the Grid
++        worker.setGlobalWork(size, 1, 1);
++        worker.setLocalWork(localSize, 1, 1);
++
++        ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
++        try (TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph)) {
++            executionPlan.withGridScheduler(gridScheduler) //
++                    .execute();
++        }
++
++        // Final SUM
++        HalfFloat finalSum = new HalfFloat(0);
++        for (int i = 0; i < reduce.getSize(); i++) {
++            finalSum = HalfFloat.add(finalSum, reduce.get(i));
++        }
++
++        assertEquals(sequential.getFloat32(), finalSum.getFloat32(), 0);
++    }
++
++    @Test
++    public void testHalfFloatReductionsMaxLocalMemory() throws TornadoExecutionPlanException {
++        final int size = 1024;
++        final int localSize = 256;
++        HalfFloatArray input = new HalfFloatArray(size);
++        HalfFloatArray reduce = new HalfFloatArray(size / localSize);
++        IntStream.range(0, input.getSize()).sequential().forEach(i -> input.set(i, new HalfFloat(i)));
++        HalfFloat sequential = computeMaxSequential(input);
++
++        WorkerGrid worker = new WorkerGrid1D(size);
++        GridScheduler gridScheduler = new GridScheduler("s0.t0", worker);
++        KernelContext context = new KernelContext();
++
++        TaskGraph taskGraph = new TaskGraph("s0") //
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, input, localSize) //
++                .task("t0", TestLocalMemoryReductionsHalfFloats::halfFloatReductionMaxLocalMemory, context, input, reduce) //
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, reduce);
++        // Change the Grid
++        worker.setGlobalWork(size, 1, 1);
++        worker.setLocalWork(localSize, 1, 1);
++
++        ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
++        try (TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph)) {
++            executionPlan.withGridScheduler(gridScheduler) //
++                    .execute();
++        }
++
++        // Final SUM
++        HalfFloat finalSum = new HalfFloat(0);
++        for (int i = 0; i < reduce.getSize(); i++) {
++            finalSum = TornadoMath.max(finalSum, reduce.get(i));
++        }
++
++        assertEquals(sequential.getFloat32(), finalSum.getFloat32(), 0);
++    }
++
++    @Test
++    public void testHalfFloatReductionsMinLocalMemory() throws TornadoExecutionPlanException {
++        final int size = 1024;
++        final int localSize = 256;
++        HalfFloatArray input = new HalfFloatArray(size);
++        HalfFloatArray reduce = new HalfFloatArray(size / localSize);
++        IntStream.range(0, input.getSize()).sequential().forEach(i -> input.set(i, new HalfFloat(i)));
++        HalfFloat sequential = computeMinSequential(input);
++
++        WorkerGrid worker = new WorkerGrid1D(size);
++        GridScheduler gridScheduler = new GridScheduler("s0.t0", worker);
++        KernelContext context = new KernelContext();
++
++        TaskGraph taskGraph = new TaskGraph("s0") //
++                .transferToDevice(DataTransferMode.EVERY_EXECUTION, input, localSize) //
++                .task("t0", TestLocalMemoryReductionsHalfFloats::halfFloatReductionMinLocalMemory, context, input, reduce) //
++                .transferToHost(DataTransferMode.EVERY_EXECUTION, reduce);
++        // Change the Grid
++        worker.setGlobalWork(size, 1, 1);
++        worker.setLocalWork(localSize, 1, 1);
++
++        ImmutableTaskGraph immutableTaskGraph = taskGraph.snapshot();
++        try (TornadoExecutionPlan executionPlan = new TornadoExecutionPlan(immutableTaskGraph)) {
++            executionPlan.withGridScheduler(gridScheduler) //
++                    .execute();
++        }
++
++        // Final SUM
++        HalfFloat finalSum = new HalfFloat(0);
++        for (int i = 0; i < reduce.getSize(); i++) {
++            finalSum = TornadoMath.min(finalSum, reduce.get(i));
++        }
++
++        assertEquals(sequential.getFloat32(), finalSum.getFloat32(), 0);
++    }
++    
++}

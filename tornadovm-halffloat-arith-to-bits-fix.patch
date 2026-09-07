@@ -1,0 +1,63 @@
+diff --git a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/phases/TornadoHalfFloatReplacement.java b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/phases/TornadoHalfFloatReplacement.java
+index 7be7577..d16597e 100644
+--- a/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/phases/TornadoHalfFloatReplacement.java
++++ b/tornado-drivers/opencl/src/main/java/uk/ac/manchester/tornado/drivers/opencl/graal/phases/TornadoHalfFloatReplacement.java
+@@ -146,6 +146,16 @@ public class TornadoHalfFloatReplacement extends BasePhase<TornadoHighTierContex
+             OCLConvertFloatToHalf convertFloatToHalf = new OCLConvertFloatToHalf(javaReadNode);
+             graph.addWithoutUnique(convertFloatToHalf);
+             return convertFloatToHalf;
++        } else if (halfFloatValue.getStackKind() == JavaKind.Float) {
++            // General case: the HalfFloat is constructed from an arbitrary float
++            // expression (e.g. arithmetic such as scale * quant in dequantization).
++            // An explicit f32 -> f16 conversion must be inserted here; passing the
++            // f32 value through unconverted produces a type-mismatched half value
++            // downstream (on PTX this manifests as CUDA_ERROR_INVALID_PTX (218) at
++            // cuModuleLoadDataEx when the bit-extraction path consumes it as b16).
++            OCLConvertFloatToHalf convertFloatToHalf = new OCLConvertFloatToHalf(halfFloatValue);
++            graph.addWithoutUnique(convertFloatToHalf);
++            return convertFloatToHalf;
+         } else {
+             return halfFloatValue;
+         }
+diff --git a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java
+index 9cae7bf..c526490 100644
+--- a/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java
++++ b/tornado-drivers/ptx/src/main/java/uk/ac/manchester/tornado/drivers/ptx/graal/phases/TornadoHalfFloatReplacement.java
+@@ -303,6 +303,16 @@ public class TornadoHalfFloatReplacement extends BasePhase<TornadoHighTierContex
+             PTXConvertFloatToHalf convertFloatToHalf = new PTXConvertFloatToHalf(javaReadNode);
+             graph.addWithoutUnique(convertFloatToHalf);
+             return convertFloatToHalf;
++        } else if (halfFloatValue.getStackKind() == JavaKind.Float) {
++            // General case: the HalfFloat is constructed from an arbitrary float
++            // expression (e.g. arithmetic such as scale * quant in dequantization).
++            // An explicit f32 -> f16 conversion must be inserted here; passing the
++            // f32 value through unconverted produces a type-mismatched half value
++            // downstream (on PTX this manifests as CUDA_ERROR_INVALID_PTX (218) at
++            // cuModuleLoadDataEx when the bit-extraction path consumes it as b16).
++            PTXConvertFloatToHalf convertFloatToHalf = new PTXConvertFloatToHalf(halfFloatValue);
++            graph.addWithoutUnique(convertFloatToHalf);
++            return convertFloatToHalf;
+         } else {
+             return halfFloatValue;
+         }
+diff --git a/tornado-drivers/spirv/src/main/java/uk/ac/manchester/tornado/drivers/spirv/graal/phases/TornadoHalfFloatReplacement.java b/tornado-drivers/spirv/src/main/java/uk/ac/manchester/tornado/drivers/spirv/graal/phases/TornadoHalfFloatReplacement.java
+index d88b2d5..96cab9b 100644
+--- a/tornado-drivers/spirv/src/main/java/uk/ac/manchester/tornado/drivers/spirv/graal/phases/TornadoHalfFloatReplacement.java
++++ b/tornado-drivers/spirv/src/main/java/uk/ac/manchester/tornado/drivers/spirv/graal/phases/TornadoHalfFloatReplacement.java
+@@ -290,6 +290,16 @@ public class TornadoHalfFloatReplacement extends BasePhase<TornadoHighTierContex
+             SPIRVConvertFloatToHalf convertFloatToHalf = new SPIRVConvertFloatToHalf(javaReadNode);
+             graph.addWithoutUnique(convertFloatToHalf);
+             return convertFloatToHalf;
++        } else if (halfFloatValue.getStackKind() == JavaKind.Float) {
++            // General case: the HalfFloat is constructed from an arbitrary float
++            // expression (e.g. arithmetic such as scale * quant in dequantization).
++            // An explicit f32 -> f16 conversion must be inserted here; passing the
++            // f32 value through unconverted produces a type-mismatched half value
++            // downstream (on PTX this manifests as CUDA_ERROR_INVALID_PTX (218) at
++            // cuModuleLoadDataEx when the bit-extraction path consumes it as b16).
++            SPIRVConvertFloatToHalf convertFloatToHalf = new SPIRVConvertFloatToHalf(halfFloatValue);
++            graph.addWithoutUnique(convertFloatToHalf);
++            return convertFloatToHalf;
+         } else {
+             return halfFloatValue;
+         }

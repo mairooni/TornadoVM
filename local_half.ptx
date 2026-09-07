@@ -1,0 +1,34 @@
+.version 7.6 
+.target sm_86 
+.address_size 64 
+
+.visible .entry graph_convert_convertfp32tofp16_uk_ac_manchester_tornado_api_kernelcontext_1215946669_arrays_floatarray_arrays_halffloatarray(.param .u64 .ptr .global .align 8 kernel_context, .param .u64 .ptr .global .align 8 context_unused, .param .u64 .ptr .global .align 8 wrapX, .param .u64 .ptr .global .align 8 x) {
+        .reg .u64 rud<6>;
+        .reg .s64 rsd<5>;
+        .reg .u32 rui<4>;
+        .reg .f32 rfi<2>;
+        .reg .f16 rfh<2>;
+        .reg .s32 rsi<4>;
+
+BLOCK_0:
+        ld.param.u64    rud0, [kernel_context];
+        ld.param.u64    rud1, [wrapX];
+        ld.param.u64    rud2, [x];
+        mov.u32 rui0, %tid.x;
+        mov.u32 rui1, %ntid.x;
+        mov.u32 rui2, %ctaid.x;
+        mad.lo.s32      rsi0, rui2, rui1, rui0;
+        add.s32 rsi1, rsi0, 4;
+        cvt.s64.s32     rsd0, rsi1;
+        shl.b64 rsd1, rsd0, 2;
+        add.u64 rud3, rud1, rsd1;
+        ld.global.f32   rfi0, [rud3];
+        add.s32 rsi2, rsi0, 8;
+        cvt.s64.s32     rsd2, rsi2;
+        shl.b64 rsd3, rsd2, 1;
+        add.u64 rud4, rud2, rsd3;
+        cvt.f16.f32 rfh0, rfi0;
+        st.global.b16   [rud4], rfh0;
+        ret;
+}
+

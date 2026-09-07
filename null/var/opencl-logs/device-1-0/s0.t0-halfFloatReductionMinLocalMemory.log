@@ -1,0 +1,69 @@
+<kernel>:45:19: error: call to 'fmin' is ambiguous
+      half_23  =  fmin(half_20, half_22);
+                  ^~~~
+cl_kernel.h:3445:24: note: candidate function
+float __OVERLOADABLE__ fmin(float, float);
+                       ^
+cl_kernel.h:3446:25: note: candidate function
+double __OVERLOADABLE__ fmin(double, double);
+                        ^
+cl_kernel.h:3448:26: note: candidate function
+float2  __OVERLOADABLE__ fmin(float2 x,  float y)   ;
+                         ^
+cl_kernel.h:3450:26: note: candidate function
+float3  __OVERLOADABLE__ fmin(float3 x,  float y)   ;
+                         ^
+cl_kernel.h:3452:26: note: candidate function
+float4  __OVERLOADABLE__ fmin(float4 x,  float y)   ;
+                         ^
+cl_kernel.h:3453:26: note: candidate function
+float8  __OVERLOADABLE__ fmin(float8 x,  float y)   ;
+                         ^
+cl_kernel.h:3454:26: note: candidate function
+float16 __OVERLOADABLE__ fmin(float16 x, float y)   ;
+                         ^
+cl_kernel.h:3455:27: note: candidate function
+double2  __OVERLOADABLE__ fmin(double2 x,  double y)   ;
+                          ^
+cl_kernel.h:3457:27: note: candidate function
+double3  __OVERLOADABLE__ fmin(double3 x,  double y)   ;
+                          ^
+cl_kernel.h:3459:27: note: candidate function
+double4  __OVERLOADABLE__ fmin(double4 x,  double y)   ;
+                          ^
+cl_kernel.h:3460:27: note: candidate function
+double8  __OVERLOADABLE__ fmin(double8 x,  double y)   ;
+                          ^
+cl_kernel.h:3461:27: note: candidate function
+double16 __OVERLOADABLE__ fmin(double16 x, double y)   ;
+                          ^
+cl_kernel.h:3463:25: note: candidate function
+float2 __OVERLOADABLE__ fmin(float2, float2);
+                        ^
+cl_kernel.h:3465:25: note: candidate function
+float3 __OVERLOADABLE__ fmin(float3, float3);
+                        ^
+cl_kernel.h:3467:25: note: candidate function
+float4 __OVERLOADABLE__ fmin(float4, float4);
+                        ^
+cl_kernel.h:3468:25: note: candidate function
+float8 __OVERLOADABLE__ fmin(float8, float8);
+                        ^
+cl_kernel.h:3469:26: note: candidate function
+float16 __OVERLOADABLE__ fmin(float16, float16);
+                         ^
+cl_kernel.h:3471:26: note: candidate function
+double2 __OVERLOADABLE__ fmin(double2, double2);
+                         ^
+cl_kernel.h:3473:26: note: candidate function
+double3 __OVERLOADABLE__ fmin(double3, double3);
+                         ^
+cl_kernel.h:3475:26: note: candidate function
+double4 __OVERLOADABLE__ fmin(double4, double4);
+                         ^
+cl_kernel.h:3476:26: note: candidate function
+double8 __OVERLOADABLE__ fmin(double8, double8);
+                         ^
+cl_kernel.h:3477:27: note: candidate function
+double16 __OVERLOADABLE__ fmin(double16, double16);
+                          ^

@@ -1,0 +1,358 @@
+.version 7.6 
+.target sm_86 
+.address_size 64 
+
+.func (.reg .f32 retVar) uk_ac_manchester_tornado_examples_compute_MatrixVectorRowMajor_matrixVectorRowMajorOptimizedQ8 (.reg .u64 context, .reg .s32 localSize, .reg .u64 activations, .reg .u64 weightsQ8, .reg .s32 n) {
+	.reg .u32 rui<33>;
+	.reg .s16 rsh<6>;
+	.reg .s8 rsb<16>;
+	.reg .f32 rfi<38>;
+	.reg .pred rpb<5>;
+	.reg .u64 rud<23>;
+	.reg .s64 rsd<26>;
+	.reg .s32 rsi<106>;
+
+BLOCK_0:
+	mov.s32	rsi0, localSize;
+	mov.u64	rud0, activations;
+	mov.u64	rud1, weightsQ8;
+	mov.s32	rsi1, n;
+	.shared .s32 rsiArr0[32];
+	shl.b32	rsi2, rsi0, 2;
+	mov.u32	rui0, %ctaid.x;
+	cvt.s32.u32	rsi3, rui0;
+	mad.lo.s32	rsi4, rsi1, rsi3, 3;
+	mad.lo.s32	rsi5, rsi1, rsi3, 2;
+	mad.lo.s32	rsi6, rsi1, rsi3, 1;
+	mov.u32	rui1, %tid.x;
+	cvt.s32.u32	rsi7, rui1;
+	shl.b32	rsi8, rsi7, 2;
+	add.s32	rsi9, rsi1, -3;
+
+BLOCK_1:
+	mov.f32	rfi0, 0F00000000;
+	mov.f32	rfi1, 0F00000000;
+	mov.f32	rfi2, 0F00000000;
+	mov.f32	rfi3, 0F00000000;
+	mov.s32	rsi10, rsi8;
+LOOP_COND_1:
+	setp.lt.s32	rpb0, rsi10, rsi9;
+	@!rpb0 bra	BLOCK_3;
+
+BLOCK_2:
+	mad.lo.s32	rsi11, rsi1, rsi3, rsi10;
+	shr.b32	rsi12, rsi11, 31;
+	shr.b32	rsi13, rsi12, 27;
+	add.s32	rsi14, rsi13, rsi11;
+	shr.b32	rsi15, rsi14, 5;
+	shl.b32	rsi16, rsi15, 1;
+	and.b32	rsi17, rsi14, -32;
+	add.s32	rsi18, rsi16, rsi17;
+	add.s32	rsi19, rsi18, 24;
+	cvt.s64.s32	rsd0, rsi19;
+	add.u64	rud2, rud1, rsd0;
+	ld.global.s8	rsb0, [rud2];
+	add.s32	rsi20, rsi18, 25;
+	cvt.s64.s32	rsd1, rsi20;
+	add.u64	rud3, rud1, rsd1;
+	ld.global.s8	rsb1, [rud3];
+	rem.s32	rsi21, rsi11, 32;
+	add.s32	rsi22, rsi21, rsi18;
+	add.s32	rsi23, rsi22, 26;
+	cvt.s64.s32	rsd2, rsi23;
+	add.u64	rud4, rud1, rsd2;
+	ld.global.s8	rsb2, [rud4];
+	add.s32	rsi24, rsi10, 6;
+	cvt.s64.s32	rsd3, rsi24;
+	shl.b64	rsd4, rsd3, 2;
+	add.u64	rud5, rud0, rsd4;
+	ld.global.f32	rfi4, [rud5];
+	add.s32	rsi25, rsi6, rsi10;
+	shr.b32	rsi26, rsi25, 31;
+	shr.b32	rsi27, rsi26, 27;
+	add.s32	rsi28, rsi27, rsi25;
+	shr.b32	rsi29, rsi28, 5;
+	shl.b32	rsi30, rsi29, 1;
+	and.b32	rsi31, rsi28, -32;
+	add.s32	rsi32, rsi30, rsi31;
+	add.s32	rsi33, rsi32, 24;
+	cvt.s64.s32	rsd5, rsi33;
+	add.u64	rud6, rud1, rsd5;
+	ld.global.s8	rsb3, [rud6];
+	add.s32	rsi34, rsi32, 25;
+	cvt.s64.s32	rsd6, rsi34;
+	add.u64	rud7, rud1, rsd6;
+	ld.global.s8	rsb4, [rud7];
+	rem.s32	rsi35, rsi25, 32;
+	add.s32	rsi36, rsi35, rsi32;
+	add.s32	rsi37, rsi36, 26;
+	cvt.s64.s32	rsd7, rsi37;
+	add.u64	rud8, rud1, rsd7;
+	ld.global.s8	rsb5, [rud8];
+	add.s32	rsi38, rsi10, 7;
+	cvt.s64.s32	rsd8, rsi38;
+	shl.b64	rsd9, rsd8, 2;
+	add.u64	rud9, rud0, rsd9;
+	ld.global.f32	rfi5, [rud9];
+	add.s32	rsi39, rsi5, rsi10;
+	shr.b32	rsi40, rsi39, 31;
+	shr.b32	rsi41, rsi40, 27;
+	add.s32	rsi42, rsi41, rsi39;
+	shr.b32	rsi43, rsi42, 5;
+	shl.b32	rsi44, rsi43, 1;
+	and.b32	rsi45, rsi42, -32;
+	add.s32	rsi46, rsi44, rsi45;
+	add.s32	rsi47, rsi46, 24;
+	cvt.s64.s32	rsd10, rsi47;
+	add.u64	rud10, rud1, rsd10;
+	ld.global.s8	rsb6, [rud10];
+	add.s32	rsi48, rsi46, 25;
+	cvt.s64.s32	rsd11, rsi48;
+	add.u64	rud11, rud1, rsd11;
+	ld.global.s8	rsb7, [rud11];
+	rem.s32	rsi49, rsi39, 32;
+	add.s32	rsi50, rsi49, rsi46;
+	add.s32	rsi51, rsi50, 26;
+	cvt.s64.s32	rsd12, rsi51;
+	add.u64	rud12, rud1, rsd12;
+	ld.global.s8	rsb8, [rud12];
+	add.s32	rsi52, rsi10, 8;
+	cvt.s64.s32	rsd13, rsi52;
+	shl.b64	rsd14, rsd13, 2;
+	add.u64	rud13, rud0, rsd14;
+	ld.global.f32	rfi6, [rud13];
+	add.s32	rsi53, rsi4, rsi10;
+	shr.b32	rsi54, rsi53, 31;
+	shr.b32	rsi55, rsi54, 27;
+	add.s32	rsi56, rsi55, rsi53;
+	shr.b32	rsi57, rsi56, 5;
+	shl.b32	rsi58, rsi57, 1;
+	and.b32	rsi59, rsi56, -32;
+	add.s32	rsi60, rsi58, rsi59;
+	add.s32	rsi61, rsi60, 24;
+	cvt.s64.s32	rsd15, rsi61;
+	add.u64	rud14, rud1, rsd15;
+	ld.global.s8	rsb9, [rud14];
+	add.s32	rsi62, rsi60, 25;
+	cvt.s64.s32	rsd16, rsi62;
+	add.u64	rud15, rud1, rsd16;
+	ld.global.s8	rsb10, [rud15];
+	rem.s32	rsi63, rsi53, 32;
+	add.s32	rsi64, rsi63, rsi60;
+	add.s32	rsi65, rsi64, 26;
+	cvt.s64.s32	rsd17, rsi65;
+	add.u64	rud16, rud1, rsd17;
+	ld.global.s8	rsb11, [rud16];
+	add.s32	rsi66, rsi10, 9;
+	cvt.s64.s32	rsd18, rsi66;
+	shl.b64	rsd19, rsd18, 2;
+	add.u64	rud17, rud0, rsd19;
+	ld.global.f32	rfi7, [rud17];
+	cvt.u32.s8	rui2, rsb10;
+	and.b32	rui3, rui2, 255;
+	shl.b32	rui4, rui3, 8;
+	cvt.u32.s8	rui5, rsb9;
+	and.b32	rui6, rui5, 255;
+	or.b32	rui7, rui4, rui6;
+	cvt.s16.u32	rsh0, rui7;
+	cvt.s32.s16	rsi67, rsh0;
+	cvt.rn.f32.s32 rfi8, rsi67;
+	cvt.s32.s8	rsi68, rsb11;
+	cvt.rn.f32.s32	rfi9, rsi68;
+	mul.rn.f32	rfi10, rfi8, rfi9;
+	mad.rn.f32	rfi11, rfi10, rfi7, rfi3;
+	cvt.u32.s8	rui8, rsb7;
+	and.b32	rui9, rui8, 255;
+	shl.b32	rui10, rui9, 8;
+	cvt.u32.s8	rui11, rsb6;
+	and.b32	rui12, rui11, 255;
+	or.b32	rui13, rui10, rui12;
+	cvt.s16.u32	rsh1, rui13;
+	cvt.s32.s16	rsi69, rsh1;
+	cvt.rn.f32.s32 rfi12, rsi69;
+	cvt.s32.s8	rsi70, rsb8;
+	cvt.rn.f32.s32	rfi13, rsi70;
+	mul.rn.f32	rfi14, rfi12, rfi13;
+	mad.rn.f32	rfi15, rfi14, rfi6, rfi2;
+	cvt.u32.s8	rui14, rsb4;
+	and.b32	rui15, rui14, 255;
+	shl.b32	rui16, rui15, 8;
+	cvt.u32.s8	rui17, rsb3;
+	and.b32	rui18, rui17, 255;
+	or.b32	rui19, rui16, rui18;
+	cvt.s16.u32	rsh2, rui19;
+	cvt.s32.s16	rsi71, rsh2;
+	cvt.rn.f32.s32 rfi16, rsi71;
+	cvt.s32.s8	rsi72, rsb5;
+	cvt.rn.f32.s32	rfi17, rsi72;
+	mul.rn.f32	rfi18, rfi16, rfi17;
+	mad.rn.f32	rfi19, rfi18, rfi5, rfi1;
+	cvt.u32.s8	rui20, rsb1;
+	and.b32	rui21, rui20, 255;
+	shl.b32	rui22, rui21, 8;
+	cvt.u32.s8	rui23, rsb0;
+	and.b32	rui24, rui23, 255;
+	or.b32	rui25, rui22, rui24;
+	cvt.s16.u32	rsh3, rui25;
+	cvt.s32.s16	rsi73, rsh3;
+	cvt.rn.f32.s32 rfi20, rsi73;
+	cvt.s32.s8	rsi74, rsb2;
+	cvt.rn.f32.s32	rfi21, rsi74;
+	mul.rn.f32	rfi22, rfi20, rfi21;
+	mad.rn.f32	rfi23, rfi22, rfi4, rfi0;
+	add.s32	rsi75, rsi2, rsi10;
+	mov.f32	rfi0, rfi23;
+	mov.f32	rfi1, rfi19;
+	mov.f32	rfi2, rfi15;
+	mov.f32	rfi3, rfi11;
+	mov.s32	rsi10, rsi75;
+	bra.uni	LOOP_COND_1;
+
+BLOCK_3:
+	add.rn.f32	rfi24, rfi0, rfi1;
+	add.rn.f32	rfi25, rfi24, rfi2;
+	add.rn.f32	rfi26, rfi25, rfi3;
+	shr.b32	rsi76, rsi1, 31;
+	shr.b32	rsi77, rsi76, 30;
+	add.s32	rsi78, rsi77, rsi1;
+	and.b32	rsi79, rsi78, -4;
+	add.s32	rsi80, rsi79, rsi7;
+	bra.uni	BLOCK_4;
+
+BLOCK_4:
+	mov.f32	rfi27, rfi26;
+	mov.s32	rsi81, rsi80;
+LOOP_COND_4:
+	setp.lt.s32	rpb1, rsi81, rsi1;
+	@!rpb1 bra	BLOCK_6;
+
+BLOCK_5:
+	mad.lo.s32	rsi82, rsi1, rsi3, rsi81;
+	shr.b32	rsi83, rsi82, 31;
+	shr.b32	rsi84, rsi83, 27;
+	add.s32	rsi85, rsi84, rsi82;
+	shr.b32	rsi86, rsi85, 5;
+	shl.b32	rsi87, rsi86, 1;
+	and.b32	rsi88, rsi85, -32;
+	add.s32	rsi89, rsi87, rsi88;
+	add.s32	rsi90, rsi89, 24;
+	cvt.s64.s32	rsd20, rsi90;
+	add.u64	rud18, rud1, rsd20;
+	ld.global.s8	rsb12, [rud18];
+	add.s32	rsi91, rsi89, 25;
+	cvt.s64.s32	rsd21, rsi91;
+	add.u64	rud19, rud1, rsd21;
+	ld.global.s8	rsb13, [rud19];
+	rem.s32	rsi92, rsi82, 32;
+	add.s32	rsi93, rsi92, rsi89;
+	add.s32	rsi94, rsi93, 26;
+	cvt.s64.s32	rsd22, rsi94;
+	add.u64	rud20, rud1, rsd22;
+	ld.global.s8	rsb14, [rud20];
+	add.s32	rsi95, rsi81, 6;
+	cvt.s64.s32	rsd23, rsi95;
+	shl.b64	rsd24, rsd23, 2;
+	add.u64	rud21, rud0, rsd24;
+	ld.global.f32	rfi28, [rud21];
+	cvt.u32.s8	rui26, rsb13;
+	and.b32	rui27, rui26, 255;
+	shl.b32	rui28, rui27, 8;
+	cvt.u32.s8	rui29, rsb12;
+	and.b32	rui30, rui29, 255;
+	or.b32	rui31, rui28, rui30;
+	cvt.s16.u32	rsh4, rui31;
+	cvt.s32.s16	rsi96, rsh4;
+	cvt.rn.f32.s32 rfi29, rsi96;
+	cvt.s32.s8	rsi97, rsb14;
+	cvt.rn.f32.s32	rfi30, rsi97;
+	mul.rn.f32	rfi31, rfi29, rfi30;
+	mad.rn.f32	rfi32, rfi31, rfi28, rfi27;
+	add.s32	rsi98, rsi0, rsi81;
+	mov.f32	rfi27, rfi32;
+	mov.s32	rsi81, rsi98;
+	bra.uni	LOOP_COND_4;
+
+BLOCK_6:
+	st.shared.f32	rsiArr0[rsi7], rfi27;
+	barrier.sync	0;
+	shr.b32	rsi99, rsi0, 31;
+	add.s32	rsi100, rsi99, rsi0;
+	shr.b32	rsi101, rsi100, 1;
+	bra.uni	BLOCK_7;
+
+BLOCK_7:
+	mov.s32	rsi102, rsi101;
+LOOP_COND_7:
+	setp.lt.s32	rpb2, rsi102, 1;
+	@rpb2 bra	BLOCK_12;
+
+BLOCK_8:
+	setp.lt.s32	rpb3, rsi7, rsi102;
+	@!rpb3 bra	BLOCK_10;
+
+BLOCK_9:
+	ld.shared.f32	rfi33, rsiArr0[rsi7];
+	add.s32	rsi103, rsi102, rsi7;
+	ld.shared.f32	rfi34, rsiArr0[rsi103];
+	add.rn.f32	rfi35, rfi33, rfi34;
+	st.shared.f32	rsiArr0[rsi7], rfi35;
+	bra.uni	BLOCK_11;
+
+BLOCK_10:
+	bra.uni	BLOCK_11;
+
+BLOCK_11:
+	barrier.sync	0;
+	shr.b32	rsi104, rsi102, 1;
+	mov.s32	rsi102, rsi104;
+	bra.uni	LOOP_COND_7;
+
+BLOCK_12:
+	ld.shared.f32	rfi36, rsiArr0[0];
+	mov.f32	retVar, rfi36;
+	ret;
+}
+
+.visible .entry hybrid_t0_matrixvectorint8xfloatmultiaccum_uk_ac_manchester_tornado_api_kernelcontext_1366342900_arrays_floatarray_arrays_int8array_arrays_floatarray_8192_2048_32(.param .u64 .ptr .global .align 8 kernel_context, .param .u64 .ptr .global .align 8 context_unused, .param .u64 .ptr .global .align 8 activations, .param .u64 .ptr .global .align 8 weightsQ8, .param .u64 .ptr .global .align 8 output, .param .align 8 .u64 n, .param .align 8 .u64 d, .param .align 8 .u64 localWorkgroupSize) {
+	.reg .u32 rui<3>;
+	.reg .f32 rfi<2>;
+	.reg .pred rpb<3>;
+	.reg .u64 rud<7>;
+	.reg .s64 rsd<3>;
+	.reg .s32 rsi<4>;
+
+BLOCK_0:
+	ld.param.u64	rud0, [kernel_context];
+	ld.param.u64	rud1, [kernel_context];
+	ld.param.u64	rud2, [activations];
+	ld.param.u64	rud3, [weightsQ8];
+	ld.param.u64	rud4, [output];
+	mov.u32	rui0, %ctaid.x;
+	cvt.s32.u32	rsi0, rui0;
+	setp.lt.s32	rpb0, rsi0, 2048;
+	@!rpb0 bra	BLOCK_5;
+
+BLOCK_1:
+	mov.u32	rui1, %tid.x;
+	cvt.s32.u32	rsi1, rui1;
+	call (rfi0), uk_ac_manchester_tornado_examples_compute_MatrixVectorRowMajor_matrixVectorRowMajorOptimizedQ8, (rud1, 32, rud2, rud3, 8192);
+	setp.eq.s32	rpb1, rsi1, 0;
+	@!rpb1 bra	BLOCK_3;
+
+BLOCK_2:
+	add.s32	rsi2, rsi0, 6;
+	cvt.s64.s32	rsd0, rsi2;
+	shl.b64	rsd1, rsd0, 2;
+	add.u64	rud5, rud4, rsd1;
+	st.global.f32	[rud5], rfi0;
+	bra.uni	BLOCK_4;
+
+BLOCK_3:
+	bra.uni	BLOCK_4;
+
+BLOCK_4:
+	ret;
+
+BLOCK_5:
+	ret;
+}

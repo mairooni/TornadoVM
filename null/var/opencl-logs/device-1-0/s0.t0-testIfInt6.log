@@ -1,0 +1,6 @@
+<kernel>:54:1: error: expected identifier or '('
+return;
+^
+<kernel>:55:1: error: extraneous closing brace ('}')
+}  //  kernel
+^

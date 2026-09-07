@@ -21,6 +21,7 @@ import java.util.Arrays;
 
 import uk.ac.manchester.tornado.api.common.Access;
 import uk.ac.manchester.tornado.api.common.LibraryTaskDescriptor;
+import uk.ac.manchester.tornado.api.types.arrays.DoubleArray;
 import uk.ac.manchester.tornado.api.types.arrays.FloatArray;
 import uk.ac.manchester.tornado.api.types.arrays.BFloat16Array;
 import uk.ac.manchester.tornado.api.types.arrays.HalfFloatArray;
@@ -55,6 +56,13 @@ public final class CuBlas {
      * output operand is also read by cuBLAS (y = ... + beta * y), so it must be
      * READ_WRITE for TornadoVM to keep its device contents valid.
      */
+    private static Access[] readOnlyExcept(int numArgs, int outputIndex, double beta) {
+        Access[] accesses = new Access[numArgs];
+        Arrays.fill(accesses, Access.READ_ONLY);
+        accesses[outputIndex] = (beta != 0.0) ? Access.READ_WRITE : Access.WRITE_ONLY;
+        return accesses;
+    }
+
     private static Access[] readOnlyExcept(int numArgs, int outputIndex, float beta) {
         Access[] accesses = new Access[numArgs];
         Arrays.fill(accesses, Access.READ_ONLY);
@@ -148,6 +156,32 @@ public final class CuBlas {
      *     Leading dimension of C.
      * @return {@link LibraryTaskDescriptor}
      */
+    /**
+     * {@code y = alpha * op(A) * x + beta * y} in double precision.
+     *
+     * <p>The FP64 counterpart of {@link #cublasSgemv}, and the difference matters to a caller who
+     * did not choose it: summing a column of {@code DOUBLE}s through an FP32 kernel loses digits
+     * that the CPU plan keeps, which is a wrong answer rather than a slower one. With this bound, a
+     * contraction over doubles can go to the library without that trade.
+     */
+    public static LibraryTaskDescriptor cublasDgemv(int operation, //
+            int m, //
+            int n, //
+            double alpha, //
+            DoubleArray matrix, //
+            int lda, //
+            DoubleArray vector, //
+            int incx, //
+            double beta, //
+            DoubleArray output, //
+            int incy) {
+        return new LibraryTaskDescriptor() //
+                .withLibrary(LIBRARY_NAME) //
+                .withFunction("cublasDgemv") //
+                .withParameters(new Object[] { operation, m, n, alpha, matrix, lda, vector, incx, beta, output, incy }) //
+                .withAccess(readOnlyExcept(11, 9, beta));
+    }
+
     public static LibraryTaskDescriptor cublasSgemm(int transa, //
             int transb, //
             int m, //

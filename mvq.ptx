@@ -1,0 +1,146 @@
+.visible .entry s0_quant_kc_dp4amatvec_matrixvectorgenericdp4a_arrays_int8array_arrays_int8array_arrays_floatarray_8192_2048_32_arrays_floatarray_arrays_floatarray(.param .u64 .ptr .global .align 8 kernel_context, .param .u64 .ptr .global .align 8 context_unused, .param .u64 .ptr .global .align 8 w_quant, .param .u64 .ptr .global .align 8 x_quant, .param .u64 .ptr .global .align 8 output, .param .align 8 .u64 n, .param .align 8 .u64 d, .param .align 8 .u64 localWorkGroupSize, .param .u64 .ptr .global .align 8 w_scale, .param .u64 .ptr .global .align 8 x_scale) {
+        .reg .s64 rsd<10>;
+        .reg .u32 rui<3>;
+        .reg .s32 rsi<15>;
+        .reg .pred rpb<9>;
+        .reg .u64 rud<19>;
+        .reg .f32 rfi<7>;
+
+BLOCK_0:
+        ld.param.u64    rud0, [kernel_context];
+        ld.param.u64    rud1, [w_quant];
+        ld.param.u64    rud2, [x_quant];
+        ld.param.u64    rud3, [output];
+        ld.param.u64    rud4, [w_scale];
+        ld.param.u64    rud5, [x_scale];
+        .shared .s32 rsiArr0[32];
+        mov.u32 rui0, %ctaid.x;
+        cvt.s32.u32     rsi0, rui0;
+        setp.lt.s32     rpb0, rsi0, 2048;
+        @!rpb0 bra      BLOCK_21;
+
+BLOCK_1:
+        mov.u32 rui1, %tid.x;
+        cvt.s32.u32     rsi1, rui1;
+        setp.lt.s32     rpb1, rsi1, 32;
+        @!rpb1 bra      BLOCK_20;
+
+BLOCK_2:
+        add.u64 rud6, rud4, 24;
+        ld.global.f32   rfi0, [rud6];
+        add.u64 rud7, rud5, 24;
+        ld.global.f32   rfi1, [rud7];
+        cvt.s64.s32     rsd0, rsi0;
+        shl.b64 rsd1, rsd0, 13;
+        cvt.s64.s32     rsd2, rsi1;
+        shl.b64 rsd3, rsd2, 2;
+        bra.uni BLOCK_3;
+
+BLOCK_3:
+        mov.s32 rsi2, 0;
+        mov.s64 rsd4, rsd3;
+LOOP_COND_3:
+        setp.lt.s64     rpb2, rsd4, 8192;
+        @!rpb2 bra      BLOCK_5;
+
+BLOCK_4:
+        add.s64 rsd5, rsd4, 128;
+        add.s64 rsd6, rsd1, rsd4;
+        add.u64 rud8, rsd6, 24;
+        add.u64 rud9, rud1, rud8;
+        ld.global.s32 rsi3, [rud9];
+        add.u64 rud10, rsd4, 24;
+        add.u64 rud11, rud2, rud10;
+        ld.global.s32 rsi4, [rud11];
+        dp4a.s32.s32 rsi5, rsi3, rsi4, rsi2;
+        mov.s32 rsi2, rsi5;
+        mov.s64 rsd4, rsd5;
+        bra.uni LOOP_COND_3;
+
+BLOCK_5:
+        st.shared.s32   rsiArr0[rsi1], rsi2;
+        barrier.sync    0;
+        bra.uni BLOCK_6;
+
+BLOCK_6:
+        mov.s32 rsi6, 16;
+LOOP_COND_6:
+        setp.lt.s32     rpb3, rsi6, 1;
+        @rpb3 bra       BLOCK_13;
+
+BLOCK_7:
+        setp.lt.s32     rpb4, rsi1, rsi6;
+        @!rpb4 bra      BLOCK_11;
+
+BLOCK_8:
+        cvt.u64.s32     rud12, rsi6;
+        and.b64 rud13, rud12, 4294967295;
+        add.u64 rud14, rud13, rsd2;
+        setp.lt.u64     rpb5, rud14, 32;
+        @!rpb5 bra      BLOCK_10;
+
+BLOCK_9:
+        ld.shared.s32   rsi7, rsiArr0[rsi1];
+        cvt.s32.u64     rsi8, rud14;
+        ld.shared.s32   rsi9, rsiArr0[rsi8];
+        add.s32 rsi10, rsi7, rsi9;
+        st.shared.s32   rsiArr0[rsi1], rsi10;
+        bra.uni BLOCK_12;
+
+BLOCK_10:
+        bra.uni BLOCK_12;
+
+BLOCK_11:
+        bra.uni BLOCK_12;
+
+BLOCK_12:
+        barrier.sync    0;
+        shr.b32 rsi11, rsi6, 1;
+        mov.s32 rsi6, rsi11;
+        bra.uni LOOP_COND_6;
+
+BLOCK_13:
+        setp.eq.s64     rpb6, rsd2, 0;
+        @!rpb6 bra      BLOCK_15;
+        bra.uni BLOCK_14;
+
+BLOCK_14:
+        ld.shared.s32   rsi12, rsiArr0[0];
+        cvt.rn.f32.s32  rfi2, rsi12;
+        mul.rn.f32      rfi3, rfi0, rfi2;
+        mul.rn.f32      rfi4, rfi3, rfi1;
+        mov.f32 rfi5, rfi4;
+        bra.uni BLOCK_16;
+
+BLOCK_15:
+        mov.f32 rfi5, 0F00000000;
+        bra.uni BLOCK_16;
+
+BLOCK_16:
+        setp.eq.s32     rpb7, rsi1, 0;
+        @!rpb7 bra      BLOCK_18;
+
+BLOCK_17:
+        add.s32 rsi13, rsi0, 6;
+        cvt.s64.s32     rsd7, rsi13;
+        shl.b64 rsd8, rsd7, 2;
+        add.u64 rud15, rud3, rsd8;
+        st.global.f32   [rud15], rfi5;
+        bra.uni BLOCK_19;
+
+BLOCK_18:
+        bra.uni BLOCK_19;
+
+BLOCK_19:
+        ret;
+
+BLOCK_20:
+        bra.uni BLOCK_22;
+
+BLOCK_21:
+        bra.uni BLOCK_22;
+
+BLOCK_22:
+        ret;
+}
+

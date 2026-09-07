@@ -1,0 +1,6 @@
+<kernel>:16:17: error: called object type 'ulong' (aka 'unsigned long') is not a function or function pointer
+  ul_3  =  ul_0 ((ulong) ui_2 << 3);
+           ~~~~ ^
+<kernel>:30:20: error: called object type 'ulong' (aka 'unsigned long') is not a function or function pointer
+    ul_13  =  ul_8 ((ulong) ui_12 << 3);
+              ~~~~ ^

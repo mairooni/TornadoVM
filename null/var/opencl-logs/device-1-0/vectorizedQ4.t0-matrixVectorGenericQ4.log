@@ -1,0 +1,17 @@
+<kernel>:15:22: error: variable length arrays are not supported in OpenCL
+  __local float adf_0[localSize];
+                     ^
+<kernel>:255:20: error: use of undeclared identifier 'context'; did you mean 'const'?
+  ul_0  =  (ulong) context;
+                   ^~~~~~~
+                   const
+<kernel>:255:20: error: expected expression
+<kernel>:285:5: error: expected expression
+    else
+    ^
+<kernel>:290:16: error: expected '}'
+  }  //  kernel
+               ^
+<kernel>:247:1: note: to match this '{'
+{
+^

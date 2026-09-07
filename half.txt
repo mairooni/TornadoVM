@@ -1,0 +1,1500 @@
+/home/mary/Projects/TornadoVM/bin/sdk/bin/tornado --jvm "-Xmx6g -Dtornado.recover.bailout=False -Dtornado.unittests.verbose=True -Dtornado.printKernel=True -Ds0.t0.device=0:1"  -m  tornado.unittests/uk.ac.manchester.tornado.unittests.tools.TornadoTestRunner  --params "uk.ac.manchester.tornado.unittests.vectortypes.TestHalfFloats"
+WARNING: Using incubator modules: jdk.incubator.vector
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void testVectorDot(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *c)
+{
+  half half_16, half_14, half_18, half_8, half_24, half_25, half_26, half_27; 
+  ulong ul_6, ul_4, ul_3, ul_2, ul_1, ul_0, ul_23, ul_22, ul_20, ul_19, ul_17, ul_15, ul_13, ul_12, ul_10, ul_9, ul_7; 
+  uint ui_11, ui_5, ui_21; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  ul_1  =  (ulong) b;
+  ul_2  =  (ulong) c;
+  ul_3  =  ul_0 + 16L;
+  ul_4  =  ul_0 + 16L;
+  ui_5  =  *((__global uint *) ul_4);
+  ul_6  =  ul_0 + ((ulong) ui_5 << 3);
+  ul_7  =  ul_6 + 16L;
+  half_8  =  *((__global half *) ul_7);
+  ul_9  =  ul_1 + 16L;
+  ul_10  =  ul_1 + 16L;
+  ui_11  =  *((__global uint *) ul_10);
+  ul_12  =  ul_1 + ((ulong) ui_11 << 3);
+  ul_13  =  ul_12 + 16L;
+  half_14  =  *((__global half *) ul_13);
+  ul_15  =  ul_6 + 18L;
+  half_16  =  *((__global half *) ul_15);
+  ul_17  =  ul_12 + 18L;
+  half_18  =  *((__global half *) ul_17);
+  ul_19  =  ul_2 + 16L;
+  ul_20  =  ul_2 + 16L;
+  ui_21  =  *((__global uint *) ul_20);
+  ul_22  =  ul_2 + ((ulong) ui_21 << 3);
+  ul_23  =  ul_22 + 16L;
+  half_24  =  half_8 * half_14;
+  half_25  =  0.0 + half_24;
+  half_26  =  half_16 * half_18;
+  half_27  =  half_25 + half_26;
+  *((__global half *) ul_23)  =  half_27;
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void vectorPhiTest(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *input, __global uchar *output)
+{
+  int i_29, i_28, i_30; 
+  ulong ul_6, ul_5, ul_3, ul_2, ul_1, ul_0, ul_26, ul_25, ul_23, ul_22, ul_20, ul_18, ul_16, ul_14, ul_12, ul_10, ul_8; 
+  uint ui_24, ui_4; 
+  half3 v3hf_34, v3hf_35, v3hf_36, v3hf_37, v3hf_31, v3hf_32, v3hf_33, v3hf_11, v3hf_13, v3hf_38, v3hf_7, v3hf_9, v3hf_19, v3hf_21, v3hf_15, v3hf_17, v3hf_27; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) input;
+  ul_1  =  (ulong) output;
+  ul_2  =  ul_0 + 16L;
+  ul_3  =  ul_0 + 16L;
+  ui_4  =  *((__global uint *) ul_3);
+  ul_5  =  ul_0 + ((ulong) ui_4 << 3);
+  ul_6  =  ul_5 + 16;
+  v3hf_7  =  vload3(0, (__global half *) ul_6);
+  ul_8  =  ul_5 + 22;
+  v3hf_9  =  vload3(0, (__global half *) ul_8);
+  ul_10  =  ul_5 + 28;
+  v3hf_11  =  vload3(0, (__global half *) ul_10);
+  ul_12  =  ul_5 + 34;
+  v3hf_13  =  vload3(0, (__global half *) ul_12);
+  ul_14  =  ul_5 + 40;
+  v3hf_15  =  vload3(0, (__global half *) ul_14);
+  ul_16  =  ul_5 + 46;
+  v3hf_17  =  vload3(0, (__global half *) ul_16);
+  ul_18  =  ul_5 + 52;
+  v3hf_19  =  vload3(0, (__global half *) ul_18);
+  ul_20  =  ul_5 + 58;
+  v3hf_21  =  vload3(0, (__global half *) ul_20);
+  ul_22  =  ul_1 + 16L;
+  ul_23  =  ul_1 + 16L;
+  ui_24  =  *((__global uint *) ul_23);
+  ul_25  =  ul_1 + ((ulong) ui_24 << 3);
+  ul_26  =  ul_25 + 16L;
+  i_28  =  0;
+  i_29  =  0;
+  i_30  =  0;
+  v3hf_27  =  (half3)(i_28, i_29, i_30);
+  v3hf_31  =  v3hf_27 + v3hf_7;
+  v3hf_32  =  v3hf_31 + v3hf_9;
+  v3hf_33  =  v3hf_32 + v3hf_11;
+  v3hf_34  =  v3hf_33 + v3hf_13;
+  v3hf_35  =  v3hf_34 + v3hf_15;
+  v3hf_36  =  v3hf_35 + v3hf_17;
+  v3hf_37  =  v3hf_36 + v3hf_19;
+  v3hf_38  =  v3hf_37 + v3hf_21;
+  vstore3(v3hf_38, 0, (__global half *) ul_26);
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void dotMethodHalf2(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *result)
+{
+  half half_11; 
+  ulong ul_6, ul_5, ul_4, ul_2, ul_0, ul_9, ul_8; 
+  uint ui_7; 
+  half2 v2hf_1, v2hf_3, v2hf_10; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  v2hf_1  =  vload2(0, (__global half *) ul_0);
+  ul_2  =  (ulong) b;
+  v2hf_3  =  vload2(0, (__global half *) ul_2);
+  ul_4  =  (ulong) result;
+  ul_5  =  ul_4 + 16L;
+  ul_6  =  ul_4 + 16L;
+  ui_7  =  *((__global uint *) ul_6);
+  ul_8  =  ul_4 + ((ulong) ui_7 << 3);
+  ul_9  =  ul_8 + 16L;
+  v2hf_10  =  v2hf_1 * v2hf_3;
+  half_11  =  v2hf_10.s0 + v2hf_10.s1;
+  *((__global half *) ul_9)  =  half_11;
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void dotMethodHalf3(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *result)
+{
+  half half_12, half_11; 
+  ulong ul_6, ul_5, ul_4, ul_2, ul_0, ul_9, ul_8; 
+  uint ui_7; 
+  half3 v3hf_3, v3hf_1, v3hf_10; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  v3hf_1  =  vload3(0, (__global half *) ul_0);
+  ul_2  =  (ulong) b;
+  v3hf_3  =  vload3(0, (__global half *) ul_2);
+  ul_4  =  (ulong) result;
+  ul_5  =  ul_4 + 16L;
+  ul_6  =  ul_4 + 16L;
+  ui_7  =  *((__global uint *) ul_6);
+  ul_8  =  ul_4 + ((ulong) ui_7 << 3);
+  ul_9  =  ul_8 + 16L;
+  v3hf_10  =  v3hf_1 * v3hf_3;
+  half_11  =  v3hf_10.s0 + v3hf_10.s1;
+  half_12  =  half_11 + v3hf_10.s2;
+  *((__global half *) ul_9)  =  half_12;
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void dotMethodHalf4(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *result)
+{
+  half half_12, half_13, half_11; 
+  ulong ul_6, ul_5, ul_4, ul_2, ul_0, ul_9, ul_8; 
+  uint ui_7; 
+  half4 v4hf_10, v4hf_1, v4hf_3; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  v4hf_1  =  vload4(0, (__global half *) ul_0);
+  ul_2  =  (ulong) b;
+  v4hf_3  =  vload4(0, (__global half *) ul_2);
+  ul_4  =  (ulong) result;
+  ul_5  =  ul_4 + 16L;
+  ul_6  =  ul_4 + 16L;
+  ui_7  =  *((__global uint *) ul_6);
+  ul_8  =  ul_4 + ((ulong) ui_7 << 3);
+  ul_9  =  ul_8 + 16L;
+  v4hf_10  =  v4hf_1 * v4hf_3;
+  half_11  =  v4hf_10.s0 + v4hf_10.s1;
+  half_12  =  v4hf_10.s2 + v4hf_10.s3;
+  half_13  =  half_11 + half_12;
+  *((__global half *) ul_9)  =  half_13;
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void dotMethodHalf8(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *result)
+{
+  half half_16, half_17, half_14, half_15, half_12, half_13, half_11; 
+  ulong ul_6, ul_5, ul_4, ul_2, ul_0, ul_9, ul_8; 
+  uint ui_7; 
+  half8 v8hf_3, v8hf_1, v8hf_10; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  v8hf_1  =  vload8(0, (__global half *) ul_0);
+  ul_2  =  (ulong) b;
+  v8hf_3  =  vload8(0, (__global half *) ul_2);
+  ul_4  =  (ulong) result;
+  ul_5  =  ul_4 + 16L;
+  ul_6  =  ul_4 + 16L;
+  ui_7  =  *((__global uint *) ul_6);
+  ul_8  =  ul_4 + ((ulong) ui_7 << 3);
+  ul_9  =  ul_8 + 16L;
+  v8hf_10  =  v8hf_1 * v8hf_3;
+  half_11  =  v8hf_10.s0 + v8hf_10.s1;
+  half_12  =  v8hf_10.s2 + v8hf_10.s3;
+  half_13  =  half_11 + half_12;
+  half_14  =  v8hf_10.s4 + v8hf_10.s5;
+  half_15  =  v8hf_10.s6 + v8hf_10.s7;
+  half_16  =  half_14 + half_15;
+  half_17  =  half_13 + half_16;
+  *((__global half *) ul_9)  =  half_17;
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void dotMethodHalf16(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *result)
+{
+  half half_24, half_25, half_22, half_23, half_16, half_17, half_14, half_15, half_20, half_21, half_18, half_19, half_12, half_13, half_11; 
+  ulong ul_6, ul_5, ul_4, ul_2, ul_0, ul_9, ul_8; 
+  uint ui_7; 
+  half16 v16hf_1, v16hf_3, v16hf_10; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  v16hf_1  =  vload16(0, (__global half *) ul_0);
+  ul_2  =  (ulong) b;
+  v16hf_3  =  vload16(0, (__global half *) ul_2);
+  ul_4  =  (ulong) result;
+  ul_5  =  ul_4 + 16L;
+  ul_6  =  ul_4 + 16L;
+  ui_7  =  *((__global uint *) ul_6);
+  ul_8  =  ul_4 + ((ulong) ui_7 << 3);
+  ul_9  =  ul_8 + 16L;
+  v16hf_10  =  v16hf_1 * v16hf_3;
+  half_11  =  v16hf_10.s0 + v16hf_10.s1;
+  half_12  =  v16hf_10.s2 + v16hf_10.s3;
+  half_13  =  half_11 + half_12;
+  half_14  =  v16hf_10.s4 + v16hf_10.s5;
+  half_15  =  v16hf_10.s6 + v16hf_10.s7;
+  half_16  =  half_14 + half_15;
+  half_17  =  half_13 + half_16;
+  half_18  =  v16hf_10.s8 + v16hf_10.s9;
+  half_19  =  v16hf_10.sA + v16hf_10.sB;
+  half_20  =  half_18 + half_19;
+  half_21  =  v16hf_10.sC + v16hf_10.sD;
+  half_22  =  v16hf_10.sE + v16hf_10.sF;
+  half_23  =  half_21 + half_22;
+  half_24  =  half_20 + half_23;
+  half_25  =  half_17 + half_24;
+  *((__global half *) ul_9)  =  half_25;
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void testFloat3Add(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *results)
+{
+  ulong ul_6, ul_5, ul_4, ul_2, ul_0, ul_9, ul_8; 
+  uint ui_7; 
+  half3 v3hf_3, v3hf_1, v3hf_10; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  v3hf_1  =  vload3(0, (__global half *) ul_0);
+  ul_2  =  (ulong) b;
+  v3hf_3  =  vload3(0, (__global half *) ul_2);
+  ul_4  =  (ulong) results;
+  ul_5  =  ul_4 + 16L;
+  ul_6  =  ul_4 + 16L;
+  ui_7  =  *((__global uint *) ul_6);
+  ul_8  =  ul_4 + ((ulong) ui_7 << 3);
+  ul_9  =  ul_8 + 16L;
+  v3hf_10  =  v3hf_1 + v3hf_3;
+  vstore3(v3hf_10, 0, (__global half *) ul_9);
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void addVectorHalf2(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *results)
+{
+  int i_12, i_28, i_3, i_8, i_7; 
+  ulong ul_6, ul_5, ul_4, ul_2, ul_1, ul_0, ul_26, ul_25, ul_23, ul_21, ul_20, ul_18, ul_16, ul_11, ul_9; 
+  long l_14, l_15, l_13; 
+  uint ui_24, ui_10, ui_19; 
+  half2 v2hf_17, v2hf_22, v2hf_27; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  ul_1  =  (ulong) b;
+  ul_2  =  (ulong) results;
+  i_3  =  get_global_size(0);
+  ul_4  =  ul_2 + 16L;
+  ul_5  =  ul_1 + 16L;
+  ul_6  =  ul_0 + 16L;
+  i_7  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_8  =  i_7;
+  for(;i_8 < 16;)
+  {
+    // BLOCK 2
+    ul_9  =  ul_0 + 16L;
+    ui_10  =  *((__global uint *) ul_9);
+    ul_11  =  ul_0 + ((ulong) ui_10 << 3);
+    i_12  =  i_8 << 1;
+    l_13  =  (long) i_12;
+    l_14  =  l_13 << 2;
+    l_15  =  l_14 + 16L;
+    ul_16  =  ul_11 + l_15;
+    v2hf_17  =  vload2(0, (__global half *) ul_16);
+    ul_18  =  ul_1 + 16L;
+    ui_19  =  *((__global uint *) ul_18);
+    ul_20  =  ul_1 + ((ulong) ui_19 << 3);
+    ul_21  =  ul_20 + l_15;
+    v2hf_22  =  vload2(0, (__global half *) ul_21);
+    ul_23  =  ul_2 + 16L;
+    ui_24  =  *((__global uint *) ul_23);
+    ul_25  =  ul_2 + ((ulong) ui_24 << 3);
+    ul_26  =  ul_25 + l_15;
+    v2hf_27  =  v2hf_17 + v2hf_22;
+    vstore2(v2hf_27, 0, (__global half *) ul_26);
+    i_28  =  i_3 + i_8;
+    i_8  =  i_28;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void addVectorHalf3(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *results)
+{
+  int i_13, i_29, i_12, i_3, i_8, i_7; 
+  ulong ul_6, ul_5, ul_4, ul_2, ul_1, ul_0, ul_27, ul_26, ul_24, ul_22, ul_21, ul_19, ul_17, ul_11, ul_9; 
+  long l_16, l_14, l_15; 
+  uint ui_25, ui_10, ui_20; 
+  half3 v3hf_18, v3hf_28, v3hf_23; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  ul_1  =  (ulong) b;
+  ul_2  =  (ulong) results;
+  i_3  =  get_global_size(0);
+  ul_4  =  ul_2 + 16L;
+  ul_5  =  ul_1 + 16L;
+  ul_6  =  ul_0 + 16L;
+  i_7  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_8  =  i_7;
+  for(;i_8 < 8;)
+  {
+    // BLOCK 2
+    ul_9  =  ul_0 + 16L;
+    ui_10  =  *((__global uint *) ul_9);
+    ul_11  =  ul_0 + ((ulong) ui_10 << 3);
+    i_12  =  i_8 << 1;
+    i_13  =  i_12 + i_8;
+    l_14  =  (long) i_13;
+    l_15  =  l_14 << 2;
+    l_16  =  l_15 + 16L;
+    ul_17  =  ul_11 + l_16;
+    v3hf_18  =  vload3(0, (__global half *) ul_17);
+    ul_19  =  ul_1 + 16L;
+    ui_20  =  *((__global uint *) ul_19);
+    ul_21  =  ul_1 + ((ulong) ui_20 << 3);
+    ul_22  =  ul_21 + l_16;
+    v3hf_23  =  vload3(0, (__global half *) ul_22);
+    ul_24  =  ul_2 + 16L;
+    ui_25  =  *((__global uint *) ul_24);
+    ul_26  =  ul_2 + ((ulong) ui_25 << 3);
+    ul_27  =  ul_26 + l_16;
+    v3hf_28  =  v3hf_18 + v3hf_23;
+    vstore3(v3hf_28, 0, (__global half *) ul_27);
+    i_29  =  i_3 + i_8;
+    i_8  =  i_29;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void addVectorHalf3(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *results)
+{
+  int i_13, i_29, i_12, i_3, i_8, i_7; 
+  ulong ul_6, ul_5, ul_4, ul_2, ul_1, ul_0, ul_27, ul_26, ul_24, ul_22, ul_21, ul_19, ul_17, ul_11, ul_9; 
+  long l_16, l_14, l_15; 
+  uint ui_25, ui_10, ui_20; 
+  half3 v3hf_18, v3hf_28, v3hf_23; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  ul_1  =  (ulong) b;
+  ul_2  =  (ulong) results;
+  i_3  =  get_global_size(0);
+  ul_4  =  ul_2 + 16L;
+  ul_5  =  ul_1 + 16L;
+  ul_6  =  ul_0 + 16L;
+  i_7  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_8  =  i_7;
+  for(;i_8 < 2;)
+  {
+    // BLOCK 2
+    ul_9  =  ul_0 + 16L;
+    ui_10  =  *((__global uint *) ul_9);
+    ul_11  =  ul_0 + ((ulong) ui_10 << 3);
+    i_12  =  i_8 << 1;
+    i_13  =  i_12 + i_8;
+    l_14  =  (long) i_13;
+    l_15  =  l_14 << 2;
+    l_16  =  l_15 + 16L;
+    ul_17  =  ul_11 + l_16;
+    v3hf_18  =  vload3(0, (__global half *) ul_17);
+    ul_19  =  ul_1 + 16L;
+    ui_20  =  *((__global uint *) ul_19);
+    ul_21  =  ul_1 + ((ulong) ui_20 << 3);
+    ul_22  =  ul_21 + l_16;
+    v3hf_23  =  vload3(0, (__global half *) ul_22);
+    ul_24  =  ul_2 + 16L;
+    ui_25  =  *((__global uint *) ul_24);
+    ul_26  =  ul_2 + ((ulong) ui_25 << 3);
+    ul_27  =  ul_26 + l_16;
+    v3hf_28  =  v3hf_18 + v3hf_23;
+    vstore3(v3hf_28, 0, (__global half *) ul_27);
+    i_29  =  i_3 + i_8;
+    i_8  =  i_29;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void addVectorHalf4(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *results)
+{
+  int i_12, i_28, i_3, i_8, i_7; 
+  ulong ul_6, ul_5, ul_4, ul_2, ul_1, ul_0, ul_26, ul_25, ul_23, ul_21, ul_20, ul_18, ul_16, ul_11, ul_9; 
+  long l_14, l_15, l_13; 
+  uint ui_24, ui_10, ui_19; 
+  half4 v4hf_27, v4hf_17, v4hf_22; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  ul_1  =  (ulong) b;
+  ul_2  =  (ulong) results;
+  i_3  =  get_global_size(0);
+  ul_4  =  ul_2 + 16L;
+  ul_5  =  ul_1 + 16L;
+  ul_6  =  ul_0 + 16L;
+  i_7  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_8  =  i_7;
+  for(;i_8 < 8;)
+  {
+    // BLOCK 2
+    ul_9  =  ul_0 + 16L;
+    ui_10  =  *((__global uint *) ul_9);
+    ul_11  =  ul_0 + ((ulong) ui_10 << 3);
+    i_12  =  i_8 << 2;
+    l_13  =  (long) i_12;
+    l_14  =  l_13 << 2;
+    l_15  =  l_14 + 16L;
+    ul_16  =  ul_11 + l_15;
+    v4hf_17  =  vload4(0, (__global half *) ul_16);
+    ul_18  =  ul_1 + 16L;
+    ui_19  =  *((__global uint *) ul_18);
+    ul_20  =  ul_1 + ((ulong) ui_19 << 3);
+    ul_21  =  ul_20 + l_15;
+    v4hf_22  =  vload4(0, (__global half *) ul_21);
+    ul_23  =  ul_2 + 16L;
+    ui_24  =  *((__global uint *) ul_23);
+    ul_25  =  ul_2 + ((ulong) ui_24 << 3);
+    ul_26  =  ul_25 + l_15;
+    v4hf_27  =  v4hf_17 + v4hf_22;
+    vstore4(v4hf_27, 0, (__global half *) ul_26);
+    i_28  =  i_3 + i_8;
+    i_8  =  i_28;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void addVectorHalf16(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *results)
+{
+  int i_12, i_28, i_3, i_8, i_7; 
+  ulong ul_6, ul_5, ul_4, ul_2, ul_1, ul_0, ul_26, ul_25, ul_23, ul_21, ul_20, ul_18, ul_16, ul_11, ul_9; 
+  long l_14, l_15, l_13; 
+  uint ui_24, ui_10, ui_19; 
+  half16 v16hf_27, v16hf_17, v16hf_22; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  ul_1  =  (ulong) b;
+  ul_2  =  (ulong) results;
+  i_3  =  get_global_size(0);
+  ul_4  =  ul_2 + 16L;
+  ul_5  =  ul_1 + 16L;
+  ul_6  =  ul_0 + 16L;
+  i_7  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_8  =  i_7;
+  for(;i_8 < 16;)
+  {
+    // BLOCK 2
+    ul_9  =  ul_0 + 16L;
+    ui_10  =  *((__global uint *) ul_9);
+    ul_11  =  ul_0 + ((ulong) ui_10 << 3);
+    i_12  =  i_8 << 4;
+    l_13  =  (long) i_12;
+    l_14  =  l_13 << 2;
+    l_15  =  l_14 + 16L;
+    ul_16  =  ul_11 + l_15;
+    v16hf_17  =  vload16(0, (__global half *) ul_16);
+    ul_18  =  ul_1 + 16L;
+    ui_19  =  *((__global uint *) ul_18);
+    ul_20  =  ul_1 + ((ulong) ui_19 << 3);
+    ul_21  =  ul_20 + l_15;
+    v16hf_22  =  vload16(0, (__global half *) ul_21);
+    ul_23  =  ul_2 + 16L;
+    ui_24  =  *((__global uint *) ul_23);
+    ul_25  =  ul_2 + ((ulong) ui_24 << 3);
+    ul_26  =  ul_25 + l_15;
+    v16hf_27  =  v16hf_17 + v16hf_22;
+    vstore16(v16hf_27, 0, (__global half *) ul_26);
+    i_28  =  i_3 + i_8;
+    i_8  =  i_28;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void addVectorHalf8(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *results)
+{
+  int i_12, i_28, i_3, i_8, i_7; 
+  ulong ul_6, ul_5, ul_4, ul_2, ul_1, ul_0, ul_26, ul_25, ul_23, ul_21, ul_20, ul_18, ul_16, ul_11, ul_9; 
+  long l_14, l_15, l_13; 
+  uint ui_24, ui_10, ui_19; 
+  half8 v8hf_17, v8hf_22, v8hf_27; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  ul_1  =  (ulong) b;
+  ul_2  =  (ulong) results;
+  i_3  =  get_global_size(0);
+  ul_4  =  ul_2 + 16L;
+  ul_5  =  ul_1 + 16L;
+  ul_6  =  ul_0 + 16L;
+  i_7  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_8  =  i_7;
+  for(;i_8 < 8;)
+  {
+    // BLOCK 2
+    ul_9  =  ul_0 + 16L;
+    ui_10  =  *((__global uint *) ul_9);
+    ul_11  =  ul_0 + ((ulong) ui_10 << 3);
+    i_12  =  i_8 << 3;
+    l_13  =  (long) i_12;
+    l_14  =  l_13 << 2;
+    l_15  =  l_14 + 16L;
+    ul_16  =  ul_11 + l_15;
+    v8hf_17  =  vload8(0, (__global half *) ul_16);
+    ul_18  =  ul_1 + 16L;
+    ui_19  =  *((__global uint *) ul_18);
+    ul_20  =  ul_1 + ((ulong) ui_19 << 3);
+    ul_21  =  ul_20 + l_15;
+    v8hf_22  =  vload8(0, (__global half *) ul_21);
+    ul_23  =  ul_2 + 16L;
+    ui_24  =  *((__global uint *) ul_23);
+    ul_25  =  ul_2 + ((ulong) ui_24 << 3);
+    ul_26  =  ul_25 + l_15;
+    v8hf_27  =  v8hf_17 + v8hf_22;
+    vstore8(v8hf_27, 0, (__global half *) ul_26);
+    i_28  =  i_3 + i_8;
+    i_8  =  i_28;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void testVectorHalf8Storage(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *results)
+{
+  int i_10, i_5, i_20, i_2, i_6; 
+  ulong ul_4, ul_3, ul_19, ul_18, ul_1, ul_0, ul_16, ul_14, ul_9, ul_7; 
+  long l_12, l_13, l_11; 
+  uint ui_8, ui_17; 
+  half8 v8hf_15; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  ul_1  =  (ulong) results;
+  i_2  =  get_global_size(0);
+  ul_3  =  ul_1 + 16L;
+  ul_4  =  ul_0 + 16L;
+  i_5  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_6  =  i_5;
+  for(;i_6 < 8;)
+  {
+    // BLOCK 2
+    ul_7  =  ul_0 + 16L;
+    ui_8  =  *((__global uint *) ul_7);
+    ul_9  =  ul_0 + ((ulong) ui_8 << 3);
+    i_10  =  i_6 << 3;
+    l_11  =  (long) i_10;
+    l_12  =  l_11 << 2;
+    l_13  =  l_12 + 16L;
+    ul_14  =  ul_9 + l_13;
+    v8hf_15  =  vload8(0, (__global half *) ul_14);
+    ul_16  =  ul_1 + 16L;
+    ui_17  =  *((__global uint *) ul_16);
+    ul_18  =  ul_1 + ((ulong) ui_17 << 3);
+    ul_19  =  ul_18 + l_13;
+    vstore8(v8hf_15, 0, (__global half *) ul_19);
+    i_20  =  i_2 + i_6;
+    i_6  =  i_20;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable  
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void dotProductFunctionMap(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *a, __global uchar *b, __global uchar *results)
+{
+  int i_15, i_5, i_4, i_3, i_6; 
+  half half_14, half_12, half_10; 
+  ulong ul_2, ul_1, ul_0, ul_13, ul_11, ul_9; 
+  long l_8, l_7; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) a;
+  ul_1  =  (ulong) b;
+  ul_2  =  (ulong) results;
+  i_3  =  get_global_size(0);
+  i_4  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_5  =  i_4;
+  for(;i_5 < 8;)
+  {
+    // BLOCK 2
+    i_6  =  i_5 + 8;
+    l_7  =  (long) i_6;
+    l_8  =  l_7 << 1;
+    ul_9  =  ul_0 + l_8;
+    half_10  =  *((__global half *) ul_9);
+    ul_11  =  ul_1 + l_8;
+    half_12  =  *((__global half *) ul_11);
+    ul_13  =  ul_2 + l_8;
+    half_14  =  half_10 * half_12;
+    *((__global half *) ul_13)  =  half_14;
+    i_15  =  i_3 + i_5;
+    i_5  =  i_15;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable  
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void dotProductFunctionReduce(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *input, __global uchar *results)
+{
+  half half_5, half_3, half_24, half_25, half_22, half_23, half_26, half_17, half_15, half_20, half_21, half_19, half_9, half_7, half_13, half_11; 
+  ulong ul_6, ul_4, ul_2, ul_18, ul_1, ul_0, ul_16, ul_14, ul_12, ul_10, ul_8; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) input;
+  ul_1  =  (ulong) results;
+  ul_2  =  ul_0 + 16L;
+  half_3  =  *((__global half *) ul_2);
+  ul_4  =  ul_0 + 18L;
+  half_5  =  *((__global half *) ul_4);
+  ul_6  =  ul_0 + 20L;
+  half_7  =  *((__global half *) ul_6);
+  ul_8  =  ul_0 + 22L;
+  half_9  =  *((__global half *) ul_8);
+  ul_10  =  ul_0 + 24L;
+  half_11  =  *((__global half *) ul_10);
+  ul_12  =  ul_0 + 26L;
+  half_13  =  *((__global half *) ul_12);
+  ul_14  =  ul_0 + 28L;
+  half_15  =  *((__global half *) ul_14);
+  ul_16  =  ul_0 + 30L;
+  half_17  =  *((__global half *) ul_16);
+  ul_18  =  ul_1 + 16L;
+  half_19  =  0.0 + half_3;
+  half_20  =  half_19 + half_5;
+  half_21  =  half_20 + half_7;
+  half_22  =  half_21 + half_9;
+  half_23  =  half_22 + half_11;
+  half_24  =  half_23 + half_13;
+  half_25  =  half_24 + half_15;
+  half_26  =  half_25 + half_17;
+  *((__global half *) ul_18)  =  half_26;
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void testPrivateVectorHalf2(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *output)
+{
+  half half_73, half_74; 
+  ulong ul_70, ul_68, ul_67, ul_0, ul_71; 
+  float f_10, f_11, f_14, f_13, f_16, f_4, f_5, f_8, f_7, f_50, f_49, f_41, f_44, f_43, f_46, f_47, f_34, f_35, f_38, f_37, f_40, f_26, f_25, f_28, f_29, f_32, f_31, f_17, f_20, f_19, f_22, f_23; 
+  uint ui_69; 
+  half2 v2hf_78, v2hf_77, v2hf_80, v2hf_79, v2hf_82, v2hf_81, v2hf_84, v2hf_83, v2hf_72, v2hf_76, v2hf_75, v2hf_86, v2hf_85, v2hf_88, v2hf_87, v2hf_90, v2hf_89, v2hf_3, v2hf_15, v2hf_18, v2hf_6, v2hf_9, v2hf_12, v2hf_30, v2hf_33, v2hf_36, v2hf_21, v2hf_24, v2hf_27, v2hf_45, v2hf_48, v2hf_52, v2hf_51, v2hf_39, v2hf_42, v2hf_62, v2hf_61, v2hf_64, v2hf_63, v2hf_66, v2hf_65, v2hf_54, v2hf_53, v2hf_56, v2hf_55, v2hf_58, v2hf_57, v2hf_60, v2hf_59; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) output;
+  __private float ul_1[32];
+  __private float* ul_2 = ul_1;
+  f_4  =  0.0F;
+  f_5  =  0.0F;
+  v2hf_3  =  (half2)(f_4, f_5);
+  vstore2(v2hf_3, 0, (__private half *) ul_2);
+  f_7  =  1.0F;
+  f_8  =  1.0F;
+  v2hf_6  =  (half2)(f_7, f_8);
+  vstore2(v2hf_6, 1, (__private half *) ul_2);
+  f_10  =  2.0F;
+  f_11  =  2.0F;
+  v2hf_9  =  (half2)(f_10, f_11);
+  vstore2(v2hf_9, 2, (__private half *) ul_2);
+  f_13  =  3.0F;
+  f_14  =  3.0F;
+  v2hf_12  =  (half2)(f_13, f_14);
+  vstore2(v2hf_12, 3, (__private half *) ul_2);
+  f_16  =  4.0F;
+  f_17  =  4.0F;
+  v2hf_15  =  (half2)(f_16, f_17);
+  vstore2(v2hf_15, 4, (__private half *) ul_2);
+  f_19  =  5.0F;
+  f_20  =  5.0F;
+  v2hf_18  =  (half2)(f_19, f_20);
+  vstore2(v2hf_18, 5, (__private half *) ul_2);
+  f_22  =  6.0F;
+  f_23  =  6.0F;
+  v2hf_21  =  (half2)(f_22, f_23);
+  vstore2(v2hf_21, 6, (__private half *) ul_2);
+  f_25  =  7.0F;
+  f_26  =  7.0F;
+  v2hf_24  =  (half2)(f_25, f_26);
+  vstore2(v2hf_24, 7, (__private half *) ul_2);
+  f_28  =  8.0F;
+  f_29  =  8.0F;
+  v2hf_27  =  (half2)(f_28, f_29);
+  vstore2(v2hf_27, 8, (__private half *) ul_2);
+  f_31  =  9.0F;
+  f_32  =  9.0F;
+  v2hf_30  =  (half2)(f_31, f_32);
+  vstore2(v2hf_30, 9, (__private half *) ul_2);
+  f_34  =  10.0F;
+  f_35  =  10.0F;
+  v2hf_33  =  (half2)(f_34, f_35);
+  vstore2(v2hf_33, 10, (__private half *) ul_2);
+  f_37  =  11.0F;
+  f_38  =  11.0F;
+  v2hf_36  =  (half2)(f_37, f_38);
+  vstore2(v2hf_36, 11, (__private half *) ul_2);
+  f_40  =  12.0F;
+  f_41  =  12.0F;
+  v2hf_39  =  (half2)(f_40, f_41);
+  vstore2(v2hf_39, 12, (__private half *) ul_2);
+  f_43  =  13.0F;
+  f_44  =  13.0F;
+  v2hf_42  =  (half2)(f_43, f_44);
+  vstore2(v2hf_42, 13, (__private half *) ul_2);
+  f_46  =  14.0F;
+  f_47  =  14.0F;
+  v2hf_45  =  (half2)(f_46, f_47);
+  vstore2(v2hf_45, 14, (__private half *) ul_2);
+  f_49  =  15.0F;
+  f_50  =  15.0F;
+  v2hf_48  =  (half2)(f_49, f_50);
+  vstore2(v2hf_48, 15, (__private half *) ul_2);
+  v2hf_51  =  vload2(0, (__private half *) ul_2);
+  v2hf_52  =  vload2(1, (__private half *) ul_2);
+  v2hf_53  =  vload2(2, (__private half *) ul_2);
+  v2hf_54  =  vload2(3, (__private half *) ul_2);
+  v2hf_55  =  vload2(4, (__private half *) ul_2);
+  v2hf_56  =  vload2(5, (__private half *) ul_2);
+  v2hf_57  =  vload2(6, (__private half *) ul_2);
+  v2hf_58  =  vload2(7, (__private half *) ul_2);
+  v2hf_59  =  vload2(8, (__private half *) ul_2);
+  v2hf_60  =  vload2(9, (__private half *) ul_2);
+  v2hf_61  =  vload2(10, (__private half *) ul_2);
+  v2hf_62  =  vload2(11, (__private half *) ul_2);
+  v2hf_63  =  vload2(12, (__private half *) ul_2);
+  v2hf_64  =  vload2(13, (__private half *) ul_2);
+  v2hf_65  =  vload2(14, (__private half *) ul_2);
+  v2hf_66  =  vload2(15, (__private half *) ul_2);
+  ul_67  =  ul_0 + 16L;
+  ul_68  =  ul_0 + 16L;
+  ui_69  =  *((__global uint *) ul_68);
+  ul_70  =  ul_0 + ((ulong) ui_69 << 3);
+  ul_71  =  ul_70 + 16L;
+  half_73  =  0.0;
+  half_74  =  0.0;
+  v2hf_72  =  (half2)(half_73, half_74);
+  v2hf_75  =  v2hf_51 + v2hf_72;
+  v2hf_76  =  v2hf_52 + v2hf_75;
+  v2hf_77  =  v2hf_53 + v2hf_76;
+  v2hf_78  =  v2hf_54 + v2hf_77;
+  v2hf_79  =  v2hf_55 + v2hf_78;
+  v2hf_80  =  v2hf_56 + v2hf_79;
+  v2hf_81  =  v2hf_57 + v2hf_80;
+  v2hf_82  =  v2hf_58 + v2hf_81;
+  v2hf_83  =  v2hf_59 + v2hf_82;
+  v2hf_84  =  v2hf_60 + v2hf_83;
+  v2hf_85  =  v2hf_61 + v2hf_84;
+  v2hf_86  =  v2hf_62 + v2hf_85;
+  v2hf_87  =  v2hf_63 + v2hf_86;
+  v2hf_88  =  v2hf_64 + v2hf_87;
+  v2hf_89  =  v2hf_65 + v2hf_88;
+  v2hf_90  =  v2hf_66 + v2hf_89;
+  vstore2(v2hf_90, 0, (__global half *) ul_71);
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void testPrivateVectorHalf4(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *output)
+{
+  half half_105, half_108, half_106, half_107; 
+  ulong ul_102, ul_100, ul_99, ul_0, ul_103; 
+  float f_10, f_9, f_12, f_11, f_14, f_16, f_15, f_4, f_6, f_5, f_7, f_82, f_81, f_74, f_76, f_75, f_77, f_80, f_79, f_66, f_65, f_67, f_70, f_69, f_72, f_71, f_57, f_60, f_59, f_62, f_61, f_64, f_50, f_49, f_52, f_51, f_54, f_56, f_55, f_42, f_41, f_44, f_46, f_45, f_47, f_34, f_36, f_35, f_37, f_40, f_39, f_26, f_25, f_27, f_30, f_29, f_32, f_31, f_17, f_20, f_19, f_22, f_21, f_24; 
+  uint ui_101; 
+  half4 v4hf_109, v4hf_110, v4hf_111, v4hf_112, v4hf_113, v4hf_114, v4hf_115, v4hf_116, v4hf_117, v4hf_118, v4hf_119, v4hf_120, v4hf_89, v4hf_90, v4hf_91, v4hf_92, v4hf_93, v4hf_94, v4hf_95, v4hf_96, v4hf_97, v4hf_98, v4hf_104, v4hf_73, v4hf_78, v4hf_83, v4hf_84, v4hf_85, v4hf_86, v4hf_87, v4hf_88, v4hf_58, v4hf_63, v4hf_68, v4hf_43, v4hf_48, v4hf_53, v4hf_28, v4hf_33, v4hf_38, v4hf_13, v4hf_18, v4hf_23, v4hf_121, v4hf_122, v4hf_123, v4hf_124, v4hf_3, v4hf_8; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) output;
+  __private float ul_1[64];
+  __private float* ul_2 = ul_1;
+  f_4  =  0.0F;
+  f_5  =  0.0F;
+  f_6  =  0.0F;
+  f_7  =  0.0F;
+  v4hf_3  =  (half4)(f_4, f_5, f_6, f_7);
+  vstore4(v4hf_3, 0, (__private half *) ul_2);
+  f_9  =  1.0F;
+  f_10  =  1.0F;
+  f_11  =  1.0F;
+  f_12  =  1.0F;
+  v4hf_8  =  (half4)(f_9, f_10, f_11, f_12);
+  vstore4(v4hf_8, 1, (__private half *) ul_2);
+  f_14  =  2.0F;
+  f_15  =  2.0F;
+  f_16  =  2.0F;
+  f_17  =  2.0F;
+  v4hf_13  =  (half4)(f_14, f_15, f_16, f_17);
+  vstore4(v4hf_13, 2, (__private half *) ul_2);
+  f_19  =  3.0F;
+  f_20  =  3.0F;
+  f_21  =  3.0F;
+  f_22  =  3.0F;
+  v4hf_18  =  (half4)(f_19, f_20, f_21, f_22);
+  vstore4(v4hf_18, 3, (__private half *) ul_2);
+  f_24  =  4.0F;
+  f_25  =  4.0F;
+  f_26  =  4.0F;
+  f_27  =  4.0F;
+  v4hf_23  =  (half4)(f_24, f_25, f_26, f_27);
+  vstore4(v4hf_23, 4, (__private half *) ul_2);
+  f_29  =  5.0F;
+  f_30  =  5.0F;
+  f_31  =  5.0F;
+  f_32  =  5.0F;
+  v4hf_28  =  (half4)(f_29, f_30, f_31, f_32);
+  vstore4(v4hf_28, 5, (__private half *) ul_2);
+  f_34  =  6.0F;
+  f_35  =  6.0F;
+  f_36  =  6.0F;
+  f_37  =  6.0F;
+  v4hf_33  =  (half4)(f_34, f_35, f_36, f_37);
+  vstore4(v4hf_33, 6, (__private half *) ul_2);
+  f_39  =  7.0F;
+  f_40  =  7.0F;
+  f_41  =  7.0F;
+  f_42  =  7.0F;
+  v4hf_38  =  (half4)(f_39, f_40, f_41, f_42);
+  vstore4(v4hf_38, 7, (__private half *) ul_2);
+  f_44  =  8.0F;
+  f_45  =  8.0F;
+  f_46  =  8.0F;
+  f_47  =  8.0F;
+  v4hf_43  =  (half4)(f_44, f_45, f_46, f_47);
+  vstore4(v4hf_43, 8, (__private half *) ul_2);
+  f_49  =  9.0F;
+  f_50  =  9.0F;
+  f_51  =  9.0F;
+  f_52  =  9.0F;
+  v4hf_48  =  (half4)(f_49, f_50, f_51, f_52);
+  vstore4(v4hf_48, 9, (__private half *) ul_2);
+  f_54  =  10.0F;
+  f_55  =  10.0F;
+  f_56  =  10.0F;
+  f_57  =  10.0F;
+  v4hf_53  =  (half4)(f_54, f_55, f_56, f_57);
+  vstore4(v4hf_53, 10, (__private half *) ul_2);
+  f_59  =  11.0F;
+  f_60  =  11.0F;
+  f_61  =  11.0F;
+  f_62  =  11.0F;
+  v4hf_58  =  (half4)(f_59, f_60, f_61, f_62);
+  vstore4(v4hf_58, 11, (__private half *) ul_2);
+  f_64  =  12.0F;
+  f_65  =  12.0F;
+  f_66  =  12.0F;
+  f_67  =  12.0F;
+  v4hf_63  =  (half4)(f_64, f_65, f_66, f_67);
+  vstore4(v4hf_63, 12, (__private half *) ul_2);
+  f_69  =  13.0F;
+  f_70  =  13.0F;
+  f_71  =  13.0F;
+  f_72  =  13.0F;
+  v4hf_68  =  (half4)(f_69, f_70, f_71, f_72);
+  vstore4(v4hf_68, 13, (__private half *) ul_2);
+  f_74  =  14.0F;
+  f_75  =  14.0F;
+  f_76  =  14.0F;
+  f_77  =  14.0F;
+  v4hf_73  =  (half4)(f_74, f_75, f_76, f_77);
+  vstore4(v4hf_73, 14, (__private half *) ul_2);
+  f_79  =  15.0F;
+  f_80  =  15.0F;
+  f_81  =  15.0F;
+  f_82  =  15.0F;
+  v4hf_78  =  (half4)(f_79, f_80, f_81, f_82);
+  vstore4(v4hf_78, 15, (__private half *) ul_2);
+  v4hf_83  =  vload4(0, (__private half *) ul_2);
+  v4hf_84  =  vload4(1, (__private half *) ul_2);
+  v4hf_85  =  vload4(2, (__private half *) ul_2);
+  v4hf_86  =  vload4(3, (__private half *) ul_2);
+  v4hf_87  =  vload4(4, (__private half *) ul_2);
+  v4hf_88  =  vload4(5, (__private half *) ul_2);
+  v4hf_89  =  vload4(6, (__private half *) ul_2);
+  v4hf_90  =  vload4(7, (__private half *) ul_2);
+  v4hf_91  =  vload4(8, (__private half *) ul_2);
+  v4hf_92  =  vload4(9, (__private half *) ul_2);
+  v4hf_93  =  vload4(10, (__private half *) ul_2);
+  v4hf_94  =  vload4(11, (__private half *) ul_2);
+  v4hf_95  =  vload4(12, (__private half *) ul_2);
+  v4hf_96  =  vload4(13, (__private half *) ul_2);
+  v4hf_97  =  vload4(14, (__private half *) ul_2);
+  v4hf_98  =  vload4(15, (__private half *) ul_2);
+  ul_99  =  ul_0 + 16L;
+  ul_100  =  ul_0 + 16L;
+  ui_101  =  *((__global uint *) ul_100);
+  ul_102  =  ul_0 + ((ulong) ui_101 << 3);
+  ul_103  =  ul_102 + 16L;
+  half_105  =  0.0;
+  half_106  =  0.0;
+  half_107  =  0.0;
+  half_108  =  0.0;
+  v4hf_104  =  (half4)(half_105, half_106, half_107, half_108);
+  v4hf_109  =  v4hf_83 + v4hf_104;
+  v4hf_110  =  v4hf_84 + v4hf_109;
+  v4hf_111  =  v4hf_85 + v4hf_110;
+  v4hf_112  =  v4hf_86 + v4hf_111;
+  v4hf_113  =  v4hf_87 + v4hf_112;
+  v4hf_114  =  v4hf_88 + v4hf_113;
+  v4hf_115  =  v4hf_89 + v4hf_114;
+  v4hf_116  =  v4hf_90 + v4hf_115;
+  v4hf_117  =  v4hf_91 + v4hf_116;
+  v4hf_118  =  v4hf_92 + v4hf_117;
+  v4hf_119  =  v4hf_93 + v4hf_118;
+  v4hf_120  =  v4hf_94 + v4hf_119;
+  v4hf_121  =  v4hf_95 + v4hf_120;
+  v4hf_122  =  v4hf_96 + v4hf_121;
+  v4hf_123  =  v4hf_97 + v4hf_122;
+  v4hf_124  =  v4hf_98 + v4hf_123;
+  vstore4(v4hf_124, 0, (__global half *) ul_103);
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void testPrivateVectorHalf8(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *output)
+{
+  half half_176, half_174, half_175, half_169, half_172, half_173, half_170, half_171; 
+  ulong ul_166, ul_164, ul_163, ul_0, ul_167; 
+  float f_137, f_140, f_139, f_142, f_141, f_144, f_143, f_130, f_132, f_131, f_134, f_133, f_136, f_135, f_122, f_121, f_124, f_123, f_126, f_125, f_128, f_127, f_114, f_113, f_116, f_115, f_118, f_117, f_119, f_106, f_105, f_108, f_107, f_110, f_109, f_112, f_98, f_97, f_100, f_99, f_101, f_104, f_103, f_90, f_89, f_92, f_91, f_94, f_96, f_95, f_82, f_81, f_83, f_86, f_85, f_88, f_87, f_146, f_145, f_10, f_9, f_11, f_14, f_13, f_16, f_15, f_4, f_6, f_5, f_8, f_7, f_74, f_73, f_76, f_78, f_77, f_80, f_79, f_65, f_68, f_67, f_70, f_69, f_72, f_71, f_58, f_60, f_59, f_62, f_61, f_64, f_63, f_50, f_49, f_52, f_51, f_54, f_53, f_56, f_55, f_42, f_41, f_44, f_43, f_46, f_45, f_47, f_34, f_33, f_36, f_35, f_38, f_37, f_40, f_26, f_25, f_28, f_27, f_29, f_32, f_31, f_18, f_17, f_20, f_19, f_22, f_24, f_23; 
+  uint ui_165; 
+  half8 v8hf_180, v8hf_179, v8hf_178, v8hf_177, v8hf_184, v8hf_183, v8hf_182, v8hf_181, v8hf_188, v8hf_187, v8hf_186, v8hf_57, v8hf_185, v8hf_192, v8hf_191, v8hf_190, v8hf_189, v8hf_162, v8hf_161, v8hf_168, v8hf_39, v8hf_48, v8hf_148, v8hf_147, v8hf_152, v8hf_151, v8hf_150, v8hf_21, v8hf_149, v8hf_156, v8hf_155, v8hf_154, v8hf_153, v8hf_160, v8hf_159, v8hf_30, v8hf_158, v8hf_157, v8hf_3, v8hf_129, v8hf_12, v8hf_138, v8hf_120, v8hf_102, v8hf_111, v8hf_84, v8hf_93, v8hf_66, v8hf_75; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) output;
+  __private float ul_1[128];
+  __private float* ul_2 = ul_1;
+  f_4  =  0.0F;
+  f_5  =  0.0F;
+  f_6  =  0.0F;
+  f_7  =  0.0F;
+  f_8  =  0.0F;
+  f_9  =  0.0F;
+  f_10  =  0.0F;
+  f_11  =  0.0F;
+  v8hf_3  =  (half8)(f_4, f_5, f_6, f_7, f_8, f_9, f_10, f_11);
+  vstore8(v8hf_3, 0, (__private half *) ul_2);
+  f_13  =  1.0F;
+  f_14  =  1.0F;
+  f_15  =  1.0F;
+  f_16  =  1.0F;
+  f_17  =  1.0F;
+  f_18  =  1.0F;
+  f_19  =  1.0F;
+  f_20  =  1.0F;
+  v8hf_12  =  (half8)(f_13, f_14, f_15, f_16, f_17, f_18, f_19, f_20);
+  vstore8(v8hf_12, 1, (__private half *) ul_2);
+  f_22  =  2.0F;
+  f_23  =  2.0F;
+  f_24  =  2.0F;
+  f_25  =  2.0F;
+  f_26  =  2.0F;
+  f_27  =  2.0F;
+  f_28  =  2.0F;
+  f_29  =  2.0F;
+  v8hf_21  =  (half8)(f_22, f_23, f_24, f_25, f_26, f_27, f_28, f_29);
+  vstore8(v8hf_21, 2, (__private half *) ul_2);
+  f_31  =  3.0F;
+  f_32  =  3.0F;
+  f_33  =  3.0F;
+  f_34  =  3.0F;
+  f_35  =  3.0F;
+  f_36  =  3.0F;
+  f_37  =  3.0F;
+  f_38  =  3.0F;
+  v8hf_30  =  (half8)(f_31, f_32, f_33, f_34, f_35, f_36, f_37, f_38);
+  vstore8(v8hf_30, 3, (__private half *) ul_2);
+  f_40  =  4.0F;
+  f_41  =  4.0F;
+  f_42  =  4.0F;
+  f_43  =  4.0F;
+  f_44  =  4.0F;
+  f_45  =  4.0F;
+  f_46  =  4.0F;
+  f_47  =  4.0F;
+  v8hf_39  =  (half8)(f_40, f_41, f_42, f_43, f_44, f_45, f_46, f_47);
+  vstore8(v8hf_39, 4, (__private half *) ul_2);
+  f_49  =  5.0F;
+  f_50  =  5.0F;
+  f_51  =  5.0F;
+  f_52  =  5.0F;
+  f_53  =  5.0F;
+  f_54  =  5.0F;
+  f_55  =  5.0F;
+  f_56  =  5.0F;
+  v8hf_48  =  (half8)(f_49, f_50, f_51, f_52, f_53, f_54, f_55, f_56);
+  vstore8(v8hf_48, 5, (__private half *) ul_2);
+  f_58  =  6.0F;
+  f_59  =  6.0F;
+  f_60  =  6.0F;
+  f_61  =  6.0F;
+  f_62  =  6.0F;
+  f_63  =  6.0F;
+  f_64  =  6.0F;
+  f_65  =  6.0F;
+  v8hf_57  =  (half8)(f_58, f_59, f_60, f_61, f_62, f_63, f_64, f_65);
+  vstore8(v8hf_57, 6, (__private half *) ul_2);
+  f_67  =  7.0F;
+  f_68  =  7.0F;
+  f_69  =  7.0F;
+  f_70  =  7.0F;
+  f_71  =  7.0F;
+  f_72  =  7.0F;
+  f_73  =  7.0F;
+  f_74  =  7.0F;
+  v8hf_66  =  (half8)(f_67, f_68, f_69, f_70, f_71, f_72, f_73, f_74);
+  vstore8(v8hf_66, 7, (__private half *) ul_2);
+  f_76  =  8.0F;
+  f_77  =  8.0F;
+  f_78  =  8.0F;
+  f_79  =  8.0F;
+  f_80  =  8.0F;
+  f_81  =  8.0F;
+  f_82  =  8.0F;
+  f_83  =  8.0F;
+  v8hf_75  =  (half8)(f_76, f_77, f_78, f_79, f_80, f_81, f_82, f_83);
+  vstore8(v8hf_75, 8, (__private half *) ul_2);
+  f_85  =  9.0F;
+  f_86  =  9.0F;
+  f_87  =  9.0F;
+  f_88  =  9.0F;
+  f_89  =  9.0F;
+  f_90  =  9.0F;
+  f_91  =  9.0F;
+  f_92  =  9.0F;
+  v8hf_84  =  (half8)(f_85, f_86, f_87, f_88, f_89, f_90, f_91, f_92);
+  vstore8(v8hf_84, 9, (__private half *) ul_2);
+  f_94  =  10.0F;
+  f_95  =  10.0F;
+  f_96  =  10.0F;
+  f_97  =  10.0F;
+  f_98  =  10.0F;
+  f_99  =  10.0F;
+  f_100  =  10.0F;
+  f_101  =  10.0F;
+  v8hf_93  =  (half8)(f_94, f_95, f_96, f_97, f_98, f_99, f_100, f_101);
+  vstore8(v8hf_93, 10, (__private half *) ul_2);
+  f_103  =  11.0F;
+  f_104  =  11.0F;
+  f_105  =  11.0F;
+  f_106  =  11.0F;
+  f_107  =  11.0F;
+  f_108  =  11.0F;
+  f_109  =  11.0F;
+  f_110  =  11.0F;
+  v8hf_102  =  (half8)(f_103, f_104, f_105, f_106, f_107, f_108, f_109, f_110);
+  vstore8(v8hf_102, 11, (__private half *) ul_2);
+  f_112  =  12.0F;
+  f_113  =  12.0F;
+  f_114  =  12.0F;
+  f_115  =  12.0F;
+  f_116  =  12.0F;
+  f_117  =  12.0F;
+  f_118  =  12.0F;
+  f_119  =  12.0F;
+  v8hf_111  =  (half8)(f_112, f_113, f_114, f_115, f_116, f_117, f_118, f_119);
+  vstore8(v8hf_111, 12, (__private half *) ul_2);
+  f_121  =  13.0F;
+  f_122  =  13.0F;
+  f_123  =  13.0F;
+  f_124  =  13.0F;
+  f_125  =  13.0F;
+  f_126  =  13.0F;
+  f_127  =  13.0F;
+  f_128  =  13.0F;
+  v8hf_120  =  (half8)(f_121, f_122, f_123, f_124, f_125, f_126, f_127, f_128);
+  vstore8(v8hf_120, 13, (__private half *) ul_2);
+  f_130  =  14.0F;
+  f_131  =  14.0F;
+  f_132  =  14.0F;
+  f_133  =  14.0F;
+  f_134  =  14.0F;
+  f_135  =  14.0F;
+  f_136  =  14.0F;
+  f_137  =  14.0F;
+  v8hf_129  =  (half8)(f_130, f_131, f_132, f_133, f_134, f_135, f_136, f_137);
+  vstore8(v8hf_129, 14, (__private half *) ul_2);
+  f_139  =  15.0F;
+  f_140  =  15.0F;
+  f_141  =  15.0F;
+  f_142  =  15.0F;
+  f_143  =  15.0F;
+  f_144  =  15.0F;
+  f_145  =  15.0F;
+  f_146  =  15.0F;
+  v8hf_138  =  (half8)(f_139, f_140, f_141, f_142, f_143, f_144, f_145, f_146);
+  vstore8(v8hf_138, 15, (__private half *) ul_2);
+  v8hf_147  =  vload8(0, (__private half *) ul_2);
+  v8hf_148  =  vload8(1, (__private half *) ul_2);
+  v8hf_149  =  vload8(2, (__private half *) ul_2);
+  v8hf_150  =  vload8(3, (__private half *) ul_2);
+  v8hf_151  =  vload8(4, (__private half *) ul_2);
+  v8hf_152  =  vload8(5, (__private half *) ul_2);
+  v8hf_153  =  vload8(6, (__private half *) ul_2);
+  v8hf_154  =  vload8(7, (__private half *) ul_2);
+  v8hf_155  =  vload8(8, (__private half *) ul_2);
+  v8hf_156  =  vload8(9, (__private half *) ul_2);
+  v8hf_157  =  vload8(10, (__private half *) ul_2);
+  v8hf_158  =  vload8(11, (__private half *) ul_2);
+  v8hf_159  =  vload8(12, (__private half *) ul_2);
+  v8hf_160  =  vload8(13, (__private half *) ul_2);
+  v8hf_161  =  vload8(14, (__private half *) ul_2);
+  v8hf_162  =  vload8(15, (__private half *) ul_2);
+  ul_163  =  ul_0 + 16L;
+  ul_164  =  ul_0 + 16L;
+  ui_165  =  *((__global uint *) ul_164);
+  ul_166  =  ul_0 + ((ulong) ui_165 << 3);
+  ul_167  =  ul_166 + 16L;
+  half_169  =  0.0;
+  half_170  =  0.0;
+  half_171  =  0.0;
+  half_172  =  0.0;
+  half_173  =  0.0;
+  half_174  =  0.0;
+  half_175  =  0.0;
+  half_176  =  0.0;
+  v8hf_168  =  (half8)(half_169, half_170, half_171, half_172, half_173, half_174, half_175, half_176);
+  v8hf_177  =  v8hf_147 + v8hf_168;
+  v8hf_178  =  v8hf_148 + v8hf_177;
+  v8hf_179  =  v8hf_149 + v8hf_178;
+  v8hf_180  =  v8hf_150 + v8hf_179;
+  v8hf_181  =  v8hf_151 + v8hf_180;
+  v8hf_182  =  v8hf_152 + v8hf_181;
+  v8hf_183  =  v8hf_153 + v8hf_182;
+  v8hf_184  =  v8hf_154 + v8hf_183;
+  v8hf_185  =  v8hf_155 + v8hf_184;
+  v8hf_186  =  v8hf_156 + v8hf_185;
+  v8hf_187  =  v8hf_157 + v8hf_186;
+  v8hf_188  =  v8hf_158 + v8hf_187;
+  v8hf_189  =  v8hf_159 + v8hf_188;
+  v8hf_190  =  v8hf_160 + v8hf_189;
+  v8hf_191  =  v8hf_161 + v8hf_190;
+  v8hf_192  =  v8hf_162 + v8hf_191;
+  vstore8(v8hf_192, 0, (__global half *) ul_167);
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void vectorHalfUnary(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *vector)
+{
+  int i_17, i_2, i_6; 
+  half half_16, half_14, half_15, half_13; 
+  ulong ul_5, ul_3, ul_1, ul_0, ul_10; 
+  long l_8, l_9, l_7; 
+  uint ui_4; 
+  half4 v4hf_11, v4hf_12; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) vector;
+  ul_1  =  ul_0 + 16L;
+  // BLOCK 1 MERGES [0 2 ]
+  i_2  =  0;
+  for(;i_2 < 256;)
+  {
+    // BLOCK 2
+    ul_3  =  ul_0 + 16L;
+    ui_4  =  *((__global uint *) ul_3);
+    ul_5  =  ul_0 + ((ulong) ui_4 << 3);
+    i_6  =  i_2 << 2;
+    l_7  =  (long) i_6;
+    l_8  =  l_7 << 2;
+    l_9  =  l_8 + 16L;
+    ul_10  =  ul_5 + l_9;
+    v4hf_11  =  vload4(0, (__global half *) ul_10);
+    half_13  =  v4hf_11.s0;
+    half_14  =  v4hf_11.s1;
+    half_15  =  v4hf_11.s2;
+    half_16  =  v4hf_11.s3;
+    v4hf_12  =  (half4)(half_13, half_14, half_15, half_16);
+    vstore4(v4hf_12, 0, (__global half *) ul_10);
+    i_17  =  i_2 + 1;
+    i_2  =  i_17;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void vectorComputation01(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *value, __global uchar *output)
+{
+  int i_27, i_10, i_5, i_2, i_6; 
+  half half_25, half_22, half_23, half_26; 
+  ulong ul_21, ul_4, ul_20, ul_3, ul_18, ul_1, ul_0, ul_14, ul_9, ul_7; 
+  long l_12, l_13, l_11; 
+  uint ui_8, ui_19; 
+  half2 v2hf_16, v2hf_15, v2hf_17, v2hf_24; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) value;
+  ul_1  =  (ulong) output;
+  i_2  =  get_global_size(0);
+  ul_3  =  ul_1 + 16L;
+  ul_4  =  ul_0 + 16L;
+  i_5  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_6  =  i_5;
+  for(;i_6 < 16;)
+  {
+    // BLOCK 2
+    ul_7  =  ul_0 + 16L;
+    ui_8  =  *((__global uint *) ul_7);
+    ul_9  =  ul_0 + ((ulong) ui_8 << 3);
+    i_10  =  i_6 << 1;
+    l_11  =  (long) i_10;
+    l_12  =  l_11 << 2;
+    l_13  =  l_12 + 16L;
+    ul_14  =  ul_9 + l_13;
+    v2hf_15  =  vload2(0, (__global half *) ul_14);
+    v2hf_16  =  vload2(0, (__global half *) ul_14);
+    v2hf_17  =  vload2(0, (__global half *) ul_14);
+    ul_18  =  ul_1 + 16L;
+    ui_19  =  *((__global uint *) ul_18);
+    ul_20  =  ul_1 + ((ulong) ui_19 << 3);
+    ul_21  =  ul_20 + l_13;
+    half_22  =  v2hf_15.s0 + v2hf_16.s1;
+    half_23  =  v2hf_17.s0 * 2.0;
+    half_25  =  half_22;
+    half_26  =  half_23;
+    v2hf_24  =  (half2)(half_25, half_26);
+    vstore2(v2hf_24, 0, (__global half *) ul_21);
+    i_27  =  i_2 + i_6;
+    i_6  =  i_27;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void vectorComputation02(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *value, __global uchar *output)
+{
+  int i_29, i_28, i_11, i_10, i_5, i_2, i_6; 
+  half half_24, half_23, half_26, half_27; 
+  ulong ul_22, ul_21, ul_4, ul_3, ul_19, ul_1, ul_0, ul_15, ul_9, ul_7; 
+  long l_14, l_12, l_13; 
+  uint ui_8, ui_20; 
+  half3 v3hf_18, v3hf_16, v3hf_17, v3hf_25; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) value;
+  ul_1  =  (ulong) output;
+  i_2  =  get_global_size(0);
+  ul_3  =  ul_1 + 16L;
+  ul_4  =  ul_0 + 16L;
+  i_5  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_6  =  i_5;
+  for(;i_6 < 16;)
+  {
+    // BLOCK 2
+    ul_7  =  ul_0 + 16L;
+    ui_8  =  *((__global uint *) ul_7);
+    ul_9  =  ul_0 + ((ulong) ui_8 << 3);
+    i_10  =  i_6 << 1;
+    i_11  =  i_10 + i_6;
+    l_12  =  (long) i_11;
+    l_13  =  l_12 << 2;
+    l_14  =  l_13 + 16L;
+    ul_15  =  ul_9 + l_14;
+    v3hf_16  =  vload3(0, (__global half *) ul_15);
+    v3hf_17  =  vload3(0, (__global half *) ul_15);
+    v3hf_18  =  vload3(0, (__global half *) ul_15);
+    ul_19  =  ul_1 + 16L;
+    ui_20  =  *((__global uint *) ul_19);
+    ul_21  =  ul_1 + ((ulong) ui_20 << 3);
+    ul_22  =  ul_21 + l_14;
+    half_23  =  v3hf_16.s0 + v3hf_17.s1;
+    half_24  =  v3hf_18.s2 * 2.0;
+    half_26  =  half_23;
+    half_27  =  half_24;
+    i_28  =  0;
+    v3hf_25  =  (half3)(half_26, half_27, i_28);
+    vstore3(v3hf_25, 0, (__global half *) ul_22);
+    i_29  =  i_2 + i_6;
+    i_6  =  i_29;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void vectorComputation03(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *value, __global uchar *output)
+{
+  int i_10, i_30, i_5, i_20, i_19, i_2, i_6; 
+  half half_25, half_28, half_29, half_27; 
+  ulong ul_4, ul_3, ul_18, ul_1, ul_0, ul_16, ul_14, ul_9, ul_24, ul_7; 
+  long l_21, l_12, l_13, l_11, l_22, l_23; 
+  uint ui_8, ui_17; 
+  half4 v4hf_15; 
+  half3 v3hf_26; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) value;
+  ul_1  =  (ulong) output;
+  i_2  =  get_global_size(0);
+  ul_3  =  ul_1 + 16L;
+  ul_4  =  ul_0 + 16L;
+  i_5  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_6  =  i_5;
+  for(;i_6 < 16;)
+  {
+    // BLOCK 2
+    ul_7  =  ul_0 + 16L;
+    ui_8  =  *((__global uint *) ul_7);
+    ul_9  =  ul_0 + ((ulong) ui_8 << 3);
+    i_10  =  i_6 << 2;
+    l_11  =  (long) i_10;
+    l_12  =  l_11 << 2;
+    l_13  =  l_12 + 16L;
+    ul_14  =  ul_9 + l_13;
+    v4hf_15  =  vload4(0, (__global half *) ul_14);
+    ul_16  =  ul_1 + 16L;
+    ui_17  =  *((__global uint *) ul_16);
+    ul_18  =  ul_1 + ((ulong) ui_17 << 3);
+    i_19  =  i_6 << 1;
+    i_20  =  i_19 + i_6;
+    l_21  =  (long) i_20;
+    l_22  =  l_21 << 2;
+    l_23  =  l_22 + 16L;
+    ul_24  =  ul_18 + l_23;
+    half_25  =  v4hf_15.s0 + v4hf_15.s1;
+    half_27  =  half_25;
+    half_28  =  v4hf_15.s1;
+    half_29  =  v4hf_15.s3;
+    v3hf_26  =  (half3)(half_27, half_28, half_29);
+    vstore3(v3hf_26, 0, (__global half *) ul_24);
+    i_30  =  i_2 + i_6;
+    i_6  =  i_30;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable  
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable  
+__kernel void vectorComputation04(__global long *_kernel_context, __constant uchar *_constant_region, __local uchar *_local_region, __global int *_atomics, __global uchar *value, __global uchar *output)
+{
+  int i_10, i_30, i_5, i_21, i_2, i_6; 
+  half half_28, half_29, half_26; 
+  ulong ul_4, ul_20, ul_3, ul_18, ul_1, ul_0, ul_14, ul_9, ul_25, ul_7; 
+  long l_12, l_13, l_11, l_24, l_22, l_23; 
+  uint ui_8, ui_19; 
+  half2 v2hf_27; 
+  half8 v8hf_17, v8hf_16, v8hf_15; 
+
+  // BLOCK 0
+  ul_0  =  (ulong) value;
+  ul_1  =  (ulong) output;
+  i_2  =  get_global_size(0);
+  ul_3  =  ul_1 + 16L;
+  ul_4  =  ul_0 + 16L;
+  i_5  =  get_global_id(0);
+  // BLOCK 1 MERGES [0 2 ]
+  i_6  =  i_5;
+  for(;i_6 < 16;)
+  {
+    // BLOCK 2
+    ul_7  =  ul_0 + 16L;
+    ui_8  =  *((__global uint *) ul_7);
+    ul_9  =  ul_0 + ((ulong) ui_8 << 3);
+    i_10  =  i_6 << 3;
+    l_11  =  (long) i_10;
+    l_12  =  l_11 << 2;
+    l_13  =  l_12 + 16L;
+    ul_14  =  ul_9 + l_13;
+    v8hf_15  =  vload8(0, (__global half *) ul_14);
+    v8hf_16  =  vload8(0, (__global half *) ul_14);
+    v8hf_17  =  vload8(0, (__global half *) ul_14);
+    ul_18  =  ul_1 + 16L;
+    ui_19  =  *((__global uint *) ul_18);
+    ul_20  =  ul_1 + ((ulong) ui_19 << 3);
+    i_21  =  i_6 << 1;
+    l_22  =  (long) i_21;
+    l_23  =  l_22 << 2;
+    l_24  =  l_23 + 16L;
+    ul_25  =  ul_20 + l_24;
+    half_26  =  v8hf_15.s0 + v8hf_16.s1;
+    half_28  =  half_26;
+    half_29  =  v8hf_17.s1;
+    v2hf_27  =  (half2)(half_28, half_29);
+    vstore2(v2hf_27, 0, (__global half *) ul_25);
+    i_30  =  i_2 + i_6;
+    i_6  =  i_30;
+  }  // B2
+  // BLOCK 3
+  return;
+}  //  kernel
+
+Test: class uk.ac.manchester.tornado.unittests.vectortypes.TestHalfFloats
+	Running test: [34mtestSimpleDotProductVectorHalf[0m ................ [32m [PASS] [0m
+	Running test: [34mvectorPhiTest[0m              ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleDotProductHalf2[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleDotProductHalf3[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleDotProductHalf4[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleDotProductHalf8[0m  ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleDotProductHalf16[0m ................ [32m [PASS] [0m
+	Running test: [34mtestSimpleVectorAddition[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestVectorHalf2[0m            ................ [31m [FAILED] [0m
+		\_[REASON] expected:<16.0> but was:<0.0>
+	Running test: [34mtestVectorHalf3[0m            ................ [31m [FAILED] [0m
+		\_[REASON] expected:<8.0> but was:<0.0>
+	Running test: [34mtestVectorFloat3toString[0m   ................ [32m [PASS] [0m
+	Running test: [34mtestVectorHalf4[0m            ................ [31m [FAILED] [0m
+		\_[REASON] expected:<8.0> but was:<0.0>
+	Running test: [34mtestVectorHalf16[0m           ................ [31m [FAILED] [0m
+		\_[REASON] expected:<16.0> but was:<0.0>
+	Running test: [34mtestVectorHalf8[0m            ................ [31m [FAILED] [0m
+		\_[REASON] expected:<8.0> but was:<0.0>
+	Running test: [34mtestVectorHalf8_Storage[0m    ................ [31m [FAILED] [0m
+		\_[REASON] expected:<1.0> but was:<0.0>
+	Running test: [34mtestDotProduct[0m             ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorHalf2[0m         ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorHalf4[0m         ................ [32m [PASS] [0m
+	Running test: [34mprivateVectorHalf8[0m         ................ [32m [PASS] [0m
+	Running test: [34mtestVectorHalf4_Unary[0m      ................ [32m [PASS] [0m
+	Running test: [34mtestInternalSetMethod01[0m    ................ [31m [FAILED] [0m
+		\_[REASON] expected:<0.54248046875> but was:<0.0>
+	Running test: [34mtestInternalSetMethod02[0m    ................ [31m [FAILED] [0m
+		\_[REASON] expected:<1.4541015625> but was:<0.0>
+	Running test: [34mtestInternalSetMethod03[0m    ................ [31m [FAILED] [0m
+		\_[REASON] expected:<0.381591796875> but was:<0.0>
+	Running test: [34mtestInternalSetMethod04[0m    ................ [31m [FAILED] [0m
+		\_[REASON] expected:<1.275390625> but was:<0.0>
+	Running test: [34mtestAllocationIssue[0m        ................ [32m [PASS] [0m
+Test ran: 25, Failed: 10, Unsupported: 0
+
+
+Total Time (s): 4.998582363128662

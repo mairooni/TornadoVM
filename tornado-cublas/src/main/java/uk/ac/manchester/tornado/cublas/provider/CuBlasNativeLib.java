@@ -61,6 +61,7 @@ final class CuBlasNativeLib {
     private static final MethodHandle CUBLAS_SET_MATH_MODE;
     private static final MethodHandle CUBLAS_SET_WORKSPACE;
     private static final MethodHandle CUBLAS_SGEMV;
+    private static final MethodHandle CUBLAS_DGEMV;
     private static final MethodHandle CUBLAS_SGEMM;
     private static final MethodHandle CUBLAS_SGEMM_STRIDED_BATCHED;
     private static final MethodHandle CUBLAS_GEMM_EX;
@@ -75,6 +76,7 @@ final class CuBlasNativeLib {
             CUBLAS_SET_MATH_MODE = null;
             CUBLAS_SET_WORKSPACE = null;
             CUBLAS_SGEMV = null;
+            CUBLAS_DGEMV = null;
             CUBLAS_SGEMM = null;
             CUBLAS_SGEMM_STRIDED_BATCHED = null;
             CUBLAS_GEMM_EX = null;
@@ -88,6 +90,10 @@ final class CuBlasNativeLib {
             CUBLAS_SET_WORKSPACE = FFMSupport.downcall(LIBCUBLAS, FunctionDescriptor.of(C_INT, C_LONG, C_LONG, C_LONG), "cublasSetWorkspace_v2");
             CUBLAS_SGEMV = FFMSupport.downcall(LIBCUBLAS, FunctionDescriptor.of(C_INT, C_LONG, C_INT, C_INT, C_INT, C_POINTER, C_LONG, C_INT, C_LONG, C_INT, C_POINTER, C_LONG, C_INT),
                     "cublasSgemv_v2");
+            // FP64. Same shape as the single-precision entry point, and the reason it is here:
+            // a caller summing DOUBLE columns has no FP32 answer that is also the right answer.
+            CUBLAS_DGEMV = FFMSupport.downcall(LIBCUBLAS, FunctionDescriptor.of(C_INT, C_LONG, C_INT, C_INT, C_INT, C_POINTER, C_LONG, C_INT, C_LONG, C_INT, C_POINTER, C_LONG, C_INT),
+                    "cublasDgemv_v2");
             CUBLAS_SGEMM = FFMSupport.downcall(LIBCUBLAS,
                     FunctionDescriptor.of(C_INT, C_LONG, C_INT, C_INT, C_INT, C_INT, C_INT, C_POINTER, C_LONG, C_INT, C_LONG, C_INT, C_POINTER, C_LONG, C_INT), "cublasSgemm_v2");
             CUBLAS_SGEMM_STRIDED_BATCHED = FFMSupport.downcall(LIBCUBLAS,
@@ -130,6 +136,22 @@ final class CuBlasNativeLib {
     }
 
     /** Writes alpha and beta into the per-thread scalar scratch and returns it. */
+    static int cublasDgemv(long handle, int trans, int m, int n, double alpha, long dA, int lda, long dX, int incx, double beta, long dY, int incy) {
+        MemorySegment scalars = scalars(alpha, beta);
+        try {
+            return (int) CUBLAS_DGEMV.invokeExact(handle, trans, m, n, scalars.asSlice(0, Double.BYTES), dA, lda, dX, incx, scalars.asSlice(Double.BYTES, Double.BYTES), dY, incy);
+        } catch (Throwable t) {
+            throw rethrow(t);
+        }
+    }
+
+    private static MemorySegment scalars(double alpha, double beta) {
+        MemorySegment segment = SCALARS.forBytes(2L * Double.BYTES);
+        segment.set(FFMSupport.C_DOUBLE, 0, alpha);
+        segment.set(FFMSupport.C_DOUBLE, Double.BYTES, beta);
+        return segment;
+    }
+
     private static MemorySegment scalars(float alpha, float beta) {
         MemorySegment segment = SCALARS.forBytes(2L * Float.BYTES);
         segment.set(FFMSupport.C_FLOAT, 0, alpha);

@@ -1,0 +1,650 @@
+.visible .entry s0_t0_gemmmma_async2_arrays_halffloatarray_arrays_halffloatarray_arrays_floatarray(.param .u64 .ptr .global .align 8 kernel_context, .param .u64 .ptr .global .align 8 A, .param .u64 .ptr .global .align 8 B, .param .u64 .ptr .global .align 8 C) {
+        .reg .u32 rui<192>;
+        .reg .pred rpb<4>;
+        .reg .u64 rud<67>;
+        .reg .s64 rsd<9>;
+        .reg .b16 rbh<5>;
+        .reg .f16 rfh<5>;
+        .reg .s32 rsi<86>;
+        // Stage-2 working registers
+        .reg .u32 __cur_a_base, __cur_b_base, __next_a_base, __next_b_base;
+        .reg .u32 __r_a0, __r_a1, __r_b0, __r_b1;   // shared-base addrs in regs (selp needs regs)
+        .reg .u32 __cpa_dst;
+        .reg .s32 __next_k, __cur_low, __next_low;
+        .reg .pred __cur_buf_pred, __next_buf_pred, __load_next_pred;
+
+BLOCK_0:
+        ld.param.u64    rud0, [kernel_context];
+        ld.param.u64    rud1, [A];
+        ld.param.u64    rud2, [B];
+        ld.param.u64    rud3, [C];
+        // STAGE 2: 4 shared buffers instead of 2 (double buffering for A and B)
+        .shared .s32 rsiArr0_0[1024];
+        .shared .s32 rsiArr0_1[1024];
+        .shared .s32 rsiArr1_0[1024];
+        .shared .s32 rsiArr1_1[1024];
+        // Hoist shared base addresses into registers so selp can use them.
+        mov.u32 __r_a0, rsiArr0_0;
+        mov.u32 __r_a1, rsiArr0_1;
+        mov.u32 __r_b0, rsiArr1_0;
+        mov.u32 __r_b1, rsiArr1_1;
+        .reg .f32 rmmaaccf320_0, rmmaaccf320_1, rmmaaccf320_2, rmmaaccf320_3;
+        mov.f32 rmmaaccf320_0, 0F00000000;
+        mov.f32 rmmaaccf320_1, 0F00000000;
+        mov.f32 rmmaaccf320_2, 0F00000000;
+        mov.f32 rmmaaccf320_3, 0F00000000;
+        .reg .f32 rmmaaccf321_0, rmmaaccf321_1, rmmaaccf321_2, rmmaaccf321_3;
+        mov.f32 rmmaaccf321_0, 0F00000000;
+        mov.f32 rmmaaccf321_1, 0F00000000;
+        mov.f32 rmmaaccf321_2, 0F00000000;
+        mov.f32 rmmaaccf321_3, 0F00000000;
+        .reg .f32 rmmaaccf322_0, rmmaaccf322_1, rmmaaccf322_2, rmmaaccf322_3;
+        mov.f32 rmmaaccf322_0, 0F00000000;
+        mov.f32 rmmaaccf322_1, 0F00000000;
+        mov.f32 rmmaaccf322_2, 0F00000000;
+        mov.f32 rmmaaccf322_3, 0F00000000;
+        .reg .f32 rmmaaccf323_0, rmmaaccf323_1, rmmaaccf323_2, rmmaaccf323_3;
+        mov.f32 rmmaaccf323_0, 0F00000000;
+        mov.f32 rmmaaccf323_1, 0F00000000;
+        mov.f32 rmmaaccf323_2, 0F00000000;
+        mov.f32 rmmaaccf323_3, 0F00000000;
+        .reg .f32 rmmaaccf324_0, rmmaaccf324_1, rmmaaccf324_2, rmmaaccf324_3;
+        mov.f32 rmmaaccf324_0, 0F00000000;
+        mov.f32 rmmaaccf324_1, 0F00000000;
+        mov.f32 rmmaaccf324_2, 0F00000000;
+        mov.f32 rmmaaccf324_3, 0F00000000;
+        .reg .f32 rmmaaccf325_0, rmmaaccf325_1, rmmaaccf325_2, rmmaaccf325_3;
+        mov.f32 rmmaaccf325_0, 0F00000000;
+        mov.f32 rmmaaccf325_1, 0F00000000;
+        mov.f32 rmmaaccf325_2, 0F00000000;
+        mov.f32 rmmaaccf325_3, 0F00000000;
+        .reg .f32 rmmaaccf326_0, rmmaaccf326_1, rmmaaccf326_2, rmmaaccf326_3;
+        mov.f32 rmmaaccf326_0, 0F00000000;
+        mov.f32 rmmaaccf326_1, 0F00000000;
+        mov.f32 rmmaaccf326_2, 0F00000000;
+        mov.f32 rmmaaccf326_3, 0F00000000;
+        .reg .f32 rmmaaccf327_0, rmmaaccf327_1, rmmaaccf327_2, rmmaaccf327_3;
+        mov.f32 rmmaaccf327_0, 0F00000000;
+        mov.f32 rmmaaccf327_1, 0F00000000;
+        mov.f32 rmmaaccf327_2, 0F00000000;
+        mov.f32 rmmaaccf327_3, 0F00000000;
+        .reg .f32 rmmaaccf328_0, rmmaaccf328_1, rmmaaccf328_2, rmmaaccf328_3;
+        mov.f32 rmmaaccf328_0, 0F00000000;
+        mov.f32 rmmaaccf328_1, 0F00000000;
+        mov.f32 rmmaaccf328_2, 0F00000000;
+        mov.f32 rmmaaccf328_3, 0F00000000;
+        .reg .f32 rmmaaccf329_0, rmmaaccf329_1, rmmaaccf329_2, rmmaaccf329_3;
+        mov.f32 rmmaaccf329_0, 0F00000000;
+        mov.f32 rmmaaccf329_1, 0F00000000;
+        mov.f32 rmmaaccf329_2, 0F00000000;
+        mov.f32 rmmaaccf329_3, 0F00000000;
+        .reg .f32 rmmaaccf3210_0, rmmaaccf3210_1, rmmaaccf3210_2, rmmaaccf3210_3;
+        mov.f32 rmmaaccf3210_0, 0F00000000;
+        mov.f32 rmmaaccf3210_1, 0F00000000;
+        mov.f32 rmmaaccf3210_2, 0F00000000;
+        mov.f32 rmmaaccf3210_3, 0F00000000;
+        .reg .f32 rmmaaccf3211_0, rmmaaccf3211_1, rmmaaccf3211_2, rmmaaccf3211_3;
+        mov.f32 rmmaaccf3211_0, 0F00000000;
+        mov.f32 rmmaaccf3211_1, 0F00000000;
+        mov.f32 rmmaaccf3211_2, 0F00000000;
+        mov.f32 rmmaaccf3211_3, 0F00000000;
+        .reg .f32 rmmaaccf3212_0, rmmaaccf3212_1, rmmaaccf3212_2, rmmaaccf3212_3;
+        mov.f32 rmmaaccf3212_0, 0F00000000;
+        mov.f32 rmmaaccf3212_1, 0F00000000;
+        mov.f32 rmmaaccf3212_2, 0F00000000;
+        mov.f32 rmmaaccf3212_3, 0F00000000;
+        .reg .f32 rmmaaccf3213_0, rmmaaccf3213_1, rmmaaccf3213_2, rmmaaccf3213_3;
+        mov.f32 rmmaaccf3213_0, 0F00000000;
+        mov.f32 rmmaaccf3213_1, 0F00000000;
+        mov.f32 rmmaaccf3213_2, 0F00000000;
+        mov.f32 rmmaaccf3213_3, 0F00000000;
+        .reg .f32 rmmaaccf3214_0, rmmaaccf3214_1, rmmaaccf3214_2, rmmaaccf3214_3;
+        mov.f32 rmmaaccf3214_0, 0F00000000;
+        mov.f32 rmmaaccf3214_1, 0F00000000;
+        mov.f32 rmmaaccf3214_2, 0F00000000;
+        mov.f32 rmmaaccf3214_3, 0F00000000;
+        .reg .f32 rmmaaccf3215_0, rmmaaccf3215_1, rmmaaccf3215_2, rmmaaccf3215_3;
+        mov.f32 rmmaaccf3215_0, 0F00000000;
+        mov.f32 rmmaaccf3215_1, 0F00000000;
+        mov.f32 rmmaaccf3215_2, 0F00000000;
+        mov.f32 rmmaaccf3215_3, 0F00000000;
+        mov.u32 rui0, %tid.x;
+        cvt.s32.u32     rsi0, rui0;
+        shr.b32 rsi1, rsi0, 31;
+        shr.b32 rsi2, rsi1, 27;
+        add.s32 rsi3, rsi2, rsi0;
+        shr.b32 rsi4, rsi3, 5;
+        rem.s32 rsi5, rsi4, 2;
+        shl.b32 rsi6, rsi5, 3;
+        add.s32 rsi7, rsi6, 7;
+        shl.b32 rsi8, rsi7, 8;
+        add.s32 rsi9, rsi6, 6;
+        shl.b32 rsi10, rsi9, 8;
+        add.s32 rsi11, rsi6, 5;
+        shl.b32 rsi12, rsi11, 8;
+        add.s32 rsi13, rsi6, 4;
+        shl.b32 rsi14, rsi13, 8;
+        add.s32 rsi15, rsi6, 3;
+        shl.b32 rsi16, rsi15, 8;
+        add.s32 rsi17, rsi6, 2;
+        shl.b32 rsi18, rsi17, 8;
+        add.s32 rsi19, rsi6, 1;
+        shl.b32 rsi20, rsi19, 8;
+        shl.b32 rsi21, rsi5, 11;
+        shr.b32 rsi22, rsi3, 31;
+        add.s32 rsi23, rsi22, rsi4;
+        shr.b32 rsi24, rsi23, 1;
+        shl.b32 rsi25, rsi24, 10;
+        add.s32 rsi26, rsi25, 512;
+        mov.u32 rui1, %ctaid.y;
+        cvt.s32.u32     rsi27, rui1;
+        shl.b32 rsi28, rsi27, 7;
+        add.s32 rsi29, rsi28, 9;
+        add.s32 rsi30, rsi28, 8;
+        mov.u32 rui2, %ctaid.x;
+        cvt.s32.u32     rsi31, rui2;
+        shl.b32 rsi32, rsi31, 7;
+
+// ============================================================================
+// PROLOGUE: load tile 0 into rsiArr0_0 (A) and rsiArr1_0 (B).
+// Uses cp.async with K-offset = 0 (i.e. rsi36 = 8, rsi34 = 0 for B).
+// ============================================================================
+PRE_BLOCK_A:
+        mov.s32 rsi37, rsi0;
+PRE_LOOP_A:
+        setp.lt.s32     rpb0, rsi37, 1024;
+        @!rpb0 bra      PRE_BLOCK_A_END;
+
+        rem.s32 rsi38, rsi37, 8;
+        shl.b32 rsi39, rsi38, 1;
+        shr.b32 rsi40, rsi37, 31;
+        shr.b32 rsi41, rsi40, 29;
+        add.s32 rsi42, rsi41, rsi37;
+        shr.b32 rsi43, rsi42, 3;
+        add.s32 rsi44, rsi43, rsi32;
+        shl.b32 rsi45, rsi44, 11;
+        add.s32 rsi46, rsi39, rsi45;
+        add.s32 rsi47, rsi46, 8;          // K_OFF=0, rsi36 = 0+8
+        cvt.s64.s32     rsd0, rsi47;
+        shl.b64 rsd1, rsd0, 1;
+        add.u64 rud20, rud1, rsd1;
+        and.b32 rsi49, rsi42, -8;
+        add.s32 rsi50, rsi49, rsi38;
+        mov.u32 __cpa_dst, rsiArr0_0;
+        mad.lo.u32 __cpa_dst, rsi50, 4, __cpa_dst;
+        cp.async.ca.shared.global [__cpa_dst], [rud20], 4;
+        add.s32 rsi51, rsi37, 256;
+        mov.s32 rsi37, rsi51;
+        bra.uni PRE_LOOP_A;
+
+PRE_BLOCK_A_END:
+
+PRE_BLOCK_B:
+        mov.s32 rsi52, rsi0;
+PRE_LOOP_B:
+        setp.lt.s32     rpb1, rsi52, 1024;
+        @!rpb1 bra      PRE_BLOCK_B_END;
+
+        rem.s32 rsi53, rsi52, 64;
+        rem.s32 rsi54, rsi53, 4;
+        shl.b32 rsi55, rsi54, 1;
+        shr.b32 rsi56, rsi52, 31;
+        shr.b32 rsi57, rsi56, 26;
+        add.s32 rsi58, rsi57, rsi52;
+        shr.b32 rsi59, rsi58, 6;
+        shl.b32 rsi60, rsi59, 3;
+        add.s32 rsi61, rsi55, rsi60;
+        shr.b32 rsi62, rsi53, 31;
+        shr.b32 rsi63, rsi62, 30;
+        add.s32 rsi64, rsi63, rsi53;
+        shr.b32 rsi65, rsi64, 2;
+        mov.s32 rsi66, rsi65;             // K_OFF=0, rsi34 = 0, so rsi66 = rsi65 + 0
+        shl.b32 rsi67, rsi66, 11;
+        add.s32 rsi68, rsi61, rsi67;
+        add.s32 rsi69, rsi68, rsi30;
+        cvt.s64.s32     rsd4, rsi69;
+        shl.b64 rsd5, rsd4, 1;
+        add.u64 rud22, rud2, rsd5;
+        mov.u32 __cpa_dst, rsiArr1_0;
+        mad.lo.u32 __cpa_dst, rsi52, 4, __cpa_dst;
+        cp.async.ca.shared.global [__cpa_dst], [rud22], 4;
+        add.s32 rsi71, rsi52, 256;
+        mov.s32 rsi52, rsi71;
+        bra.uni PRE_LOOP_B;
+
+PRE_BLOCK_B_END:
+        cp.async.commit_group;
+
+BLOCK_1:
+        .reg .f32 rud4_0, rud4_1, rud4_2, rud4_3;
+        mov.f32 rud4_0, rmmaaccf320_0;
+        mov.f32 rud4_1, rmmaaccf320_1;
+        mov.f32 rud4_2, rmmaaccf320_2;
+        mov.f32 rud4_3, rmmaaccf320_3;
+        .reg .f32 rud5_0, rud5_1, rud5_2, rud5_3;
+        mov.f32 rud5_0, rmmaaccf321_0;
+        mov.f32 rud5_1, rmmaaccf321_1;
+        mov.f32 rud5_2, rmmaaccf321_2;
+        mov.f32 rud5_3, rmmaaccf321_3;
+        .reg .f32 rud6_0, rud6_1, rud6_2, rud6_3;
+        mov.f32 rud6_0, rmmaaccf322_0;
+        mov.f32 rud6_1, rmmaaccf322_1;
+        mov.f32 rud6_2, rmmaaccf322_2;
+        mov.f32 rud6_3, rmmaaccf322_3;
+        .reg .f32 rud7_0, rud7_1, rud7_2, rud7_3;
+        mov.f32 rud7_0, rmmaaccf323_0;
+        mov.f32 rud7_1, rmmaaccf323_1;
+        mov.f32 rud7_2, rmmaaccf323_2;
+        mov.f32 rud7_3, rmmaaccf323_3;
+        .reg .f32 rud8_0, rud8_1, rud8_2, rud8_3;
+        mov.f32 rud8_0, rmmaaccf324_0;
+        mov.f32 rud8_1, rmmaaccf324_1;
+        mov.f32 rud8_2, rmmaaccf324_2;
+        mov.f32 rud8_3, rmmaaccf324_3;
+        .reg .f32 rud9_0, rud9_1, rud9_2, rud9_3;
+        mov.f32 rud9_0, rmmaaccf325_0;
+        mov.f32 rud9_1, rmmaaccf325_1;
+        mov.f32 rud9_2, rmmaaccf325_2;
+        mov.f32 rud9_3, rmmaaccf325_3;
+        .reg .f32 rud10_0, rud10_1, rud10_2, rud10_3;
+        mov.f32 rud10_0, rmmaaccf326_0;
+        mov.f32 rud10_1, rmmaaccf326_1;
+        mov.f32 rud10_2, rmmaaccf326_2;
+        mov.f32 rud10_3, rmmaaccf326_3;
+        .reg .f32 rud11_0, rud11_1, rud11_2, rud11_3;
+        mov.f32 rud11_0, rmmaaccf327_0;
+        mov.f32 rud11_1, rmmaaccf327_1;
+        mov.f32 rud11_2, rmmaaccf327_2;
+        mov.f32 rud11_3, rmmaaccf327_3;
+        .reg .f32 rud12_0, rud12_1, rud12_2, rud12_3;
+        mov.f32 rud12_0, rmmaaccf328_0;
+        mov.f32 rud12_1, rmmaaccf328_1;
+        mov.f32 rud12_2, rmmaaccf328_2;
+        mov.f32 rud12_3, rmmaaccf328_3;
+        .reg .f32 rud13_0, rud13_1, rud13_2, rud13_3;
+        mov.f32 rud13_0, rmmaaccf329_0;
+        mov.f32 rud13_1, rmmaaccf329_1;
+        mov.f32 rud13_2, rmmaaccf329_2;
+        mov.f32 rud13_3, rmmaaccf329_3;
+        .reg .f32 rud14_0, rud14_1, rud14_2, rud14_3;
+        mov.f32 rud14_0, rmmaaccf3210_0;
+        mov.f32 rud14_1, rmmaaccf3210_1;
+        mov.f32 rud14_2, rmmaaccf3210_2;
+        mov.f32 rud14_3, rmmaaccf3210_3;
+        .reg .f32 rud15_0, rud15_1, rud15_2, rud15_3;
+        mov.f32 rud15_0, rmmaaccf3211_0;
+        mov.f32 rud15_1, rmmaaccf3211_1;
+        mov.f32 rud15_2, rmmaaccf3211_2;
+        mov.f32 rud15_3, rmmaaccf3211_3;
+        .reg .f32 rud16_0, rud16_1, rud16_2, rud16_3;
+        mov.f32 rud16_0, rmmaaccf3212_0;
+        mov.f32 rud16_1, rmmaaccf3212_1;
+        mov.f32 rud16_2, rmmaaccf3212_2;
+        mov.f32 rud16_3, rmmaaccf3212_3;
+        .reg .f32 rud17_0, rud17_1, rud17_2, rud17_3;
+        mov.f32 rud17_0, rmmaaccf3213_0;
+        mov.f32 rud17_1, rmmaaccf3213_1;
+        mov.f32 rud17_2, rmmaaccf3213_2;
+        mov.f32 rud17_3, rmmaaccf3213_3;
+        .reg .f32 rud18_0, rud18_1, rud18_2, rud18_3;
+        mov.f32 rud18_0, rmmaaccf3214_0;
+        mov.f32 rud18_1, rmmaaccf3214_1;
+        mov.f32 rud18_2, rmmaaccf3214_2;
+        mov.f32 rud18_3, rmmaaccf3214_3;
+        .reg .f32 rud19_0, rud19_1, rud19_2, rud19_3;
+        mov.f32 rud19_0, rmmaaccf3215_0;
+        mov.f32 rud19_1, rmmaaccf3215_1;
+        mov.f32 rud19_2, rmmaaccf3215_2;
+        mov.f32 rud19_3, rmmaaccf3215_3;
+        mov.s32 rsi33, 0;
+
+LOOP_COND_1:
+        setp.lt.s32     rpb0, rsi33, 128;
+        @!rpb0 bra      BLOCK_9;
+
+BLOCK_2:
+        // === Select current buffer for compute (based on rsi33 & 1) ===
+        and.b32 __cur_low, rsi33, 1;
+        setp.ne.s32 __cur_buf_pred, __cur_low, 0;
+        selp.u32 __cur_a_base, __r_a1, __r_a0, __cur_buf_pred;
+        selp.u32 __cur_b_base, __r_b1, __r_b0, __cur_buf_pred;
+
+        // === Check if we should issue loads for the next tile ===
+        add.s32 __next_k, rsi33, 1;
+        setp.lt.s32 __load_next_pred, __next_k, 128;
+        @!__load_next_pred bra SKIP_LOAD;
+
+        // === Select target buffer for the next tile's loads ===
+        and.b32 __next_low, __next_k, 1;
+        setp.ne.s32 __next_buf_pred, __next_low, 0;
+        selp.u32 __next_a_base, __r_a1, __r_a0, __next_buf_pred;
+        selp.u32 __next_b_base, __r_b1, __r_b0, __next_buf_pred;
+
+        // === K-offsets for NEXT tile (rsi33+1) ===
+        shl.b32 rsi34, __next_k, 4;       // (rsi33+1) * 16
+        add.s32 rsi35, rsi34, 9;
+        add.s32 rsi36, rsi34, 8;
+
+BLOCK_3:
+        mov.s32 rsi37, rsi0;
+LOOP_COND_3:
+        setp.lt.s32     rpb1, rsi37, 1024;
+        @!rpb1 bra      BLOCK_5;
+
+BLOCK_4:
+        rem.s32 rsi38, rsi37, 8;
+        shl.b32 rsi39, rsi38, 1;
+        shr.b32 rsi40, rsi37, 31;
+        shr.b32 rsi41, rsi40, 29;
+        add.s32 rsi42, rsi41, rsi37;
+        shr.b32 rsi43, rsi42, 3;
+        add.s32 rsi44, rsi43, rsi32;
+        shl.b32 rsi45, rsi44, 11;
+        add.s32 rsi46, rsi39, rsi45;
+        add.s32 rsi47, rsi46, rsi36;
+        cvt.s64.s32     rsd0, rsi47;
+        shl.b64 rsd1, rsd0, 1;
+        add.u64 rud20, rud1, rsd1;
+        and.b32 rsi49, rsi42, -8;
+        add.s32 rsi50, rsi49, rsi38;
+        // cp.async A: target = __next_a_base (next tile's buffer)
+        mov.u32 __cpa_dst, __next_a_base;
+        mad.lo.u32 __cpa_dst, rsi50, 4, __cpa_dst;
+        cp.async.ca.shared.global [__cpa_dst], [rud20], 4;
+        add.s32 rsi51, rsi37, 256;
+        mov.s32 rsi37, rsi51;
+        bra.uni LOOP_COND_3;
+
+BLOCK_5:
+        bra.uni BLOCK_6;
+
+BLOCK_6:
+        mov.s32 rsi52, rsi0;
+LOOP_COND_6:
+        setp.lt.s32     rpb2, rsi52, 1024;
+        @!rpb2 bra      AFTER_LOADS;
+
+BLOCK_7:
+        rem.s32 rsi53, rsi52, 64;
+        rem.s32 rsi54, rsi53, 4;
+        shl.b32 rsi55, rsi54, 1;
+        shr.b32 rsi56, rsi52, 31;
+        shr.b32 rsi57, rsi56, 26;
+        add.s32 rsi58, rsi57, rsi52;
+        shr.b32 rsi59, rsi58, 6;
+        shl.b32 rsi60, rsi59, 3;
+        add.s32 rsi61, rsi55, rsi60;
+        shr.b32 rsi62, rsi53, 31;
+        shr.b32 rsi63, rsi62, 30;
+        add.s32 rsi64, rsi63, rsi53;
+        shr.b32 rsi65, rsi64, 2;
+        add.s32 rsi66, rsi65, rsi34;
+        shl.b32 rsi67, rsi66, 11;
+        add.s32 rsi68, rsi61, rsi67;
+        add.s32 rsi69, rsi68, rsi30;
+        cvt.s64.s32     rsd4, rsi69;
+        shl.b64 rsd5, rsd4, 1;
+        add.u64 rud22, rud2, rsd5;
+        // cp.async B: target = __next_b_base
+        mov.u32 __cpa_dst, __next_b_base;
+        mad.lo.u32 __cpa_dst, rsi52, 4, __cpa_dst;
+        cp.async.ca.shared.global [__cpa_dst], [rud22], 4;
+        add.s32 rsi71, rsi52, 256;
+        mov.s32 rsi52, rsi71;
+        bra.uni LOOP_COND_6;
+
+AFTER_LOADS:
+        // Issued all loads for tile (rsi33+1). Commit them.
+        cp.async.commit_group;
+        // wait_group 1: at most 1 group pending (the one just committed for tile rsi33+1)
+        // → wait until the older group (tile rsi33) is complete.
+        cp.async.wait_group 1;
+        bra.uni DO_COMPUTE;
+
+SKIP_LOAD:
+        // No more tiles to load. Wait for all in-flight copies (which is just tile rsi33).
+        cp.async.wait_all;
+
+DO_COMPUTE:
+        barrier.sync    0;
+        // === ldmatrix calls now use __cur_a_base / __cur_b_base (instead of rsiArr0 / rsiArr1) ===
+        .reg .b32 rmmaaf160_0, rmmaaf160_1, rmmaaf160_2, rmmaaf160_3;
+        .reg .u32 __ldm_lane, __ldm_rowInTile, __ldm_group;
+        .reg .u32 __ldm_rowOff, __ldm_colOff, __ldm_row;
+        .reg .u32 __ldm_rowBytes, __ldm_byteOff, __ldm_addr, __ldm_xorTmp;
+        mov.u32 __ldm_lane, %tid.x;
+        and.b32 __ldm_lane, __ldm_lane, 31;
+        and.b32 __ldm_rowInTile, __ldm_lane, 7;
+        shr.b32 __ldm_group, __ldm_lane, 3;
+        and.b32 __ldm_rowOff, __ldm_group, 1;
+        shl.b32 __ldm_rowOff, __ldm_rowOff, 3;
+        shr.b32 __ldm_colOff, __ldm_group, 1;
+        shl.b32 __ldm_colOff, __ldm_colOff, 4;
+        add.u32 __ldm_row, __ldm_rowOff, __ldm_rowInTile;
+        shl.b32 __ldm_rowBytes, __ldm_row, 5;
+        add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff;
+        mov.u32 __ldm_addr, __cur_a_base;
+        add.u32 __ldm_addr, __ldm_addr, rsi25;
+        add.u32 __ldm_addr, __ldm_addr, __ldm_byteOff;
+        ldmatrix.sync.aligned.m8n8.x4.shared.b16 {rmmaaf160_0, rmmaaf160_1, rmmaaf160_2, rmmaaf160_3}, [__ldm_addr];
+        .reg .b32 rmmaaf161_0, rmmaaf161_1, rmmaaf161_2, rmmaaf161_3;
+        mov.u32 __ldm_lane, %tid.x;
+        and.b32 __ldm_lane, __ldm_lane, 31;
+        and.b32 __ldm_rowInTile, __ldm_lane, 7;
+        shr.b32 __ldm_group, __ldm_lane, 3;
+        and.b32 __ldm_rowOff, __ldm_group, 1;
+        shl.b32 __ldm_rowOff, __ldm_rowOff, 3;
+        shr.b32 __ldm_colOff, __ldm_group, 1;
+        shl.b32 __ldm_colOff, __ldm_colOff, 4;
+        add.u32 __ldm_row, __ldm_rowOff, __ldm_rowInTile;
+        shl.b32 __ldm_rowBytes, __ldm_row, 5;
+        add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff;
+        mov.u32 __ldm_addr, __cur_a_base;
+        add.u32 __ldm_addr, __ldm_addr, rsi26;
+        add.u32 __ldm_addr, __ldm_addr, __ldm_byteOff;
+        ldmatrix.sync.aligned.m8n8.x4.shared.b16 {rmmaaf161_0, rmmaaf161_1, rmmaaf161_2, rmmaaf161_3}, [__ldm_addr];
+        .reg .b32 rmmabf160_0, rmmabf160_1;
+        mov.u32 __ldm_lane, %tid.x;
+        and.b32 __ldm_lane, __ldm_lane, 31;
+        and.b32 __ldm_rowInTile, __ldm_lane, 7;
+        shr.b32 __ldm_group, __ldm_lane, 3;
+        and.b32 __ldm_colOff, __ldm_group, 1;
+        shl.b32 __ldm_colOff, __ldm_colOff, 7;
+        shl.b32 __ldm_rowBytes, __ldm_rowInTile, 4;
+        add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff;
+        mov.u32 __ldm_addr, __cur_b_base;
+        add.u32 __ldm_addr, __ldm_addr, rsi21;
+        add.u32 __ldm_addr, __ldm_addr, __ldm_byteOff;
+        ldmatrix.sync.aligned.m8n8.x2.trans.shared.b16 {rmmabf160_0, rmmabf160_1}, [__ldm_addr];
+        .reg .b32 rmmabf161_0, rmmabf161_1;
+        mov.u32 __ldm_lane, %tid.x;
+        and.b32 __ldm_lane, __ldm_lane, 31;
+        and.b32 __ldm_rowInTile, __ldm_lane, 7;
+        shr.b32 __ldm_group, __ldm_lane, 3;
+        and.b32 __ldm_colOff, __ldm_group, 1;
+        shl.b32 __ldm_colOff, __ldm_colOff, 7;
+        shl.b32 __ldm_rowBytes, __ldm_rowInTile, 4;
+        add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff;
+        mov.u32 __ldm_addr, __cur_b_base;
+        add.u32 __ldm_addr, __ldm_addr, rsi20;
+        add.u32 __ldm_addr, __ldm_addr, __ldm_byteOff;
+        ldmatrix.sync.aligned.m8n8.x2.trans.shared.b16 {rmmabf161_0, rmmabf161_1}, [__ldm_addr];
+        .reg .b32 rmmabf162_0, rmmabf162_1;
+        mov.u32 __ldm_lane, %tid.x;
+        and.b32 __ldm_lane, __ldm_lane, 31;
+        and.b32 __ldm_rowInTile, __ldm_lane, 7;
+        shr.b32 __ldm_group, __ldm_lane, 3;
+        and.b32 __ldm_colOff, __ldm_group, 1;
+        shl.b32 __ldm_colOff, __ldm_colOff, 7;
+        shl.b32 __ldm_rowBytes, __ldm_rowInTile, 4;
+        add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff;
+        mov.u32 __ldm_addr, __cur_b_base;
+        add.u32 __ldm_addr, __ldm_addr, rsi18;
+        add.u32 __ldm_addr, __ldm_addr, __ldm_byteOff;
+        ldmatrix.sync.aligned.m8n8.x2.trans.shared.b16 {rmmabf162_0, rmmabf162_1}, [__ldm_addr];
+        .reg .b32 rmmabf163_0, rmmabf163_1;
+        mov.u32 __ldm_lane, %tid.x;
+        and.b32 __ldm_lane, __ldm_lane, 31;
+        and.b32 __ldm_rowInTile, __ldm_lane, 7;
+        shr.b32 __ldm_group, __ldm_lane, 3;
+        and.b32 __ldm_colOff, __ldm_group, 1;
+        shl.b32 __ldm_colOff, __ldm_colOff, 7;
+        shl.b32 __ldm_rowBytes, __ldm_rowInTile, 4;
+        add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff;
+        mov.u32 __ldm_addr, __cur_b_base;
+        add.u32 __ldm_addr, __ldm_addr, rsi16;
+        add.u32 __ldm_addr, __ldm_addr, __ldm_byteOff;
+        ldmatrix.sync.aligned.m8n8.x2.trans.shared.b16 {rmmabf163_0, rmmabf163_1}, [__ldm_addr];
+        .reg .b32 rmmabf164_0, rmmabf164_1;
+        mov.u32 __ldm_lane, %tid.x;
+        and.b32 __ldm_lane, __ldm_lane, 31;
+        and.b32 __ldm_rowInTile, __ldm_lane, 7;
+        shr.b32 __ldm_group, __ldm_lane, 3;
+        and.b32 __ldm_colOff, __ldm_group, 1;
+        shl.b32 __ldm_colOff, __ldm_colOff, 7;
+        shl.b32 __ldm_rowBytes, __ldm_rowInTile, 4;
+        add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff;
+        mov.u32 __ldm_addr, __cur_b_base;
+        add.u32 __ldm_addr, __ldm_addr, rsi14;
+        add.u32 __ldm_addr, __ldm_addr, __ldm_byteOff;
+        ldmatrix.sync.aligned.m8n8.x2.trans.shared.b16 {rmmabf164_0, rmmabf164_1}, [__ldm_addr];
+        .reg .b32 rmmabf165_0, rmmabf165_1;
+        mov.u32 __ldm_lane, %tid.x;
+        and.b32 __ldm_lane, __ldm_lane, 31;
+        and.b32 __ldm_rowInTile, __ldm_lane, 7;
+        shr.b32 __ldm_group, __ldm_lane, 3;
+        and.b32 __ldm_colOff, __ldm_group, 1;
+        shl.b32 __ldm_colOff, __ldm_colOff, 7;
+        shl.b32 __ldm_rowBytes, __ldm_rowInTile, 4;
+        add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff;
+        mov.u32 __ldm_addr, __cur_b_base;
+        add.u32 __ldm_addr, __ldm_addr, rsi12;
+        add.u32 __ldm_addr, __ldm_addr, __ldm_byteOff;
+        ldmatrix.sync.aligned.m8n8.x2.trans.shared.b16 {rmmabf165_0, rmmabf165_1}, [__ldm_addr];
+        .reg .b32 rmmabf166_0, rmmabf166_1;
+        mov.u32 __ldm_lane, %tid.x;
+        and.b32 __ldm_lane, __ldm_lane, 31;
+        and.b32 __ldm_rowInTile, __ldm_lane, 7;
+        shr.b32 __ldm_group, __ldm_lane, 3;
+        and.b32 __ldm_colOff, __ldm_group, 1;
+        shl.b32 __ldm_colOff, __ldm_colOff, 7;
+        shl.b32 __ldm_rowBytes, __ldm_rowInTile, 4;
+        add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff;
+        mov.u32 __ldm_addr, __cur_b_base;
+        add.u32 __ldm_addr, __ldm_addr, rsi10;
+        add.u32 __ldm_addr, __ldm_addr, __ldm_byteOff;
+        ldmatrix.sync.aligned.m8n8.x2.trans.shared.b16 {rmmabf166_0, rmmabf166_1}, [__ldm_addr];
+        .reg .b32 rmmabf167_0, rmmabf167_1;
+        mov.u32 __ldm_lane, %tid.x;
+        and.b32 __ldm_lane, __ldm_lane, 31;
+        and.b32 __ldm_rowInTile, __ldm_lane, 7;
+        shr.b32 __ldm_group, __ldm_lane, 3;
+        and.b32 __ldm_colOff, __ldm_group, 1;
+        shl.b32 __ldm_colOff, __ldm_colOff, 7;
+        shl.b32 __ldm_rowBytes, __ldm_rowInTile, 4;
+        add.u32 __ldm_byteOff, __ldm_rowBytes, __ldm_colOff;
+        mov.u32 __ldm_addr, __cur_b_base;
+        add.u32 __ldm_addr, __ldm_addr, rsi8;
+        add.u32 __ldm_addr, __ldm_addr, __ldm_byteOff;
+        ldmatrix.sync.aligned.m8n8.x2.trans.shared.b16 {rmmabf167_0, rmmabf167_1}, [__ldm_addr];
+        .reg .f32 rmmaaccf3216_0, rmmaaccf3216_1, rmmaaccf3216_2, rmmaaccf3216_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3216_0, rmmaaccf3216_1, rmmaaccf3216_2, rmmaaccf3216_3}, {rmmaaf160_0, rmmaaf160_1, rmmaaf160_2, rmmaaf160_3}, {rmmabf160_0, rmmabf160_1}, {rud4_0, rud4_1, rud4_2, rud4_3};
+        .reg .f32 rmmaaccf3217_0, rmmaaccf3217_1, rmmaaccf3217_2, rmmaaccf3217_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3217_0, rmmaaccf3217_1, rmmaaccf3217_2, rmmaaccf3217_3}, {rmmaaf160_0, rmmaaf160_1, rmmaaf160_2, rmmaaf160_3}, {rmmabf161_0, rmmabf161_1}, {rud5_0, rud5_1, rud5_2, rud5_3};
+        .reg .f32 rmmaaccf3218_0, rmmaaccf3218_1, rmmaaccf3218_2, rmmaaccf3218_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3218_0, rmmaaccf3218_1, rmmaaccf3218_2, rmmaaccf3218_3}, {rmmaaf160_0, rmmaaf160_1, rmmaaf160_2, rmmaaf160_3}, {rmmabf162_0, rmmabf162_1}, {rud6_0, rud6_1, rud6_2, rud6_3};
+        .reg .f32 rmmaaccf3219_0, rmmaaccf3219_1, rmmaaccf3219_2, rmmaaccf3219_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3219_0, rmmaaccf3219_1, rmmaaccf3219_2, rmmaaccf3219_3}, {rmmaaf160_0, rmmaaf160_1, rmmaaf160_2, rmmaaf160_3}, {rmmabf163_0, rmmabf163_1}, {rud7_0, rud7_1, rud7_2, rud7_3};
+        .reg .f32 rmmaaccf3220_0, rmmaaccf3220_1, rmmaaccf3220_2, rmmaaccf3220_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3220_0, rmmaaccf3220_1, rmmaaccf3220_2, rmmaaccf3220_3}, {rmmaaf160_0, rmmaaf160_1, rmmaaf160_2, rmmaaf160_3}, {rmmabf164_0, rmmabf164_1}, {rud8_0, rud8_1, rud8_2, rud8_3};
+        .reg .f32 rmmaaccf3221_0, rmmaaccf3221_1, rmmaaccf3221_2, rmmaaccf3221_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3221_0, rmmaaccf3221_1, rmmaaccf3221_2, rmmaaccf3221_3}, {rmmaaf160_0, rmmaaf160_1, rmmaaf160_2, rmmaaf160_3}, {rmmabf165_0, rmmabf165_1}, {rud9_0, rud9_1, rud9_2, rud9_3};
+        .reg .f32 rmmaaccf3222_0, rmmaaccf3222_1, rmmaaccf3222_2, rmmaaccf3222_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3222_0, rmmaaccf3222_1, rmmaaccf3222_2, rmmaaccf3222_3}, {rmmaaf160_0, rmmaaf160_1, rmmaaf160_2, rmmaaf160_3}, {rmmabf166_0, rmmabf166_1}, {rud10_0, rud10_1, rud10_2, rud10_3};
+        .reg .f32 rmmaaccf3223_0, rmmaaccf3223_1, rmmaaccf3223_2, rmmaaccf3223_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3223_0, rmmaaccf3223_1, rmmaaccf3223_2, rmmaaccf3223_3}, {rmmaaf160_0, rmmaaf160_1, rmmaaf160_2, rmmaaf160_3}, {rmmabf167_0, rmmabf167_1}, {rud11_0, rud11_1, rud11_2, rud11_3};
+        .reg .f32 rmmaaccf3224_0, rmmaaccf3224_1, rmmaaccf3224_2, rmmaaccf3224_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3224_0, rmmaaccf3224_1, rmmaaccf3224_2, rmmaaccf3224_3}, {rmmaaf161_0, rmmaaf161_1, rmmaaf161_2, rmmaaf161_3}, {rmmabf160_0, rmmabf160_1}, {rud12_0, rud12_1, rud12_2, rud12_3};
+        .reg .f32 rmmaaccf3225_0, rmmaaccf3225_1, rmmaaccf3225_2, rmmaaccf3225_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3225_0, rmmaaccf3225_1, rmmaaccf3225_2, rmmaaccf3225_3}, {rmmaaf161_0, rmmaaf161_1, rmmaaf161_2, rmmaaf161_3}, {rmmabf161_0, rmmabf161_1}, {rud13_0, rud13_1, rud13_2, rud13_3};
+        .reg .f32 rmmaaccf3226_0, rmmaaccf3226_1, rmmaaccf3226_2, rmmaaccf3226_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3226_0, rmmaaccf3226_1, rmmaaccf3226_2, rmmaaccf3226_3}, {rmmaaf161_0, rmmaaf161_1, rmmaaf161_2, rmmaaf161_3}, {rmmabf162_0, rmmabf162_1}, {rud14_0, rud14_1, rud14_2, rud14_3};
+        .reg .f32 rmmaaccf3227_0, rmmaaccf3227_1, rmmaaccf3227_2, rmmaaccf3227_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3227_0, rmmaaccf3227_1, rmmaaccf3227_2, rmmaaccf3227_3}, {rmmaaf161_0, rmmaaf161_1, rmmaaf161_2, rmmaaf161_3}, {rmmabf163_0, rmmabf163_1}, {rud15_0, rud15_1, rud15_2, rud15_3};
+        .reg .f32 rmmaaccf3228_0, rmmaaccf3228_1, rmmaaccf3228_2, rmmaaccf3228_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3228_0, rmmaaccf3228_1, rmmaaccf3228_2, rmmaaccf3228_3}, {rmmaaf161_0, rmmaaf161_1, rmmaaf161_2, rmmaaf161_3}, {rmmabf164_0, rmmabf164_1}, {rud16_0, rud16_1, rud16_2, rud16_3};
+        .reg .f32 rmmaaccf3229_0, rmmaaccf3229_1, rmmaaccf3229_2, rmmaaccf3229_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3229_0, rmmaaccf3229_1, rmmaaccf3229_2, rmmaaccf3229_3}, {rmmaaf161_0, rmmaaf161_1, rmmaaf161_2, rmmaaf161_3}, {rmmabf165_0, rmmabf165_1}, {rud17_0, rud17_1, rud17_2, rud17_3};
+        .reg .f32 rmmaaccf3230_0, rmmaaccf3230_1, rmmaaccf3230_2, rmmaaccf3230_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3230_0, rmmaaccf3230_1, rmmaaccf3230_2, rmmaaccf3230_3}, {rmmaaf161_0, rmmaaf161_1, rmmaaf161_2, rmmaaf161_3}, {rmmabf166_0, rmmabf166_1}, {rud18_0, rud18_1, rud18_2, rud18_3};
+        .reg .f32 rmmaaccf3231_0, rmmaaccf3231_1, rmmaaccf3231_2, rmmaaccf3231_3;
+        mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 {rmmaaccf3231_0, rmmaaccf3231_1, rmmaaccf3231_2, rmmaaccf3231_3}, {rmmaaf161_0, rmmaaf161_1, rmmaaf161_2, rmmaaf161_3}, {rmmabf167_0, rmmabf167_1}, {rud19_0, rud19_1, rud19_2, rud19_3};
+        barrier.sync    0;
+        add.s32 rsi72, rsi33, 1;
+        mov.f32 rud4_0, rmmaaccf3216_0;
+        mov.f32 rud4_1, rmmaaccf3216_1;
+        mov.f32 rud4_2, rmmaaccf3216_2;
+        mov.f32 rud4_3, rmmaaccf3216_3;
+        mov.f32 rud5_0, rmmaaccf3217_0;
+        mov.f32 rud5_1, rmmaaccf3217_1;
+        mov.f32 rud5_2, rmmaaccf3217_2;
+        mov.f32 rud5_3, rmmaaccf3217_3;
+        mov.f32 rud6_0, rmmaaccf3218_0;
+        mov.f32 rud6_1, rmmaaccf3218_1;
+        mov.f32 rud6_2, rmmaaccf3218_2;
+        mov.f32 rud6_3, rmmaaccf3218_3;
+        mov.f32 rud7_0, rmmaaccf3219_0;
+        mov.f32 rud7_1, rmmaaccf3219_1;
+        mov.f32 rud7_2, rmmaaccf3219_2;
+        mov.f32 rud7_3, rmmaaccf3219_3;
+        mov.f32 rud8_0, rmmaaccf3220_0;
+        mov.f32 rud8_1, rmmaaccf3220_1;
+        mov.f32 rud8_2, rmmaaccf3220_2;
+        mov.f32 rud8_3, rmmaaccf3220_3;
+        mov.f32 rud9_0, rmmaaccf3221_0;
+        mov.f32 rud9_1, rmmaaccf3221_1;
+        mov.f32 rud9_2, rmmaaccf3221_2;
+        mov.f32 rud9_3, rmmaaccf3221_3;
+        mov.f32 rud10_0, rmmaaccf3222_0;
+        mov.f32 rud10_1, rmmaaccf3222_1;
+        mov.f32 rud10_2, rmmaaccf3222_2;
+        mov.f32 rud10_3, rmmaaccf3222_3;
+        mov.f32 rud11_0, rmmaaccf3223_0;
+        mov.f32 rud11_1, rmmaaccf3223_1;
+        mov.f32 rud11_2, rmmaaccf3223_2;
+        mov.f32 rud11_3, rmmaaccf3223_3;
+        mov.f32 rud12_0, rmmaaccf3224_0;
+        mov.f32 rud12_1, rmmaaccf3224_1;
+        mov.f32 rud12_2, rmmaaccf3224_2;
+        mov.f32 rud12_3, rmmaaccf3224_3;
+        mov.f32 rud13_0, rmmaaccf3225_0;
+        mov.f32 rud13_1, rmmaaccf3225_1;
+        mov.f32 rud13_2, rmmaaccf3225_2;
+        mov.f32 rud13_3, rmmaaccf3225_3;
+        mov.f32 rud14_0, rmmaaccf3226_0;
+        mov.f32 rud14_1, rmmaaccf3226_1;
+        mov.f32 rud14_2, rmmaaccf3226_2;
+        mov.f32 rud14_3, rmmaaccf3226_3;
+        mov.f32 rud15_0, rmmaaccf3227_0;
+        mov.f32 rud15_1, rmmaaccf3227_1;
+        mov.f32 rud15_2, rmmaaccf3227_2;
+        mov.f32 rud15_3, rmmaaccf3227_3;
+        mov.f32 rud16_0, rmmaaccf3228_0;
+        mov.f32 rud16_1, rmmaaccf3228_1;
+        mov.f32 rud16_2, rmmaaccf3228_2;
+        mov.f32 rud16_3, rmmaaccf3228_3;
+        mov.f32 rud17_0, rmmaaccf3229_0;
+        mov.f32 rud17_1, rmmaaccf3229_1;
+        mov.f32 rud17_2, rmmaaccf3229_2;
+        mov.f32 rud17_3, rmmaaccf3229_3;
+        mov.f32 rud18_0, rmmaaccf3230_0;
+        mov.f32 rud18_1, rmmaaccf3230_1;
+        mov.f32 rud18_2, rmmaaccf3230_2;
+        mov.f32 rud18_3, rmmaaccf3230_3;
+        mov.f32 rud19_0, rmmaaccf3231_0;
+        mov.f32 rud19_1, rmmaaccf3231_1;
+        mov.f32 rud19_2, rmmaaccf3231_2;
+        mov.f32 rud19_3, rmmaaccf3231_3;
+        mov.s32 rsi33, rsi72;
+        bra.uni LOOP_COND_1;
+
