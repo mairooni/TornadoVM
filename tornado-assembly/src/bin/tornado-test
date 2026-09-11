@@ -217,6 +217,7 @@ __TEST_THE_WORLD__ = [
     TestEntry("uk.ac.manchester.tornado.unittests.kernelcontext.api.TestHalfFloatLocalArray"),
     TestEntry("uk.ac.manchester.tornado.unittests.kernelcontext.local.memory.TestSwizzledLocalArrays"),
     TestEntry("uk.ac.manchester.tornado.unittests.kernelcontext.matrices.TestMatrixMultiplicationKernelContext"),
+    TestEntry("uk.ac.manchester.tornado.unittests.codegen.TestSharedMemoryStaging"),
     TestEntry("uk.ac.manchester.tornado.unittests.kernelcontext.matrices.TestMatrixMultiplicationMMA"),
     TestEntry("uk.ac.manchester.tornado.unittests.kernelcontext.matrices.TestMatrixMultiplicationMMAInt8"),
     TestEntry("uk.ac.manchester.tornado.unittests.kernelcontext.matrices.TestMatrixMultiplicationMMAFP8"),
@@ -465,7 +466,7 @@ else:
 
 ENABLE_ASSERTIONS = "-ea "
 
-__VERSION__ = "6.0.1-dev"
+__VERSION__ = "6.1.1-dev"
 
 try:
     javaHome = os.environ["JAVA_HOME"]
